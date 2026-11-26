@@ -80,22 +80,26 @@ completed in place; nothing is deleted, and a checkout of another repository is 
 
 Support x64/ARM64 Debug, Release and ASan Debug. ASan Debug must have compiler instrumentation and the matching
 staged runtime. Native tests must execute on the target architecture. `build.ps1` validates `Common/Version.h`
-(`REDTILDE_VERSION_MAJOR` and `REDTILDE_VERSION_MINOR`), checks that the compiled `RedTilde.exe` `FileVersionInfo`
+via shared `Get-RedTildeVersionBase` in `Build/Harness.psm1` (`REDTILDE_VERSION_MAJOR` and `REDTILDE_VERSION_MINOR`),
+checks that the compiled `RedTilde.exe` `FileVersionInfo`
 matches `$versionMajor.$versionMinor.$BuildNumber`, rejects a running executable from its selected output directory,
 and does not terminate it. `RedTilde/RedTilde.vcxproj` (`CopySettingsSchema`) stages `SettingsStore.schema.json`
 beside `RedTilde.exe` in `$(OutDir)`. Packaging (`package.ps1`) verifies `RedTilde.exe` `FileVersionInfo` against both the build
 receipt and `Common/Version.h`, stages `SettingsStore.schema.json`, `README.md` (`docs/Portable.md` with portable-layout
-links rewritten/verified for `Installer/Install-RedTilde.ps1`, `docs/Diagnostics.md`, `docs/README.md`, and
-`capabilities.json`), `capabilities.json`, `examples/`, `res/`, `Installer/Install-RedTilde.ps1`,
+links rewritten), `Diagnostics.md`, `docs/README.md`, `THIRD-PARTY-NOTICES.md` (with staged `.md` links rewritten and all
+staged RedTilde `.md` files verified relative to their staged directory, excluding verbatim `Dependencies/DxUi-THIRD-PARTY-NOTICES.md`),
+`capabilities.json`, `examples/`, `res/`, `Installer/Install-RedTilde.ps1`, `Dependencies/*.lock.json` and `Dependencies/README.md`
+(excluding `Dependencies/RedMonitorClientTools`), and
 licenses (`LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, `Dependencies/RedMonitor-LICENSE.txt`, `Dependencies/yyjson-LICENSE.txt`, `Dependencies/WIL-LICENSE.txt`,
 `Dependencies/DxUi-LICENSE.txt`, `Dependencies/DxUi-THIRD-PARTY-NOTICES.md`, `Dependencies/docs/licenses/`,
 `Dependencies/libfyaml-LICENSE.txt`, `Dependencies/libfyaml-xxHash-LICENSE.txt`, or `Dependencies/DxUiSdk` in SDK-input
 packages), writes the staged files, ZIP, receipt and `.sha256` sidecar under `.build/packages`, and runs clean-extraction smoke (`--help`, `--version`, hidden
 capture, and all 16 test-entry refusals). [`Installer/Install-RedTilde.ps1`](../../Installer/Install-RedTilde.ps1)
-provides non-nesting un-elevated per-user installation to `%LOCALAPPDATA%\Programs\RedTilde` with an install-ownership
-manifest marker, Start Menu shortcut creation, HKCU Uninstall registration using a resolved full PowerShell path, optional
-`.md`/`.markdown` `OpenWithProgids` and `Applications\RedTilde.exe` registration with `SHChangeNotify`, and CWD/reparse-safe
-uninstall while preserving `%LOCALAPPDATA%\RedTilde`. A local install can find staged folders under
+provides non-nesting un-elevated per-user installation to `%LOCALAPPDATA%\Programs\RedTilde` (refusing non-empty directories
+without an existing `.redtilde-install.json` manifest marker), Start Menu shortcut creation, non-destructive `[Microsoft.Win32.RegistryKey]`
+HKCU Uninstall registration using a resolved full PowerShell path, optional
+`.md`/`.markdown` `OpenWithProgids` and `Applications\RedTilde.exe` registration with `SHChangeNotify` preserving pre-existing
+HKCU values, and CWD/reparse-safe manifest-only uninstall (pruning empty installed subdirectories) while preserving `%LOCALAPPDATA%\RedTilde`. A local install can find staged folders under
 `.build/packages` and earlier packages under `.build/package`. A release cannot depend on an unqualified moving PR branch.
 
 `build.ps1` hashes the compiled first-party source map by file bytes, so restored or preserved timestamps cannot make
@@ -174,6 +178,11 @@ actual setup script without running an installer. `Tests/Tooling.Tests.ResourceS
 `IDS_*` definitions during `validate.ps1`. `Tests/Tooling.Tests.NamingStyle.ps1` validates root `.clang-tidy`
 (`bugprone-reserved-identifier`, `readability-identifier-naming` requiring `_camelCase` private/protected non-static
 members, anchored single-segment `HeaderFilterRegex` excluding `.build` and `ThirdParty`) and scans `Common/`, `RedTilde/`, and `Tests/` compiler-free during `validate.ps1`.
+`Build/Harness.psm1` centralizes `Get-RedTildeVersionBase` and `Assert-RedTildeNoReparseAncestry` for `build.ps1`, `package.ps1`,
+and `validate.ps1`, while `Tests/Tooling.Tests.ReleaseBuildPolicy.ps1` uses `Get-RedTildeMSBuild` from `Build/Toolchain.psm1`.
+`RedTilde/Main.cpp` keeps `ApplicationRuntime` outside the inner `try`/`catch`, canonicalizes `--data-dir`, rejects empty or
+duplicate `--document` paths, uses non-throwing `directory_iterator::increment(ec)` in `cleanupHarnessData`, and gates test-only
+`LaunchOptions` probes and `CoreTestScope` under `ENABLE_TESTS`.
 `Tests/Tooling.Tests.RealLocations.ps1` and `Tests/Tooling.Tests.Installer.ps1` verify compiler-free in `validate.ps1` that the opt-in
 `Tools/Test-RealLocations.ps1` harness and `Installer/Install-RedTilde.ps1` enforce `testsEnabled -eq $true` receipt checks, non-nesting upgrades, ownership markers, and fail-closed exclusions before touching disk on drive roots, `%USERPROFILE%`, Desktop,
 Documents (including Known Folder Move paths), undeclared OneDrive, non-selftest UNC shares, forward/back-slash device/NT paths, relative/`. `/`..`/shallow UNC paths, and dangling or surrogate

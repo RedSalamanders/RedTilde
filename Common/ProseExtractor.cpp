@@ -2,7 +2,6 @@
 #include <DxUi/Failure.h>
 #include <algorithm>
 #include <cstdint>
-#include <cwctype>
 #include <string>
 #include <utility>
 
@@ -12,29 +11,6 @@ namespace
 {
 constexpr std::size_t MaximumChunkUnits = 4096u;
 constexpr wchar_t MaskSentinel          = L'\uFFFC';
-
-[[nodiscard]] bool StartsWithOrdinalIgnoreCase(std::wstring_view haystack, std::wstring_view prefix) noexcept
-{
-    return haystack.size() >= prefix.size() &&
-           CompareStringOrdinal(haystack.data(), static_cast<int>(prefix.size()), prefix.data(), static_cast<int>(prefix.size()), TRUE) == CSTR_EQUAL;
-}
-
-[[nodiscard]] bool IsValidAsciiLanguageTag(std::wstring_view tag) noexcept
-{
-    if (tag.empty() || tag.size() > 32u)
-        return false;
-    bool hasAlpha = false;
-    for (const wchar_t ch : tag)
-    {
-        const bool isAsciiAlpha = (ch >= L'A' && ch <= L'Z') || (ch >= L'a' && ch <= L'z');
-        const bool isAsciiDigit = (ch >= L'0' && ch <= L'9');
-        if (isAsciiAlpha)
-            hasAlpha = true;
-        else if (! isAsciiDigit && ch != L'-')
-            return false;
-    }
-    return hasAlpha && tag.front() != L'-' && tag.back() != L'-';
-}
 
 [[nodiscard]] bool IsMaskOrSpace(wchar_t ch) noexcept
 {
@@ -143,7 +119,10 @@ void StripSurroundingPunctuation(std::wstring_view& token) noexcept
         token.remove_suffix(1u);
 }
 
-void MaskInlineSyntaxNode(std::wstring& buffer, const std::vector<DxUi::RichText::MarkdownInline>& inlines, std::size_t index) noexcept
+void MaskInlineSyntaxNode(std::wstring& buffer,
+                          const std::vector<DxUi::RichText::MarkdownInline>& inlines,
+                          std::size_t index,
+                          bool ignoreInternetAndPaths) noexcept
 {
     using DxUi::RichText::MarkdownInlineKind;
     using DxUi::RichText::MarkdownNoNode;
@@ -168,9 +147,9 @@ void MaskInlineSyntaxNode(std::wstring& buffer, const std::vector<DxUi::RichText
                 // Mask leading '[' of [label](url).
                 if (inlines[node.firstChild].source.first > node.source.first)
                     MaskRange(buffer, node.source.first, inlines[node.firstChild].source.first);
-                MaskInlineSyntaxNode(buffer, inlines, node.firstChild);
+                MaskInlineSyntaxNode(buffer, inlines, node.firstChild, ignoreInternetAndPaths);
             }
-            else
+            else if (ignoreInternetAndPaths)
             {
                 MaskRange(buffer, node.source.first, node.source.last);
             }
@@ -178,45 +157,12 @@ void MaskInlineSyntaxNode(std::wstring& buffer, const std::vector<DxUi::RichText
         else
         {
             if (node.firstChild != MarkdownNoNode)
-                MaskInlineSyntaxNode(buffer, inlines, node.firstChild);
+                MaskInlineSyntaxNode(buffer, inlines, node.firstChild, ignoreInternetAndPaths);
         }
         index = node.nextSibling;
     }
 }
 } // namespace
-
-bool IsScriptAwareAllUppercase(std::wstring_view word) noexcept
-{
-    if (word.empty())
-        return false;
-    bool hasUpper     = false;
-    std::size_t cased = 0u;
-    for (std::size_t i = 0u; i < word.size(); ++i)
-    {
-        WORD type{};
-        if (! GetStringTypeW(CT_CTYPE1, &word[i], 1, &type))
-            continue;
-        if ((type & C1_LOWER) != 0u)
-            return false;
-        if ((type & C1_UPPER) != 0u)
-        {
-            hasUpper = true;
-            ++cased;
-        }
-    }
-    return hasUpper && cased >= 2u;
-}
-
-bool ContainsAsciiOrUnicodeDigit(std::wstring_view word) noexcept
-{
-    for (const wchar_t ch : word)
-    {
-        WORD type{};
-        if (GetStringTypeW(CT_CTYPE1, &ch, 1, &type) && (type & C1_DIGIT) != 0u)
-            return true;
-    }
-    return false;
-}
 
 bool LooksLikeInternetOrFilePath(std::wstring_view segment, std::size_t start, std::size_t length) noexcept
 {
@@ -249,11 +195,19 @@ bool ShouldSkipSpellError(std::wstring_view segment, SpellErrorSpan span, const 
 {
     if (span.start >= segment.size() || span.length == 0u || span.length > segment.size() - span.start)
         return true;
+    if (span.kind == SpellIssueKind::RepeatedWord)
+        return false;
     const std::wstring_view word = segment.substr(span.start, span.length);
-    if (options.ignoreUppercase && IsScriptAwareAllUppercase(word))
-        return true;
-    if (options.ignoreWordsWithDigits && ContainsAsciiOrUnicodeDigit(word))
-        return true;
+    if (options.ignoreUppercase || options.ignoreWordsWithDigits)
+    {
+        bool isAllUpper = false;
+        bool hasDigit   = false;
+        AnalyzeWordCtype1(word, isAllUpper, hasDigit);
+        if (options.ignoreUppercase && isAllUpper)
+            return true;
+        if (options.ignoreWordsWithDigits && hasDigit)
+            return true;
+    }
     if (options.ignoreInternetAndPaths && LooksLikeInternetOrFilePath(segment, span.start, span.length))
         return true;
     return false;
@@ -311,7 +265,7 @@ std::optional<std::wstring> ExtractFrontMatterLanguage(const DxUi::RichText::Mar
                 rest.remove_prefix(1u);
                 rest.remove_suffix(1u);
             }
-            if (IsValidAsciiLanguageTag(rest))
+            if (IsValidBcp47Tag(rest))
                 return std::wstring(rest);
         }
     }
@@ -320,7 +274,8 @@ std::optional<std::wstring> ExtractFrontMatterLanguage(const DxUi::RichText::Mar
 
 ExtractedProse ExtractSemanticProse(const DxUi::RichText::SemanticDocument& document,
                                     const DxUi::RichText::MarkdownSyntax* syntax,
-                                    std::wstring_view sourceText)
+                                    std::wstring_view sourceText,
+                                    bool ignoreInternetAndPaths)
 {
     using namespace DxUi::RichText;
     ExtractedProse result;
@@ -339,7 +294,7 @@ ExtractedProse ExtractSemanticProse(const DxUi::RichText::SemanticDocument& docu
         {
             MaskRange(buffer, element.display.first, element.display.last);
         }
-        else if (element.role == SemanticRole::Link)
+        else if (ignoreInternetAndPaths && element.role == SemanticRole::Link)
         {
             if (element.display.first < element.display.last && element.display.last <= buffer.size())
             {
@@ -363,12 +318,13 @@ ExtractedProse ExtractSemanticProse(const DxUi::RichText::SemanticDocument& docu
             MaskRange(buffer, span.display.first, span.display.last);
     }
 
-    MaskAutolinksAndBareUrlsInBuffer(buffer);
+    if (ignoreInternetAndPaths)
+        MaskAutolinksAndBareUrlsInBuffer(buffer);
     result.chunks = ChunkMaskedBuffer(buffer);
     return result;
 }
 
-ExtractedProse ExtractSourceProse(const DxUi::RichText::MarkdownSyntax& syntax, std::wstring_view sourceText)
+ExtractedProse ExtractSourceProse(const DxUi::RichText::MarkdownSyntax& syntax, std::wstring_view sourceText, bool ignoreInternetAndPaths)
 {
     using namespace DxUi::RichText;
     ExtractedProse result;
@@ -389,14 +345,15 @@ ExtractedProse ExtractSourceProse(const DxUi::RichText::MarkdownSyntax& syntax, 
             for (const auto& line : node.lines)
                 UnmaskRange(buffer, sourceText, line.source.first, line.source.last);
             if (node.firstInline != MarkdownNoNode)
-                MaskInlineSyntaxNode(buffer, inlines, node.firstInline);
+                MaskInlineSyntaxNode(buffer, inlines, node.firstInline, ignoreInternetAndPaths);
         }
     }
 
     for (const auto& diag : syntax.Diagnostics())
         MaskRange(buffer, diag.source.first, diag.source.last);
 
-    MaskAutolinksAndBareUrlsInBuffer(buffer);
+    if (ignoreInternetAndPaths)
+        MaskAutolinksAndBareUrlsInBuffer(buffer);
     result.chunks = ChunkMaskedBuffer(buffer);
     return result;
 }

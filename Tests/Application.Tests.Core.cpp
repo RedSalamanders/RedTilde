@@ -406,6 +406,34 @@ int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope, bool li
         }
         for (const auto& entry : std::filesystem::directory_iterator(root))
             Require(entry.path().extension() != L".tmp", "no owned temporary leaked");
+        Require(WriteBytesAtomic(L"", "x") == E_INVALIDARG && WriteBytesAtomic(L"relative.md", "x") == E_INVALIDARG,
+                "WriteBytesAtomic rejects empty and relative paths with E_INVALIDARG");
+        const std::filesystem::path nulLeaf((root / L"nul_write_ok.txt").native() + std::wstring(L"\0evil", 5u));
+        const std::filesystem::path ctlLeaf((root / L"ctl_write\x07.txt").native());
+        std::string unusedBytes;
+        Require(WriteBytesAtomic(nulLeaf, "abc", nullptr, nullptr, false, nullptr, false, nullptr, DefaultDocumentBytes, true) == E_INVALIDARG,
+                "WriteBytesAtomic(refuseSurrogateReparse=true) rejects embedded-NUL leaf with E_INVALIDARG");
+        Require(WriteBytesAtomic(nulLeaf, "abc") == E_INVALIDARG, "WriteBytesAtomic(refuseSurrogateReparse=false) rejects embedded-NUL leaf with E_INVALIDARG");
+        Require(! std::filesystem::exists(root / L"nul_write_ok.txt"), "embedded-NUL refusal creates zero truncated file");
+        Require(WriteBytesAtomic(ctlLeaf, "abc", nullptr, nullptr, false, nullptr, false, nullptr, DefaultDocumentBytes, true) == E_INVALIDARG &&
+                    WriteBytesAtomic(ctlLeaf, "abc") == E_INVALIDARG,
+                "WriteBytesAtomic rejects control characters in leaf path with E_INVALIDARG");
+        Require(WriteBytesAtomic(path, "abc", &loaded.stamp, &unused, true, &nulLeaf) == E_INVALIDARG,
+                "WriteBytesAtomic rejects embedded-NUL baselinePath with E_INVALIDARG");
+        Require(ReadBytes(nulLeaf, unusedBytes) == E_INVALIDARG && ReadBytesNoReparse(nulLeaf, unusedBytes) == E_INVALIDARG &&
+                    ReadBytes(ctlLeaf, unusedBytes) == E_INVALIDARG && ReadBytesNoReparse(ctlLeaf, unusedBytes) == E_INVALIDARG,
+                "ReadBytes and ReadBytesNoReparse reject embedded-NUL and control-char paths with E_INVALIDARG");
+        Require(WriteNewBytesDurable(nulLeaf, "abc", unused, DefaultDocumentBytes) == E_INVALIDARG &&
+                    WriteNewBytesDurable(ctlLeaf, "abc", unused, DefaultDocumentBytes) == E_INVALIDARG && ! std::filesystem::exists(root / L"nul_write_ok.txt"),
+                "WriteNewBytesDurable rejects embedded-NUL and control-char paths without creating truncated files");
+        Require(RemoveCreatedBytesIfUnchanged(nulLeaf, loaded.stamp, DefaultDocumentBytes) == E_INVALIDARG,
+                "RemoveCreatedBytesIfUnchanged rejects embedded-NUL paths with E_INVALIDARG");
+        Require(SaveDocument(nulLeaf, L"abc", false, nullptr, unused) == E_INVALIDARG &&
+                    SaveDocument(ctlLeaf, L"abc", false, nullptr, unused) == E_INVALIDARG &&
+                    SaveDocument(L"relative-save.md", L"abc", false, nullptr, unused) == E_INVALIDARG &&
+                    SaveDocument(path, L"abc", false, &loaded.stamp, unused, true, &nulLeaf) == E_INVALIDARG &&
+                    ! std::filesystem::exists(root / L"nul_write_ok.txt"),
+                "SaveDocument rejects embedded-NUL, control-char, relative, and invalid-baselinePath inputs with E_INVALIDARG");
     });
     test("Storage.AtomicSaveKeepsLongLeafWithinPathBudget",
          [&]
@@ -962,6 +990,8 @@ int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope, bool li
         const auto candidates = restart.TakeCandidates();
         Require(candidates.size() == 1 && candidates[0].snapshot.text == L"latest 😀\r\n" && candidates[0].snapshot.bom,
                 "restart discovers exact latest source");
+        Require(! std::filesystem::exists(directory / L"Recovery" / (L"session-" + candidates[0].id + L".lease")),
+                "Scan removes scanned valid candidate .lease files immediately");
         Success(restart.Submit(candidates[0].snapshot, true, candidates[0].id), "adopt without overwriting original");
         wait([&] { return restart.Settled(); });
         Success(restart.Submit(std::nullopt, true), "matching clean save retires recovery");
@@ -970,6 +1000,29 @@ int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope, bool li
         for (const auto& entry : std::filesystem::directory_iterator(directory / L"Recovery"))
             Require(entry.path().extension() != L".rtd", "clean session and adopted snapshot retired");
         Require(FAILED(restart.Discard(L"..\\outside")), "foreign paths cannot be discarded");
+
+        const auto coalesceDir = directory / L"coalesce-retire";
+        const auto coalesceRec = coalesceDir / L"Recovery";
+        std::filesystem::create_directories(coalesceRec);
+        const std::wstring id1 = L"000000000000000000000000000000a1", id2 = L"000000000000000000000000000000a2";
+        Success(WriteBytesAtomic(coalesceRec / (L"session-" + id1 + L".rtd"), SerializeRecovery({L"candidate 1", {}, false, {0, 0}, 1})),
+                "seed first coalesced retirement candidate");
+        Success(WriteBytesAtomic(coalesceRec / (L"session-" + id2 + L".rtd"), SerializeRecovery({L"candidate 2", {}, false, {0, 0}, 2})),
+                "seed second coalesced retirement candidate");
+        RecoveryService coalesced;
+        Success(coalesced.Initialize(coalesceDir), "initialize coalesced-retirement scanner");
+        wait([&] { return coalesced.Ready(); });
+        Require(coalesced.TakeCandidates().size() == 2u, "scanner discovers both inactive candidates");
+        Success(coalesced.Submit(RecoverySnapshot{L"replacement 1", {}, false, {0, 0}, 3}, false, id1), "queue first debounced retirement");
+        Success(coalesced.Submit(RecoverySnapshot{L"replacement 2", {}, false, {0, 0}, 4}, true, id2), "coalesce second immediate retirement onto slot 0");
+        wait([&] { return coalesced.Settled(); });
+        Success(coalesced.Status(), "coalesced multi-retirement batch succeeds");
+        const auto coalescedRetired = coalesced.TakeRetired();
+        Require(std::ranges::find(coalescedRetired, id1) != coalescedRetired.end() && std::ranges::find(coalescedRetired, id2) != coalescedRetired.end() &&
+                    ! std::filesystem::exists(coalesceRec / (L"session-" + id1 + L".rtd")) &&
+                    ! std::filesystem::exists(coalesceRec / (L"session-" + id2 + L".rtd")),
+                "coalescing on one document slot preserves and retires every queued candidate ID");
+        coalesced.Close();
     });
     test("Recovery.IndependentDocumentCheckpointsAndLeases",
          [&]
@@ -1084,6 +1137,21 @@ int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope, bool li
             if (! SetKeyboardState(savedKeyboard.data()))
                 std::terminate();
         });
+        {
+            std::array<BYTE, 256> dirtyKeys{};
+            dirtyKeys[VK_CONTROL] = 0x80u;
+            Require(SetKeyboardState(dirtyKeys.data()) != FALSE, "seed physical Win32 modifier key before ScopedSynthetic");
+            {
+                KeyboardState::ScopedSynthetic isolated;
+                std::array<BYTE, 256> currentWin32{};
+                Require(GetKeyboardState(currentWin32.data()) != FALSE && (currentWin32[VK_CONTROL] & 0x80u) == 0u && ! KeyboardState::Held(VK_CONTROL),
+                        "ScopedSynthetic constructor zeroes thread Win32 modifier state immediately");
+            }
+            std::array<BYTE, 256> restoredWin32{};
+            Require(GetKeyboardState(restoredWin32.data()) != FALSE && (restoredWin32[VK_CONTROL] & 0x80u) != 0u,
+                    "ScopedSynthetic destructor restores prior Win32 keyboard state");
+            Require(SetKeyboardState(savedKeyboard.data()) != FALSE, "restore clean baseline keyboard state");
+        }
         for (const std::wstring_view eol : {L"\n", L"\r\n", L"\r"})
             for (const bool shift : {false, true})
             {

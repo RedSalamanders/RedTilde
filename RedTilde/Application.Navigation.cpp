@@ -1,8 +1,8 @@
 #include "Application.h"
+#include "Common/PathSecurity.h"
+#include "Common/TextUtilities.h"
 #include "res/Resource.h"
 #include <algorithm>
-#include <cwctype>
-#include <format>
 #include <windowsx.h>
 
 namespace RedTilde
@@ -23,18 +23,46 @@ void CollectSourceFindMatches(std::wstring_view text, std::wstring_view query, b
         if (matchCase)
             position = text.find(query, from);
         else
-        {
-            const int found =
-                FindStringOrdinal(FIND_FROMSTART, text.data() + from, static_cast<int>(text.size() - from), query.data(), static_cast<int>(query.size()), TRUE);
-            if (found >= 0)
-                position = from + static_cast<std::size_t>(found);
-        }
+            position = FindOrdinalIgnoreCase(text, query, from);
         if (position == std::wstring_view::npos)
             break;
         if (DxUi::RichText::IsEditBoundary(text, position) && DxUi::RichText::IsEditBoundary(text, position + query.size()))
             matches.push_back({position, position + query.size()});
         from = position + query.size();
     }
+}
+
+[[nodiscard]] bool IsPathInsideOrEqualDirectory(const std::filesystem::path& candidate, const std::filesystem::path& directory)
+{
+    if (candidate.empty() || directory.empty())
+        return false;
+    const auto normCand = NormalizeRootPath(candidate);
+    const auto normDir  = NormalizeRootPath(directory);
+    const auto& candStr = normCand.native();
+    const auto& dirStr  = normDir.native();
+    if (EqualOrdinalIgnoreCase(candStr, dirStr))
+        return true;
+    if (dirStr.ends_with(L'\\'))
+        return StartsWithOrdinalIgnoreCase(candStr, dirStr);
+    return candStr.size() > dirStr.size() && StartsWithOrdinalIgnoreCase(candStr, dirStr) && candStr[dirStr.size()] == L'\\';
+}
+
+[[nodiscard]] std::wstring OrdinalRelativeOrFullPath(const std::filesystem::path& path, const std::filesystem::path& root)
+{
+    const auto normPath = NormalizeRootPath(path);
+    if (root.empty())
+        return normPath.native();
+    const auto normRoot = NormalizeRootPath(root);
+    if (! IsPathInsideOrEqualDirectory(normPath, normRoot) || EqualOrdinalIgnoreCase(normPath.native(), normRoot.native()))
+        return normPath.native();
+    const auto& pathStr = normPath.native();
+    const auto& rootStr = normRoot.native();
+    std::size_t start   = rootStr.size();
+    if (! rootStr.ends_with(L'\\') && start < pathStr.size() && pathStr[start] == L'\\')
+        ++start;
+    std::wstring rel(pathStr.substr(start));
+    std::ranges::replace(rel, L'\\', L'/');
+    return rel;
 }
 } // namespace
 bool Application::PreviewOutlineMatchesCommitted() const
@@ -81,16 +109,48 @@ void Application::RefreshOutline()
     if (_activeOverlay == OverlayKind::FindBar)
         RefreshFind();
 }
+void Application::NormalizeFilesRootsSettings()
+{
+    _settings.filesRoot = NormalizeRootPath(_settings.filesRoot);
+    if (_settings.filesRoots.size() <= 1u)
+    {
+        if (_settings.filesRoot.empty() || ! _settings.filesRoot.is_absolute())
+        {
+            _settings.filesRoot.clear();
+            _settings.filesRoots.clear();
+        }
+        else
+        {
+            _settings.filesRoots = {_settings.filesRoot};
+        }
+        return;
+    }
+    std::vector<std::filesystem::path> normalized;
+    normalized.reserve(_settings.filesRoots.size());
+    for (const auto& r : _settings.filesRoots)
+    {
+        if (r.empty() || ! r.is_absolute())
+            continue;
+        auto norm = NormalizeRootPath(r);
+        if (std::ranges::none_of(normalized, [&](const std::filesystem::path& existing) { return EqualNormalizedRootPath(existing, norm); }))
+            normalized.push_back(std::move(norm));
+    }
+    _settings.filesRoots = std::move(normalized);
+    _settings.filesRoot  = _settings.filesRoots.empty() ? std::filesystem::path{} : _settings.filesRoots.front();
+}
+
 void Application::UpdateCurrentFileDirtyBadge(bool dirty)
 {
     _lastFilesDirty = dirty;
     RefreshLeftRailDots();
-    auto* const tree    = _filesTree;
-    const auto lifetime = GetControlLifetimeToken(*tree);
-    const auto key      = _session.key;
-    const auto id       = WorkspaceGroupId + _session.key + 1;
-    const auto item     = std::find_if(_filesModel.rows.begin(), _filesModel.rows.end(), [&](const auto& row) { return row.id == id; });
-    if ((item != _filesModel.rows.end()) != dirty)
+    auto* const tree              = _filesTree;
+    const auto lifetime           = GetControlLifetimeToken(*tree);
+    const auto key                = _session.key;
+    const auto id                 = WorkspaceGroupId + _session.key + 1;
+    const bool anyDirty           = dirty || std::ranges::any_of(_inactiveDocuments, &WorkspaceDocument::dirty);
+    const bool hasWorkspaceHeader = std::ranges::any_of(_filesModel.rows, [](const auto& row) { return row.id == WorkspaceGroupId; });
+    const auto item               = std::find_if(_filesModel.rows.begin(), _filesModel.rows.end(), [&](const auto& row) { return row.id == id; });
+    if (hasWorkspaceHeader != anyDirty || (! _workspaceCollapsed && ((item != _filesModel.rows.end()) != dirty)))
     {
         RefreshFiles();
         return;
@@ -112,22 +172,11 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
             }
         }
     }
-    if (_settings.filesRoots.size() <= 1u)
-    {
-        if (_settings.filesRoot.empty())
-            _settings.filesRoots.clear();
-        else
-            _settings.filesRoots = {_settings.filesRoot};
-    }
+    NormalizeFilesRootsSettings();
     const bool filesActive = _settings.showFiles || IsPaneOverlayActive(PaneSide::Left);
-    const auto requested   = filesActive ? _settings.filesRoot : std::filesystem::path{};
-    if (requested != _folderRoot)
-    {
-        RefreshFiles();
+    if (! filesActive || _settings.filesRoots.empty())
         return;
-    }
-    if (! _folderSnapshot || _folderSnapshot->root != requested)
-        return;
+
     const auto* const model = _filesTree->GetModel();
     if (model != &_filesModel)
     {
@@ -135,19 +184,68 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
         return;
     }
 
-    const auto& snapshot = _folderSnapshot.value();
-    const auto entry     = std::find_if(snapshot.entries.begin(), snapshot.entries.end(), [&](const auto& candidate) {
-        return ! candidate.directory && MatchesFilesPath(snapshot, candidate.path, _session.path);
-    });
-    if (entry == snapshot.entries.end())
-        return;
-    const auto itemId = static_cast<std::uint64_t>(std::distance(snapshot.entries.begin(), entry) + 1);
-    auto row          = std::find_if(_filesModel.rows.begin(), _filesModel.rows.end(), [&](const auto& candidate) { return candidate.id == itemId; });
+    const bool simpleSingleLocal = _settings.filesRoots.size() == 1u && _connectedGitHubRepos.empty();
+    const FilesSnapshot* matchedSnapshot{};
+    std::uint64_t itemId{};
+    std::filesystem::path matchedRoot;
+
+    if (simpleSingleLocal)
+    {
+        const auto requested = _settings.filesRoots.front();
+        if (! SameRootPath(requested, _folderRoot))
+        {
+            RefreshFiles();
+            return;
+        }
+        if (! _folderSnapshot || ! SameRootPath(_folderSnapshot->root, requested))
+            return;
+        matchedSnapshot  = &_folderSnapshot.value();
+        matchedRoot      = requested;
+        const auto entry = std::find_if(matchedSnapshot->entries.begin(), matchedSnapshot->entries.end(), [&](const auto& candidate) {
+            return ! candidate.directory && MatchesFilesPath(*matchedSnapshot, candidate.path, _session.path);
+        });
+        if (entry == matchedSnapshot->entries.end())
+            return;
+        itemId = static_cast<std::uint64_t>(std::distance(matchedSnapshot->entries.begin(), entry) + 1);
+    }
+    else
+    {
+        for (std::size_t rootIndex = 0u; rootIndex < _settings.filesRoots.size(); ++rootIndex)
+        {
+            const auto& rootPath           = _settings.filesRoots[rootIndex];
+            const std::uint64_t rootBaseId = LocalRootGroupBaseId + static_cast<std::uint64_t>(rootIndex) * 0x100000ull;
+            const FilesSnapshot* snapPtr{};
+            if (_settings.filesRoots.size() == 1u && _folderSnapshot && SameRootPath(_folderSnapshot->root, rootPath))
+                snapPtr = &_folderSnapshot.value();
+            else
+            {
+                const auto it = std::ranges::find_if(_folderSnapshots, [&](const FilesSnapshot& s) { return SameRootPath(s.root, rootPath); });
+                if (it != _folderSnapshots.end())
+                    snapPtr = &(*it);
+            }
+            if (! snapPtr || _collapsedLocalRoots.contains(rootPath))
+                continue;
+            const auto entry = std::find_if(snapPtr->entries.begin(), snapPtr->entries.end(), [&](const auto& candidate) {
+                return ! candidate.directory && MatchesFilesPath(*snapPtr, candidate.path, _session.path);
+            });
+            if (entry != snapPtr->entries.end())
+            {
+                matchedSnapshot = snapPtr;
+                matchedRoot     = rootPath;
+                itemId          = rootBaseId + static_cast<std::uint64_t>(std::distance(snapPtr->entries.begin(), entry)) + 1u;
+                break;
+            }
+        }
+        if (! matchedSnapshot)
+            return;
+    }
+
+    auto row = std::find_if(_filesModel.rows.begin(), _filesModel.rows.end(), [&](const auto& candidate) { return candidate.id == itemId; });
     if (row == _filesModel.rows.end())
-        return; // Filtering or a future visibility rule hides this file; a later structural refresh reads Dirty().
+        return; // Filtering or a collapsed ancestor hides this file; a later structural refresh reads Dirty().
 
     const bool edited    = dirty || std::ranges::any_of(_inactiveDocuments, [&](const auto& document) {
-        return document.dirty && MatchesFilesPath(snapshot, document.metadata.path, _session.path);
+        return document.dirty && MatchesFilesPath(*matchedSnapshot, document.metadata.path, _session.path);
     });
     const auto badgeText = edited ? Resource(IDS_FILESEDITED) : std::wstring{};
     if (row->badgeText == badgeText && row->badgeIsDot == edited)
@@ -155,22 +253,33 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
     row->badgeText  = badgeText;
     row->badgeIsDot = edited;
 
-    const auto snapshotGeneration = snapshot.generation;
-    const auto snapshotRevision   = snapshot.revision;
+    const auto snapshotGeneration = matchedSnapshot->generation;
+    const auto snapshotRevision   = matchedSnapshot->revision;
     const auto modelRebuilds      = _activity.filesModelRebuilds;
     if (_filesTree->NotifyItemPresentationChanged(itemId))
         return;
 
     // UI Automation callbacks can re-enter the app. Fall back to a full refresh
     // only while the exact snapshot/model publication we just changed is still current.
-    if (model != &_filesModel || _filesTree->GetModel() != model || ! _folderSnapshot || _folderSnapshot->root != requested ||
-        _folderSnapshot->generation != snapshotGeneration || _folderSnapshot->revision != snapshotRevision || Dirty() != dirty || _lastFilesDirty != dirty ||
+    if (model != &_filesModel || _filesTree->GetModel() != model || Dirty() != dirty || _lastFilesDirty != dirty ||
         _activity.filesModelRebuilds != modelRebuilds)
+        return;
+    const FilesSnapshot* currentSnap{};
+    if (simpleSingleLocal)
+        currentSnap = (_folderSnapshot && SameRootPath(_folderSnapshot->root, matchedRoot)) ? &*_folderSnapshot : nullptr;
+    else
+    {
+        const auto it = std::ranges::find_if(_folderSnapshots, [&](const FilesSnapshot& s) { return SameRootPath(s.root, matchedRoot); });
+        if (it != _folderSnapshots.end())
+            currentSnap = &(*it);
+    }
+    if (! currentSnap || currentSnap->generation != snapshotGeneration || currentSnap->revision != snapshotRevision)
         return;
     const auto currentRow = std::find_if(_filesModel.rows.begin(), _filesModel.rows.end(), [&](const auto& candidate) { return candidate.id == itemId; });
     if (currentRow != _filesModel.rows.end() && currentRow->badgeText == badgeText && currentRow->badgeIsDot == edited)
         RefreshFiles();
 }
+
 void Application::RefreshFiles(bool rootChanged)
 {
     const auto setFooter = [&](std::wstring text)
@@ -181,13 +290,7 @@ void Application::RefreshFiles(bool rootChanged)
             Layout();
         }
     };
-    if (_settings.filesRoots.size() <= 1u)
-    {
-        if (_settings.filesRoot.empty())
-            _settings.filesRoots.clear();
-        else
-            _settings.filesRoots = {_settings.filesRoot};
-    }
+    NormalizeFilesRootsSettings();
     const bool filesActive = _settings.showFiles || IsPaneOverlayActive(PaneSide::Left);
     std::vector<std::filesystem::path> activeRoots;
     if (filesActive)
@@ -203,7 +306,7 @@ void Application::RefreshFiles(bool rootChanged)
         bool rootsDiffer = activeRoots.size() != _folderSnapshots.size();
         if (! rootsDiffer)
             for (std::size_t i = 0; i < activeRoots.size(); ++i)
-                if (_folderSnapshots[i].root != activeRoots[i])
+                if (! SameRootPath(_folderSnapshots[i].root, activeRoots[i]))
                 {
                     rootsDiffer = true;
                     break;
@@ -215,7 +318,7 @@ void Application::RefreshFiles(bool rootChanged)
                 std::vector<FilesSnapshot> kept;
                 for (const auto& r : activeRoots)
                 {
-                    auto prevIt = std::ranges::find_if(_folderSnapshots, [&](const FilesSnapshot& s) { return s.root == r; });
+                    auto prevIt = std::ranges::find_if(_folderSnapshots, [&](const FilesSnapshot& s) { return SameRootPath(s.root, r); });
                     if (prevIt != _folderSnapshots.end())
                         kept.push_back(*prevIt);
                 }
@@ -236,7 +339,7 @@ void Application::RefreshFiles(bool rootChanged)
     else
     {
         _multiFolderFiles.Close();
-        if (requested != _folderRoot || (rootChanged && ! requested.empty() && ! _folderFiles.IsActive()))
+        if (! SameRootPath(requested, _folderRoot) || (rootChanged && ! requested.empty() && ! _folderFiles.IsActive()))
         {
             _folderRoot = requested;
             _folderSnapshot.reset();
@@ -257,12 +360,8 @@ void Application::RefreshFiles(bool rootChanged)
     }
     if (rootChanged && _folderSnapshot)
         for (const auto& entry : _folderSnapshot->entries)
-            if (entry.directory)
-            {
-                const auto relative = _session.path.lexically_relative(entry.path);
-                if (! relative.empty() && *relative.begin() != L"..")
-                    _collapsedFolders.erase(entry.path);
-            }
+            if (entry.directory && IsPathInsideOrEqualDirectory(_session.path, entry.path))
+                _collapsedFolders.erase(entry.path);
     if (activeRoots.empty())
     {
         _filesTitle->SetText(Resource(IDS_FILES));
@@ -271,22 +370,24 @@ void Application::RefreshFiles(bool rootChanged)
     }
     else if (activeRoots.size() == 1u)
     {
-        const auto& single = activeRoots.front();
-        _filesTitle->SetText(single.filename().empty() ? single.native() : single.filename().native());
-        _filesTitle->SetTooltipText(single.native());
-        _filesTitle->SetAccessibleHelpText(single.native());
+        const auto& single  = activeRoots.front();
+        const auto leafText = SanitizeUiText(single.filename().empty() ? single.native() : single.filename().native());
+        const auto fullText = SanitizeUiText(single.native(), 512u);
+        _filesTitle->SetText(leafText);
+        _filesTitle->SetTooltipText(fullText);
+        _filesTitle->SetAccessibleHelpText(fullText);
     }
     else
     {
         const auto& first    = activeRoots.front();
-        const auto firstName = first.filename().empty() ? first.native() : first.filename().native();
+        const auto firstName = SanitizeUiText(first.filename().empty() ? first.native() : first.filename().native());
         _filesTitle->SetText(FormatStringResource(nullptr, IDS_FILES_MULTI_ROOT_TITLE, firstName, activeRoots.size() - 1u));
         std::wstring joined;
         for (std::size_t i = 0; i < activeRoots.size(); ++i)
         {
             if (i > 0u)
                 joined.push_back(L'\n');
-            joined += activeRoots[i].native();
+            joined += SanitizeUiText(activeRoots[i].native(), 512u);
         }
         _filesTitle->SetTooltipText(joined);
         _filesTitle->SetAccessibleHelpText(joined);
@@ -295,9 +396,9 @@ void Application::RefreshFiles(bool rootChanged)
     RefreshLeftRailDots();
     ++_activity.filesModelRebuilds;
     _filesModel.rows.clear();
-    _visibleFilePaths.clear();
     _filesRowBindings.clear();
     const std::wstring filter(_filesFilter->GetText());
+    auto containsFilterInsensitive = [&](std::wstring_view haystack) noexcept { return filter.empty() || ContainsOrdinalIgnoreCase(haystack, filter); };
     {
         std::vector<DxUi::TreeItemData> documents;
         documents.reserve(_inactiveDocuments.size() + 1);
@@ -307,17 +408,8 @@ void Application::RefreshFiles(bool rootChanged)
                 return;
             const auto name = origin.kind == DocumentOriginInfo::Kind::GitHub && ! origin.relativePath.empty()
                                   ? SanitizeUiText(std::filesystem::path(origin.relativePath).filename().native())
-                                  : (path.empty() ? Resource(IDS_UNTITLED) : path.filename().native());
-            if (! filter.empty() && FindNLSStringEx(LOCALE_NAME_INVARIANT,
-                                                    FIND_FROMSTART | NORM_IGNORECASE,
-                                                    name.data(),
-                                                    static_cast<int>(name.size()),
-                                                    filter.data(),
-                                                    static_cast<int>(filter.size()),
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    0) < 0)
+                                  : (path.empty() ? Resource(IDS_UNTITLED) : SanitizeUiText(path.filename().native()));
+            if (! containsFilterInsensitive(name))
                 return;
             DxUi::TreeItemData item;
             item.id       = WorkspaceGroupId + key + 1;
@@ -328,7 +420,11 @@ void Application::RefreshFiles(bool rootChanged)
             if (origin.kind == DocumentOriginInfo::Kind::GitHub)
                 item.tooltipText = SanitizeUiText(origin.owner + L"/" + origin.repo + L"/" + origin.relativePath);
             else
-                item.tooltipText = path.native();
+            {
+                item.tooltipText = SanitizeUiText(path.native(), 512u);
+                if (! _cutFilePaths.empty() && ! path.empty() && _cutFilePaths.contains(NormalizeRootPath(path).native()))
+                    item.iconText = L"\xE8C6";
+            }
             item.badgeIsDot = true;
             item.badgeText  = Resource(IDS_FILESEDITED);
             documents.push_back(std::move(item));
@@ -385,8 +481,7 @@ void Application::RefreshFiles(bool rootChanged)
                         binding.localPath = docPath;
                         for (const auto& root : _settings.filesRoots)
                         {
-                            const auto rel = docPath.lexically_relative(root);
-                            if (! rel.empty() && *rel.begin() != L"..")
+                            if (IsPathInsideOrEqualDirectory(docPath, root))
                             {
                                 binding.localRoot = root;
                                 break;
@@ -409,44 +504,12 @@ void Application::RefreshFiles(bool rootChanged)
         return;
     }
 
-    auto normalizeCutPath = [](const std::filesystem::path& p)
+    auto appendLocalSnapshotRows = [&](const FilesSnapshot& snapshot,
+                                       const std::filesystem::path& rootPath,
+                                       std::uint64_t rootBaseId,
+                                       unsigned baseDepth,
+                                       std::optional<std::uint64_t>& outSelectedId)
     {
-        std::wstring s = p.lexically_normal().native();
-        for (auto& ch : s)
-            ch = static_cast<wchar_t>(std::towlower(ch));
-        return s;
-    };
-    auto containsFilterInsensitive = [&](std::wstring_view haystack)
-    {
-        if (filter.empty())
-            return true;
-        return FindNLSStringEx(LOCALE_NAME_INVARIANT,
-                               FIND_FROMSTART | NORM_IGNORECASE,
-                               haystack.data(),
-                               static_cast<int>(haystack.size()),
-                               filter.data(),
-                               static_cast<int>(filter.size()),
-                               nullptr,
-                               nullptr,
-                               nullptr,
-                               0) >= 0;
-    };
-
-    const bool simpleSingleLocal = activeRoots.size() == 1u && _connectedGitHubRepos.empty();
-    if (simpleSingleLocal)
-    {
-        if (! _folderSnapshot)
-        {
-            setFooter(Resource(static_cast<unsigned>(FAILED(_folderAdmissionStatus) ? IDS_FILESUNAVAILABLE : IDS_FILESLOADING)));
-            _filesTree->SetEmptyStateText(Resource(static_cast<unsigned>(FAILED(_folderAdmissionStatus) ? IDS_FILESUNAVAILABLE : IDS_FILESLOADING)));
-            _filesTree->NotifyDataChanged();
-            _filesTree->SetSelectedItemId(hasVisibleWorkspaceRow ? std::optional<std::uint64_t>(workspaceItemId) : std::nullopt);
-            return;
-        }
-        const auto& snapshot = _folderSnapshot.value();
-        _visibleFilePaths.reserve(snapshot.entries.size());
-        for (const auto& entry : snapshot.entries)
-            _visibleFilePaths.push_back(entry.path);
         for (const auto index : FilterMarkdownFiles(snapshot, filter))
         {
             const auto& entry = snapshot.entries[index];
@@ -461,43 +524,57 @@ void Application::RefreshFiles(bool rootChanged)
             if (hidden)
                 continue;
             DxUi::TreeItemData item;
-            item.id          = index + 1;
-            item.text        = entry.name;
+            item.id          = rootBaseId + index + 1u;
+            item.text        = SanitizeUiText(entry.name);
             item.iconText    = entry.directory ? L"\xE8B7" : L"\xE8A5";
-            item.tooltipText = entry.path.native();
-            item.depth       = entry.depth;
+            item.tooltipText = SanitizeUiText(entry.path.native(), 512u);
+            item.depth       = entry.depth + baseDepth;
             if (entry.parent != NoFilesParent)
-                item.parentId = entry.parent + 1;
-            item.hasChildren = entry.directory && ! entry.reparsePoint && entry.markdownCount > 0;
-            item.expanded    = item.hasChildren && (! filter.empty() || ! _collapsedFolders.contains(entry.path));
+                item.parentId = rootBaseId + entry.parent + 1u;
+            else if (rootBaseId != 0u)
+                item.parentId = rootBaseId;
+            item.hasChildren        = entry.directory && ! entry.reparsePoint && entry.markdownCount > 0;
+            item.expanded           = item.hasChildren && (! filter.empty() || ! _collapsedFolders.contains(entry.path));
+            const bool isDirtyMatch = (MatchesFilesPath(snapshot, entry.path, _session.path) && Dirty()) || std::ranges::any_of(_inactiveDocuments,
+                                                                                                                                [&](const auto& document)
+            { return document.dirty && MatchesFilesPath(snapshot, entry.path, document.metadata.path); });
             if (entry.directory && ! item.expanded)
                 item.badgeText = std::to_wstring(entry.markdownCount);
-            else if ((MatchesFilesPath(snapshot, entry.path, _session.path) && Dirty()) || std::ranges::any_of(_inactiveDocuments, [&](const auto& document) {
-                return document.dirty && MatchesFilesPath(snapshot, entry.path, document.metadata.path);
-            }))
+            else if (isDirtyMatch)
             {
                 item.badgeText  = Resource(IDS_FILESEDITED);
                 item.badgeIsDot = true;
             }
+            if (! _cutFilePaths.empty() && _cutFilePaths.contains(NormalizeRootPath(entry.path).native()))
+                item.iconText = L"\xE8C6";
+            if (! outSelectedId && _session.origin.kind != DocumentOriginInfo::Kind::GitHub && MatchesFilesPath(snapshot, entry.path, _session.path))
+                outSelectedId = item.id;
             FilesRowContextBinding binding;
             binding.kind        = FilesRowContextBinding::Kind::LocalEntry;
-            binding.localRoot   = snapshot.root;
+            binding.localRoot   = rootPath;
             binding.localPath   = entry.path;
             binding.isDirectory = entry.directory;
             _filesRowBindings.emplace_back(item.id, std::move(binding));
             _filesModel.rows.push_back(std::move(item));
         }
+    };
+
+    const bool simpleSingleLocal = activeRoots.size() == 1u && _connectedGitHubRepos.empty();
+    if (simpleSingleLocal)
+    {
+        if (! _folderSnapshot)
+        {
+            setFooter(Resource(static_cast<unsigned>(FAILED(_folderAdmissionStatus) ? IDS_FILESUNAVAILABLE : IDS_FILESLOADING)));
+            _filesTree->SetEmptyStateText(Resource(static_cast<unsigned>(FAILED(_folderAdmissionStatus) ? IDS_FILESUNAVAILABLE : IDS_FILESLOADING)));
+            _filesTree->NotifyDataChanged();
+            _filesTree->SetSelectedItemId(hasVisibleWorkspaceRow ? std::optional<std::uint64_t>(workspaceItemId) : std::nullopt);
+            return;
+        }
+        const auto& snapshot = _folderSnapshot.value();
+        std::optional<std::uint64_t> visibleFolderItemId;
+        appendLocalSnapshotRows(snapshot, snapshot.root, 0u, 0u, visibleFolderItemId);
         _filesTree->SetEmptyStateText(Resource(IDS_NOMATCH));
         _filesTree->NotifyDataChanged();
-        std::optional<std::uint64_t> visibleFolderItemId;
-        const auto current =
-            std::find_if(_visibleFilePaths.begin(), _visibleFilePaths.end(), [&](const auto& path) { return MatchesFilesPath(snapshot, path, _session.path); });
-        if (current != _visibleFilePaths.end())
-        {
-            const auto candidateId = static_cast<std::uint64_t>(current - _visibleFilePaths.begin() + 1);
-            if (std::ranges::any_of(_filesModel.rows, [&](const auto& row) { return row.id == candidateId; }))
-                visibleFolderItemId = candidateId;
-        }
         std::optional<std::uint64_t> selectedId;
         if (_workspaceSelectionPreferred && hasVisibleWorkspaceRow)
             selectedId = workspaceItemId;
@@ -522,7 +599,7 @@ void Application::RefreshFiles(bool rootChanged)
 
     // Multi-folder / GitHub section hierarchy
     std::size_t totalMarkdownCount{};
-    bool anyAccessError{}, anyWatchError{}, anyEntryLimit{}, anyDepthLimit{}, anyLoading{};
+    bool anyAccessError{}, anyWatchError{}, anyEntryLimit{}, anyDepthLimit{}, anyLoading{}, anyGitHubTruncated{}, anyGitHubLimit{};
     std::optional<std::uint64_t> selectedId;
 
     const auto rootLabels = DisambiguateFolderLabels(activeRoots);
@@ -531,24 +608,16 @@ void Application::RefreshFiles(bool rootChanged)
         const auto& rootPath           = activeRoots[rootIndex];
         const std::uint64_t rootBaseId = LocalRootGroupBaseId + static_cast<std::uint64_t>(rootIndex) * 0x100000ull;
         const FilesSnapshot* snapPtr{};
-        if (activeRoots.size() == 1u && _folderSnapshot && _folderSnapshot->root == rootPath)
+        if (activeRoots.size() == 1u && _folderSnapshot && SameRootPath(_folderSnapshot->root, rootPath))
             snapPtr = &_folderSnapshot.value();
         else
         {
-            const auto it = std::ranges::find_if(_folderSnapshots, [&](const FilesSnapshot& s) { return s.root == rootPath; });
+            const auto it = std::ranges::find_if(_folderSnapshots, [&](const FilesSnapshot& s) { return SameRootPath(s.root, rootPath); });
             if (it != _folderSnapshots.end())
                 snapPtr = &(*it);
         }
 
         const bool rootExpanded = ! filter.empty() || ! _collapsedLocalRoots.contains(rootPath);
-        DxUi::TreeItemData rootHeader;
-        rootHeader.id          = rootBaseId;
-        rootHeader.text        = rootIndex < rootLabels.size() ? rootLabels[rootIndex] : SanitizeUiText(rootPath.filename().native());
-        rootHeader.iconText    = L"\xE8B7";
-        rootHeader.tooltipText = rootPath.native();
-        rootHeader.depth       = 0;
-        rootHeader.hasChildren = true;
-        rootHeader.expanded    = rootExpanded;
         if (snapPtr)
         {
             totalMarkdownCount += snapPtr->markdownCount;
@@ -556,12 +625,29 @@ void Application::RefreshFiles(bool rootChanged)
             anyWatchError  = anyWatchError || FAILED(snapPtr->watchStatus);
             anyEntryLimit  = anyEntryLimit || snapPtr->entryLimitReached;
             anyDepthLimit  = anyDepthLimit || snapPtr->depthLimitReached;
+        }
+        else
+        {
+            anyLoading = true;
+        }
+        if (! filter.empty() && (! snapPtr || FilterMarkdownFiles(*snapPtr, filter).empty()))
+            continue;
+
+        DxUi::TreeItemData rootHeader;
+        rootHeader.id          = rootBaseId;
+        rootHeader.text        = rootIndex < rootLabels.size() ? rootLabels[rootIndex] : SanitizeUiText(rootPath.filename().native());
+        rootHeader.iconText    = L"\xE8B7";
+        rootHeader.tooltipText = SanitizeUiText(rootPath.native(), 512u);
+        rootHeader.depth       = 0;
+        rootHeader.hasChildren = true;
+        rootHeader.expanded    = rootExpanded;
+        if (snapPtr)
+        {
             if (! rootExpanded)
                 rootHeader.badgeText = std::to_wstring(snapPtr->markdownCount);
         }
         else
         {
-            anyLoading           = true;
             rootHeader.badgeText = L"\x2026";
         }
         FilesRowContextBinding rootBinding;
@@ -572,86 +658,78 @@ void Application::RefreshFiles(bool rootChanged)
 
         if (! snapPtr || ! rootExpanded)
             continue;
-        const auto& snapshot = *snapPtr;
-        for (const auto index : FilterMarkdownFiles(snapshot, filter))
-        {
-            const auto& entry = snapshot.entries[index];
-            bool hidden{};
-            if (filter.empty())
-                for (auto parent = entry.parent; parent != NoFilesParent; parent = snapshot.entries[parent].parent)
-                    if (_collapsedFolders.contains(snapshot.entries[parent].path))
-                    {
-                        hidden = true;
-                        break;
-                    }
-            if (hidden)
-                continue;
-            DxUi::TreeItemData item;
-            item.id                 = rootBaseId + index + 1u;
-            item.text               = entry.name;
-            item.iconText           = entry.directory ? L"\xE8B7" : L"\xE8A5";
-            item.tooltipText        = entry.path.native();
-            item.depth              = entry.depth + 1u;
-            item.parentId           = (entry.parent == NoFilesParent) ? rootBaseId : (rootBaseId + entry.parent + 1u);
-            item.hasChildren        = entry.directory && ! entry.reparsePoint && entry.markdownCount > 0;
-            item.expanded           = item.hasChildren && (! filter.empty() || ! _collapsedFolders.contains(entry.path));
-            const bool isDirtyMatch = (MatchesFilesPath(snapshot, entry.path, _session.path) && Dirty()) || std::ranges::any_of(_inactiveDocuments,
-                                                                                                                                [&](const auto& document)
-            { return document.dirty && MatchesFilesPath(snapshot, entry.path, document.metadata.path); });
-            if (entry.directory && ! item.expanded)
-                item.badgeText = std::to_wstring(entry.markdownCount);
-            else if (isDirtyMatch)
-            {
-                item.badgeText  = Resource(IDS_FILESEDITED);
-                item.badgeIsDot = true;
-            }
-            if (! _cutFilePaths.empty() && _cutFilePaths.contains(normalizeCutPath(entry.path)))
-                item.iconText = L"\xE8C6";
-            if (! selectedId && _session.origin.kind != DocumentOriginInfo::Kind::GitHub && MatchesFilesPath(snapshot, entry.path, _session.path))
-                selectedId = item.id;
-            FilesRowContextBinding binding;
-            binding.kind        = FilesRowContextBinding::Kind::LocalEntry;
-            binding.localRoot   = rootPath;
-            binding.localPath   = entry.path;
-            binding.isDirectory = entry.directory;
-            _filesRowBindings.emplace_back(item.id, std::move(binding));
-            _filesModel.rows.push_back(std::move(item));
-        }
+        appendLocalSnapshotRows(*snapPtr, rootPath, rootBaseId, 1u, selectedId);
     }
 
     if (! _connectedGitHubRepos.empty())
     {
-        const bool sectionExpanded = ! filter.empty() || ! _collapsedGitHubRepos.empty() || ! _githubSectionCollapsed;
-        DxUi::TreeItemData ghGroup;
-        ghGroup.id               = GitHubSectionGroupId;
-        ghGroup.text             = Resource(IDS_GITHUB_REPOS_SECTION);
-        ghGroup.iconText         = L"\xE774";
-        ghGroup.hasChildren      = true;
-        ghGroup.expanded         = ! _githubSectionCollapsed || ! filter.empty();
-        const bool expandSection = ghGroup.expanded;
-        (void)sectionExpanded;
-        FilesRowContextBinding ghSectionBinding;
-        ghSectionBinding.kind = FilesRowContextBinding::Kind::GitHubSectionHeader;
-        _filesRowBindings.emplace_back(ghGroup.id, std::move(ghSectionBinding));
-        _filesModel.rows.push_back(std::move(ghGroup));
+        bool ghGroupAdded{};
+        const auto ensureGitHubGroupHeader = [&]
+        {
+            if (ghGroupAdded)
+                return;
+            ghGroupAdded = true;
+            DxUi::TreeItemData ghGroup;
+            ghGroup.id          = GitHubSectionGroupId;
+            ghGroup.text        = Resource(IDS_GITHUB_REPOS_SECTION);
+            ghGroup.iconText    = L"\xE774";
+            ghGroup.hasChildren = true;
+            ghGroup.expanded    = ! _githubSectionCollapsed || ! filter.empty();
+            FilesRowContextBinding ghSectionBinding;
+            ghSectionBinding.kind = FilesRowContextBinding::Kind::GitHubSectionHeader;
+            _filesRowBindings.emplace_back(ghGroup.id, std::move(ghSectionBinding));
+            _filesModel.rows.push_back(std::move(ghGroup));
+        };
 
+        if (filter.empty())
+            ensureGitHubGroupHeader();
+
+        for (const auto& connected : _connectedGitHubRepos)
+        {
+            anyGitHubTruncated = anyGitHubTruncated || connected.truncated;
+            anyGitHubLimit     = anyGitHubLimit || connected.limitReached;
+        }
+
+        const bool expandSection = ! _githubSectionCollapsed || ! filter.empty();
         if (expandSection)
         {
             for (std::size_t repoIdx = 0; repoIdx < _connectedGitHubRepos.size(); ++repoIdx)
             {
                 const auto& connected          = _connectedGitHubRepos[repoIdx];
                 const std::wstring key         = connected.ref.owner + L"/" + connected.ref.repo;
+                const std::wstring safeKey     = SanitizeUiText(key);
                 const std::uint64_t repoBaseId = GitHubRowBaseId + static_cast<std::uint64_t>(repoIdx) * 0x100000ull;
                 const std::wstring branchShown = ! connected.resolvedBranch.empty() ? connected.resolvedBranch : connected.ref.branch;
+                const std::wstring safeBranch  = SanitizeUiText(branchShown, 128u);
                 const bool repoExpanded        = ! filter.empty() || ! _collapsedGitHubRepos.contains(key);
+
+                std::vector<bool> keep;
+                bool anyFilteredMatch{};
+                if (repoExpanded && connected.loaded)
+                {
+                    keep.assign(connected.entries.size(), false);
+                    for (std::size_t i = 0; i < connected.entries.size(); ++i)
+                    {
+                        if (! connected.entries[i].directory && containsFilterInsensitive(connected.entries[i].name))
+                        {
+                            keep[i]          = true;
+                            anyFilteredMatch = true;
+                            for (auto p = connected.entries[i].parent; p != NoFilesParent && p < connected.entries.size(); p = connected.entries[p].parent)
+                                keep[p] = true;
+                        }
+                    }
+                }
+                if (! filter.empty() && ! anyFilteredMatch)
+                    continue;
+                ensureGitHubGroupHeader();
 
                 DxUi::TreeItemData repoHeader;
                 repoHeader.id          = repoBaseId;
                 repoHeader.parentId    = GitHubSectionGroupId;
                 repoHeader.depth       = 1u;
-                repoHeader.text        = branchShown.empty() ? key : (key + L" (" + branchShown + L")");
+                repoHeader.text        = safeBranch.empty() ? safeKey : (safeKey + L" (" + safeBranch + L")");
                 repoHeader.iconText    = L"\xE774";
-                repoHeader.tooltipText = branchShown.empty() ? (L"https://github.com/" + key) : (L"https://github.com/" + key + L"/tree/" + branchShown);
+                repoHeader.tooltipText = safeBranch.empty() ? (L"https://github.com/" + safeKey) : (L"https://github.com/" + safeKey + L"/tree/" + safeBranch);
                 repoHeader.hasChildren = true;
                 repoHeader.expanded    = repoExpanded;
                 if (connected.loading)
@@ -680,16 +758,6 @@ void Application::RefreshFiles(bool rootChanged)
                 if (! repoExpanded || ! connected.loaded)
                     continue;
 
-                std::vector<bool> keep(connected.entries.size(), false);
-                for (std::size_t i = 0; i < connected.entries.size(); ++i)
-                {
-                    if (! connected.entries[i].directory && containsFilterInsensitive(connected.entries[i].name))
-                    {
-                        keep[i] = true;
-                        for (auto p = connected.entries[i].parent; p != NoFilesParent && p < connected.entries.size(); p = connected.entries[p].parent)
-                            keep[p] = true;
-                    }
-                }
                 for (std::size_t i = 0; i < connected.entries.size(); ++i)
                 {
                     if (! keep[i])
@@ -713,17 +781,18 @@ void Application::RefreshFiles(bool rootChanged)
                     const std::wstring dirKey = key + L":" + entry.path;
                     DxUi::TreeItemData item;
                     item.id          = repoBaseId + i + 1u;
-                    item.text        = entry.name;
+                    item.text        = SanitizeUiText(entry.name);
                     item.iconText    = entry.directory ? L"\xE8B7" : L"\xE8A5";
-                    item.tooltipText = key + L"/" + entry.path;
+                    item.tooltipText = SanitizeUiText(key + L"/" + entry.path, 512u);
                     item.depth       = entry.depth + 2u;
                     item.parentId    = (entry.parent == NoFilesParent) ? repoBaseId : (repoBaseId + entry.parent + 1u);
                     item.hasChildren = entry.directory && entry.markdownCount > 0u;
                     item.expanded    = item.hasChildren && (! filter.empty() || ! _collapsedGitHubDirs.contains(dirKey));
                     if (entry.directory && ! item.expanded)
                         item.badgeText = std::to_wstring(entry.markdownCount);
-                    if (! selectedId && _session.origin.kind == DocumentOriginInfo::Kind::GitHub && _session.origin.owner == connected.ref.owner &&
-                        _session.origin.repo == connected.ref.repo && _session.origin.relativePath == entry.path)
+                    if (! selectedId && _session.origin.kind == DocumentOriginInfo::Kind::GitHub &&
+                        EqualOrdinalIgnoreCase(_session.origin.owner, connected.ref.owner) &&
+                        EqualOrdinalIgnoreCase(_session.origin.repo, connected.ref.repo) && _session.origin.relativePath == entry.path)
                         selectedId = item.id;
                     FilesRowContextBinding entryBinding;
                     entryBinding.kind         = entry.directory ? FilesRowContextBinding::Kind::GitHubDir : FilesRowContextBinding::Kind::GitHubFile;
@@ -754,51 +823,57 @@ void Application::RefreshFiles(bool rootChanged)
         append(Resource(IDS_FILESWATCHDETAIL));
     if (anyEntryLimit)
         append(FormatStringResource(nullptr, IDS_FILESENTRYLIMIT, FilesLimits{}.maximumEntries));
+    if (anyGitHubLimit)
+        append(FormatStringResource(nullptr, IDS_FILESENTRYLIMIT, MaximumGitHubTreeEntries));
+    if (anyGitHubTruncated)
+        append(Resource(IDS_GITHUB_TREE_TRUNCATED));
     if (anyDepthLimit)
         append(FormatStringResource(nullptr, IDS_FILESDEPTHLIMIT, FilesLimits{}.maximumDepth));
     setFooter(std::move(footer));
 }
+
+void Application::UpdateCollapsedFoldersFromSnapshot(const FilesSnapshot* previousSnap, const FilesSnapshot& nextSnap, bool pruneRemovedUnderRoot)
+{
+    std::set<std::wstring, OrdinalIgnoreCaseLess> previousDirectories;
+    std::set<std::wstring, OrdinalIgnoreCaseLess> currentDirectories;
+    if (previousSnap)
+        for (const auto& entry : previousSnap->entries)
+            if (entry.directory)
+                previousDirectories.insert(entry.path.native());
+    for (const auto& entry : nextSnap.entries)
+        if (entry.directory)
+        {
+            currentDirectories.insert(entry.path.native());
+            if (IsPathInsideOrEqualDirectory(_session.path, entry.path))
+                _collapsedFolders.erase(entry.path);
+            else if (! previousDirectories.contains(entry.path.native()))
+                _collapsedFolders.insert(entry.path);
+        }
+    std::erase_if(_collapsedFolders,
+                  [&](const auto& path)
+    {
+        if (pruneRemovedUnderRoot && ! IsPathInsideOrEqualDirectory(path, nextSnap.root))
+            return false;
+        return ! currentDirectories.contains(path.native());
+    });
+}
+
 void Application::FolderCompleted()
 {
     bool updated{};
-    if (auto result = _folderFiles.TakeResult(); result && result->root == _folderRoot && result->generation == _folderFiles.Generation())
+    if (auto result = _folderFiles.TakeResult(); result && SameRootPath(result->root, _folderRoot) && result->generation == _folderFiles.Generation())
     {
-        {
-            std::set<std::wstring_view> previousDirectories, currentDirectories;
-            if (_folderSnapshot)
-                for (const auto& entry : _folderSnapshot->entries)
-                    if (entry.directory)
-                        previousDirectories.insert(entry.path.native());
-            for (const auto& entry : result->entries)
-                if (entry.directory)
-                {
-                    currentDirectories.insert(entry.path.native());
-                    const auto relative = _session.path.lexically_relative(entry.path);
-                    if (! relative.empty() && *relative.begin() != L"..")
-                        _collapsedFolders.erase(entry.path);
-                    else if (! previousDirectories.contains(entry.path.native()))
-                        _collapsedFolders.insert(entry.path);
-                }
-            std::erase_if(_collapsedFolders, [&](const auto& path) { return ! currentDirectories.contains(path.native()); });
-        }
+        UpdateCollapsedFoldersFromSnapshot(_folderSnapshot ? &*_folderSnapshot : nullptr, *result, false);
         _folderSnapshot  = result;
         _folderSnapshots = {*result};
         updated          = true;
     }
     for (auto& snap : _multiFolderFiles.TakeResults())
     {
-        if (std::ranges::none_of(_settings.filesRoots, [&](const auto& r) { return r == snap.root; }))
+        if (std::ranges::none_of(_settings.filesRoots, [&](const auto& r) { return SameRootPath(r, snap.root); }))
             continue;
-        for (const auto& entry : snap.entries)
-            if (entry.directory)
-            {
-                const auto relative = _session.path.lexically_relative(entry.path);
-                if (! relative.empty() && *relative.begin() != L"..")
-                    _collapsedFolders.erase(entry.path);
-                else
-                    _collapsedFolders.insert(entry.path);
-            }
-        const auto existing = std::ranges::find_if(_folderSnapshots, [&](const FilesSnapshot& s) { return s.root == snap.root; });
+        const auto existing = std::ranges::find_if(_folderSnapshots, [&](const FilesSnapshot& s) { return SameRootPath(s.root, snap.root); });
+        UpdateCollapsedFoldersFromSnapshot(existing != _folderSnapshots.end() ? &(*existing) : nullptr, snap, true);
         if (existing != _folderSnapshots.end())
             *existing = std::move(snap);
         else
@@ -816,7 +891,7 @@ void Application::EnsureFilesRoot()
     const auto absolute = std::filesystem::absolute(_session.path, error);
     if (error)
         return;
-    const auto normalized = absolute.parent_path().lexically_normal();
+    const auto normalized = NormalizeRootPath(absolute.parent_path());
     _settings.filesRoot   = normalized;
     _settings.filesRoots  = {normalized};
     SavePreferences();
@@ -825,7 +900,7 @@ void Application::SelectFilesRoot(const std::filesystem::path& path)
 {
     if (! path.is_absolute() || path.native().find(L'\0') != std::wstring::npos)
         return;
-    const auto normalized        = path.lexically_normal();
+    const auto normalized        = NormalizeRootPath(path);
     _settings.filesRoot          = normalized;
     _settings.filesRoots         = {normalized};
     _settings.showFiles          = true;
@@ -842,8 +917,8 @@ void Application::AddFilesRoot(const std::filesystem::path& path)
 {
     if (! path.is_absolute() || path.native().find(L'\0') != std::wstring::npos)
         return;
-    const auto normalized = path.lexically_normal();
-    if (std::ranges::any_of(_settings.filesRoots, [&](const auto& existing) { return existing.lexically_normal() == normalized; }))
+    const auto normalized = NormalizeRootPath(path);
+    if (std::ranges::any_of(_settings.filesRoots, [&](const auto& existing) { return SameRootPath(existing, normalized); }))
     {
         _settings.showFiles    = true;
         _settings.filesPinMode = PanePinMode::Pinned;
@@ -870,10 +945,10 @@ void Application::AddFilesRoot(const std::filesystem::path& path)
 }
 void Application::RemoveFilesRoot(const std::filesystem::path& path)
 {
-    const auto normalized = path.lexically_normal();
-    if (std::erase_if(_settings.filesRoots, [&](const auto& existing) { return existing.lexically_normal() == normalized; }) == 0u)
+    const auto normalized = NormalizeRootPath(path);
+    if (std::erase_if(_settings.filesRoots, [&](const auto& existing) { return SameRootPath(existing, normalized); }) == 0u)
         return;
-    std::erase_if(_folderSnapshots, [&](const FilesSnapshot& s) { return s.root.lexically_normal() == normalized; });
+    std::erase_if(_folderSnapshots, [&](const FilesSnapshot& s) { return SameRootPath(s.root, normalized); });
     _collapsedLocalRoots.erase(normalized);
     _settings.filesRoot = _settings.filesRoots.empty() ? std::filesystem::path{} : _settings.filesRoots.front();
     RefreshFiles(true);
@@ -906,7 +981,8 @@ bool Application::SwitchWorkspaceDocument(std::size_t index, bool savePreviousRe
     _pendingBitmapPaste.reset();
     if (! CanAcceptCommand())
         return false;
-    EnsurePrimaryEditorAuthoritative();
+    if (! EnsurePrimaryEditorAuthoritative())
+        return false;
     if (index >= _inactiveDocuments.size() || _files.Busy() || HasBlockDraft() || HasActiveModalPrompt())
     {
         Status(IDS_BUSY);
@@ -949,6 +1025,8 @@ bool Application::SwitchWorkspaceDocument(std::size_t index, bool savePreviousRe
         }
         _printNetworkImages.clear();
         _derivedCaches.Reset();
+        _imageWatchAcknowledgedSemantic.reset();
+        _imageWatchWasRichVisible = false;
         _outlinePreviewBaseline.reset();
         _find.InvalidateMatches();
         _spell.appliedKey.reset();
@@ -978,7 +1056,8 @@ bool Application::SwitchWorkspaceDocument(std::size_t index, bool savePreviousRe
 }
 bool Application::StartWorkspaceDocument()
 {
-    EnsurePrimaryEditorAuthoritative();
+    if (! EnsurePrimaryEditorAuthoritative())
+        return false;
     if (_session.path.empty() && ! Dirty() && ! _editor->CanUndo() && ! _editor->CanRedo())
         return true;
     if (_inactiveDocuments.size() + 1 >= RecoveryService::MaximumDocuments)
@@ -997,9 +1076,10 @@ bool Application::StartWorkspaceDocument()
     _inactiveDocuments.pop_back();
     return false;
 }
-void Application::ResetWorkspace(bool retireRecovery)
+void Application::ResetWorkspace(bool retireRecovery, bool forceOnClose)
 {
-    EnsurePrimaryEditorAuthoritative();
+    if (! EnsurePrimaryEditorAuthoritative() && ! forceOnClose)
+        return;
     if (retireRecovery)
     {
         for (const auto& document : _inactiveDocuments)
@@ -1011,9 +1091,16 @@ void Application::ResetWorkspace(bool retireRecovery)
     _inactiveDocuments.clear();
     _workspaceCollapsed          = false;
     _workspaceSelectionPreferred = false;
-    _session.key                 = 0;
+    _customDictionary.ClearAllIgnoreOnce();
+    _session.key = 0;
     _session.spellLanguageOverride.reset();
-    _customDictionary.ClearIgnoreOnceForWorkspace(_session.key);
+    _spell.appliedKey.reset();
+    _spell.issues.clear();
+    _spell.suppressedTypingWord.reset();
+    _spell.typingSuppressionActive = false;
+    _spell.pendingMenu.reset();
+    _spell.pendingLeftClick.reset();
+    _spell.leftDownArmed = false;
     _workspaceApprovals.clear();
     RefreshLeftRailDots();
 }
@@ -1037,6 +1124,7 @@ void Application::CheckpointWorkspaceRecovery(RecoverySnapshotKind kind)
             snap.workspaceOrder     = order++;
             snap.wasActive          = false;
             snap.savedBaselineStamp = document.metadata.stamp;
+            snap.recovered          = document.metadata.recovered;
             snapshot                = std::move(snap);
         }
         if (FAILED(_recovery.SubmitDocument(document.metadata.key, std::move(snapshot), true)))
@@ -1126,7 +1214,8 @@ void Application::CloseActiveDocument()
     {
         if (! CanAcceptCommand() || ! IsUiAttached())
             return;
-        EnsurePrimaryEditorAuthoritative();
+        if (! EnsurePrimaryEditorAuthoritative())
+            return;
         if (_inactiveDocuments.empty())
         {
             ResetWorkspace();
@@ -1152,6 +1241,7 @@ void Application::CloseActiveDocument()
         {
             const auto closedKey = _inactiveDocuments[targetIndex].metadata.key;
             _inactiveDocuments.erase(_inactiveDocuments.begin() + static_cast<std::ptrdiff_t>(targetIndex));
+            _customDictionary.ClearIgnoreOnceForWorkspace(closedKey);
             std::erase_if(_workspaceApprovals, [&](const WorkspaceApproval& approval) { return approval.key == closedKey; });
             if (FAILED(_recovery.SubmitDocument(closedKey, std::nullopt, true)))
                 Status(IDS_RECOVERYFAILED);
@@ -1183,12 +1273,7 @@ bool Application::OpenDroppedFile(const std::filesystem::path& path)
         return false;
     }
     const auto extension        = path.extension().native();
-    const auto matchesExtension = [&](std::wstring_view expected) noexcept
-    {
-        return extension.size() == expected.size() &&
-               CompareStringOrdinal(extension.data(), static_cast<int>(extension.size()), expected.data(), static_cast<int>(expected.size()), TRUE) ==
-                   CSTR_EQUAL;
-    };
+    const auto matchesExtension = [&](std::wstring_view expected) noexcept { return EqualOrdinalIgnoreCase(extension, expected); };
     if (! matchesExtension(L".md") && ! matchesExtension(L".markdown") && ! matchesExtension(L".txt"))
     {
         Status(IDS_DROPUNSUPPORTED);
@@ -1524,6 +1609,8 @@ void Application::FileMenu(bool overflow)
 }
 bool Application::DismissSurface()
 {
+    if (_saveConfirmSession && _saveConfirmSession->sequentialSaveActive)
+        return true;
     if (_pendingSelectionTools || _selectionToolsFocus || _activeOverlay != OverlayKind::None)
     {
         CloseDrawers();
@@ -1614,10 +1701,17 @@ LRESULT Application::FrameHitTest(HWND hwnd, LPARAM point) const
     return HTCLIENT;
 }
 
-bool Application::IsFilesRowTargetLocalEntry(std::uint64_t id) const
+bool Application::HasClipboardDropFiles() const
 {
-    const auto it = std::ranges::find_if(_filesRowBindings, [&](const auto& pair) { return pair.first == id; });
-    return it != _filesRowBindings.end() && it->second.kind == FilesRowContextBinding::Kind::LocalEntry;
+#if defined(ENABLE_TESTS)
+    if (_options.clipboardDropReaderForTest)
+    {
+        const auto testPayload = _options.clipboardDropReaderForTest();
+        return testPayload && ! testPayload->paths.empty();
+    }
+#endif
+    FileClipboardPayload payload;
+    return SUCCEEDED(ReadDropFilesFromClipboard(_window.get(), payload)) && ! payload.paths.empty();
 }
 
 std::filesystem::path Application::ActivePasteTargetDirectory() const
@@ -1634,6 +1728,9 @@ std::filesystem::path Application::ActivePasteTargetDirectory() const
                     return b.localRoot;
                 if (b.kind == FilesRowContextBinding::Kind::LocalEntry)
                     return b.isDirectory ? b.localPath : b.localPath.parent_path();
+                if (b.kind == FilesRowContextBinding::Kind::WorkspaceDoc)
+                    return (b.githubOwner.empty() && ! b.localPath.empty()) ? b.localPath.parent_path() : std::filesystem::path{};
+                return {};
             }
         }
     }
@@ -1644,30 +1741,25 @@ std::filesystem::path Application::ActivePasteTargetDirectory() const
 
 void Application::OnFilesContextMenu(std::uint64_t id, POINT screenPoint)
 {
-    if (HasActiveModalPrompt() || HasBlockDraft() || IsClosing())
+    if (HasActiveModalUi() || IsClosing())
         return;
     const auto it = std::ranges::find_if(_filesRowBindings, [&](const auto& pair) { return pair.first == id; });
     if (it == _filesRowBindings.end())
         return;
     if (_options.headless)
     {
-        ShowFilesContextMenuNow(id, screenPoint, false);
+        ShowFilesContextMenuNow(it->second, screenPoint, false);
         return;
     }
-    _deferredFilesContextMenu = PendingFilesContextMenu{id, screenPoint, false};
+    _deferredFilesContextMenu = PendingFilesContextMenu{it->second, screenPoint, false};
     if (_window)
         (void)PostMessageW(_window.get(), FilesContextMenuRequested, 0, 0);
 }
 
-void Application::ShowFilesContextMenuNow(std::uint64_t id, POINT screenPoint, bool keyboardInvocation)
+void Application::ShowFilesContextMenuNow(const FilesRowContextBinding& target, POINT screenPoint, bool keyboardInvocation)
 {
-    if (HasActiveModalPrompt() || HasBlockDraft() || IsClosing())
-        return;
-    const auto it = std::ranges::find_if(_filesRowBindings, [&](const auto& pair) { return pair.first == id; });
-    if (it == _filesRowBindings.end())
-        return;
-    _pendingContextTarget = it->second;
-    if (_pendingContextTarget.kind == FilesRowContextBinding::Kind::GitHubSectionHeader)
+    if (HasActiveModalUi() || IsClosing() || target.kind == FilesRowContextBinding::Kind::None ||
+        target.kind == FilesRowContextBinding::Kind::GitHubSectionHeader)
         return;
 
     std::vector<DxUi::MenuFlyoutItem> items;
@@ -1681,65 +1773,56 @@ void Application::ShowFilesContextMenuNow(std::uint64_t id, POINT screenPoint, b
     };
 
     const bool hasLocalFile =
-        (_pendingContextTarget.kind == FilesRowContextBinding::Kind::LocalEntry || _pendingContextTarget.kind == FilesRowContextBinding::Kind::WorkspaceDoc) &&
-        ! _pendingContextTarget.localPath.empty();
+        (target.kind == FilesRowContextBinding::Kind::LocalEntry || target.kind == FilesRowContextBinding::Kind::WorkspaceDoc) && ! target.localPath.empty();
     if (hasLocalFile)
     {
-        if (! _pendingContextTarget.isDirectory && IsMarkdownFile(_pendingContextTarget.localPath))
+        if (! target.isDirectory && IsMarkdownFile(target.localPath))
             add(IDS_CTX_OPEN, Command::FilesCtxOpen);
         add(IDS_CTX_REVEAL_EXPLORER, Command::FilesCtxRevealExplorer);
         add(_redSalamanderInstalledPath ? IDS_CTX_REVEAL_REDSALAMANDER : IDS_CTX_REVEAL_REDSALAMANDER_MISSING,
             Command::FilesCtxRevealRedSalamander,
             _redSalamanderInstalledPath.has_value());
         add(IDS_CTX_COPY_FULL_PATH, Command::FilesCtxCopyFullPath);
-        if (! _pendingContextTarget.localRoot.empty() || _pendingContextTarget.kind == FilesRowContextBinding::Kind::LocalEntry)
+        if (! target.localRoot.empty() || target.kind == FilesRowContextBinding::Kind::LocalEntry)
             add(IDS_CTX_COPY_REL_PATH, Command::FilesCtxCopyRelPath);
         add(IDS_CTX_RENAME, Command::FilesCtxRename);
         add(IDS_CTX_CUT, Command::FilesCtxCut);
         add(IDS_CTX_COPY, Command::FilesCtxCopy);
-        FileClipboardPayload payload;
-        bool hasDrop{};
-#if defined(ENABLE_TESTS)
-        if (_options.clipboardDropReaderForTest)
-        {
-            if (auto testPayload = _options.clipboardDropReaderForTest())
-                hasDrop = ! testPayload->paths.empty();
-        }
-        else
-#endif
-        {
-            hasDrop = SUCCEEDED(ReadDropFilesFromClipboard(_window.get(), payload)) && ! payload.paths.empty();
-        }
-        add(IDS_CTX_PASTE, Command::FilesCtxPaste, hasDrop);
+        add(IDS_CTX_PASTE, Command::FilesCtxPaste, HasClipboardDropFiles());
     }
-    else if (_pendingContextTarget.kind == FilesRowContextBinding::Kind::LocalRootHeader)
+    else if (target.kind == FilesRowContextBinding::Kind::LocalRootHeader)
     {
         add(IDS_CTX_REVEAL_EXPLORER, Command::FilesCtxRevealExplorer);
         add(_redSalamanderInstalledPath ? IDS_CTX_REVEAL_REDSALAMANDER : IDS_CTX_REVEAL_REDSALAMANDER_MISSING,
             Command::FilesCtxRevealRedSalamander,
             _redSalamanderInstalledPath.has_value());
         add(IDS_CTX_COPY_FULL_PATH, Command::FilesCtxCopyFullPath);
-        add(IDS_CTX_PASTE, Command::FilesCtxPaste);
+        add(IDS_CTX_PASTE, Command::FilesCtxPaste, HasClipboardDropFiles());
         add(IDS_REMOVE_FOLDER, Command::FilesCtxRemoveRoot);
     }
-    else if (_pendingContextTarget.kind == FilesRowContextBinding::Kind::GitHubRepoHeader)
+    else if (target.kind == FilesRowContextBinding::Kind::GitHubRepoHeader)
     {
         add(IDS_GITHUB_REMOVE_REPO, Command::FilesCtxRemoveRepo);
     }
-    else if (_pendingContextTarget.kind == FilesRowContextBinding::Kind::GitHubFile ||
-             (_pendingContextTarget.kind == FilesRowContextBinding::Kind::WorkspaceDoc && ! _pendingContextTarget.githubOwner.empty()))
+    else if (target.kind == FilesRowContextBinding::Kind::GitHubFile ||
+             (target.kind == FilesRowContextBinding::Kind::WorkspaceDoc && ! target.githubOwner.empty()))
     {
         add(IDS_CTX_OPEN, Command::FilesCtxOpen);
         add(IDS_CTX_COPY_FULL_PATH, Command::FilesCtxCopyFullPath);
         add(IDS_CTX_COPY_REL_PATH, Command::FilesCtxCopyRelPath);
     }
-    else if (_pendingContextTarget.kind == FilesRowContextBinding::Kind::WorkspaceDoc)
+    else if (target.kind == FilesRowContextBinding::Kind::WorkspaceDoc)
     {
         add(IDS_CTX_OPEN, Command::FilesCtxOpen);
     }
 
-    if (items.empty() || _options.headless)
+    if (items.empty())
         return;
+    if (_options.headless)
+    {
+        _pendingContextTarget = target;
+        return;
+    }
 
     _host.ReleaseMouseCapture();
     _filesContextMenuOpen = true;
@@ -1749,10 +1832,25 @@ void Application::ShowFilesContextMenuNow(std::uint64_t id, POINT screenPoint, b
                                        screenPoint,
                                        items,
                                        _host.GetTheme(),
-                                       [this](std::optional<int> selected) noexcept
+                                       [this, target](std::optional<int> selected) noexcept
     {
-        _filesContextMenuOpen = false;
-        OnMenuClosed(selected);
+        RunUiAction([&]
+        {
+            _filesContextMenuOpen       = false;
+            DxUi::Control* restoreFocus = (_filesTree && _filesPane && _filesPane->IsVisible()) ? static_cast<DxUi::Control*>(_filesTree) : ActiveEditor();
+            if (selected)
+            {
+                _pendingContextTarget = target;
+                const auto cmd        = static_cast<Command>(selected.value() - 1);
+                if (cmd == Command::FilesCtxOpen)
+                {
+                    if (IsPaneOverlayActive(PaneSide::Left))
+                        DismissHoverOverlays(true);
+                    restoreFocus = ActiveEditor();
+                }
+            }
+            OnMenuClosed(selected, restoreFocus);
+        });
     },
                                        callbacks))
         _filesContextMenuOpen = false;
@@ -1763,6 +1861,8 @@ void Application::ExecuteFilesContextAction(Command command)
     const auto target = _pendingContextTarget;
     if (command == Command::FilesCtxOpen)
     {
+        if (IsPaneOverlayActive(PaneSide::Left))
+            DismissHoverOverlays(true);
         if (target.kind == FilesRowContextBinding::Kind::LocalEntry)
             OpenPath(target.localPath);
         else if (target.kind == FilesRowContextBinding::Kind::GitHubFile)
@@ -1802,9 +1902,24 @@ void Application::ExecuteFilesContextAction(Command command)
         if (target.kind == FilesRowContextBinding::Kind::GitHubFile ||
             (target.kind == FilesRowContextBinding::Kind::WorkspaceDoc && ! target.githubOwner.empty()))
         {
-            copied = command == Command::FilesCtxCopyFullPath
-                         ? (L"https://github.com/" + target.githubOwner + L"/" + target.githubRepo + L"/blob/" + target.githubBranch + L"/" + target.githubPath)
-                         : target.githubPath;
+            if (command == Command::FilesCtxCopyFullPath)
+            {
+                const std::string encBranch = PercentEncodeUrlPathSegments(target.githubBranch.empty() ? L"main" : target.githubBranch);
+                const std::string encPath   = PercentEncodeUrlPathSegments(target.githubPath);
+                std::wstring wideBranch;
+                wideBranch.reserve(encBranch.size());
+                for (const char ch : encBranch)
+                    wideBranch.push_back(static_cast<wchar_t>(static_cast<unsigned char>(ch)));
+                std::wstring widePath;
+                widePath.reserve(encPath.size());
+                for (const char ch : encPath)
+                    widePath.push_back(static_cast<wchar_t>(static_cast<unsigned char>(ch)));
+                copied = L"https://github.com/" + target.githubOwner + L"/" + target.githubRepo + L"/blob/" + wideBranch + L"/" + widePath;
+            }
+            else
+            {
+                copied = target.githubPath;
+            }
         }
         else if (target.kind == FilesRowContextBinding::Kind::WorkspaceDoc)
         {
@@ -1824,10 +1939,7 @@ void Application::ExecuteFilesContextAction(Command command)
             if (command == Command::FilesCtxCopyFullPath || target.localRoot.empty() || resolvedPath.empty())
                 copied = resolvedPath.lexically_normal().native();
             else
-            {
-                const auto rel = resolvedPath.lexically_relative(target.localRoot);
-                copied         = (rel.empty() || *rel.begin() == L"..") ? resolvedPath.lexically_normal().native() : rel.generic_wstring();
-            }
+                copied = OrdinalRelativeOrFullPath(resolvedPath, target.localRoot);
         }
         else
         {
@@ -1835,10 +1947,7 @@ void Application::ExecuteFilesContextAction(Command command)
             if (command == Command::FilesCtxCopyFullPath || target.localRoot.empty())
                 copied = targetPath.lexically_normal().native();
             else
-            {
-                const auto rel = targetPath.lexically_relative(target.localRoot);
-                copied         = (rel.empty() || *rel.begin() == L"..") ? targetPath.lexically_normal().native() : rel.generic_wstring();
-            }
+                copied = OrdinalRelativeOrFullPath(targetPath, target.localRoot);
         }
         if (copied.empty())
             return;
@@ -1858,13 +1967,14 @@ void Application::ExecuteFilesContextAction(Command command)
     if (command == Command::FilesCtxRename)
     {
         if ((target.kind == FilesRowContextBinding::Kind::LocalEntry || target.kind == FilesRowContextBinding::Kind::WorkspaceDoc) &&
-            ! target.localPath.empty())
+            ! target.localPath.empty() && target.githubOwner.empty())
             ShowRenameFileModal(target.localPath, target.isDirectory);
         return;
     }
     if (command == Command::FilesCtxCut || command == Command::FilesCtxCopy)
     {
-        if ((target.kind != FilesRowContextBinding::Kind::LocalEntry && target.kind != FilesRowContextBinding::Kind::WorkspaceDoc) || target.localPath.empty())
+        if ((target.kind != FilesRowContextBinding::Kind::LocalEntry && target.kind != FilesRowContextBinding::Kind::WorkspaceDoc) ||
+            target.localPath.empty() || ! target.githubOwner.empty())
             return;
         FileClipboardPayload payload;
         payload.paths.push_back(target.localPath.lexically_normal());
@@ -1880,12 +1990,7 @@ void Application::ExecuteFilesContextAction(Command command)
         {
             _cutFilePaths.clear();
             if (payload.effect == DropEffectKind::Move)
-            {
-                std::wstring norm = target.localPath.lexically_normal().native();
-                for (auto& ch : norm)
-                    ch = static_cast<wchar_t>(std::towlower(ch));
-                _cutFilePaths.insert(std::move(norm));
-            }
+                _cutFilePaths.insert(NormalizeRootPath(target.localPath).native());
             RefreshFiles();
         }
         return;
@@ -1897,8 +2002,10 @@ void Application::ExecuteFilesContextAction(Command command)
             destDir = target.localRoot;
         else if (target.kind == FilesRowContextBinding::Kind::LocalEntry)
             destDir = target.isDirectory ? target.localPath : target.localPath.parent_path();
+        else if (target.kind == FilesRowContextBinding::Kind::WorkspaceDoc && target.githubOwner.empty() && ! target.localPath.empty())
+            destDir = target.localPath.parent_path();
         else
-            destDir = ActivePasteTargetDirectory();
+            return;
         if (destDir.empty())
             return;
         FileClipboardPayload payload;
@@ -1936,41 +2043,74 @@ void Application::RebaseWorkspacePathsAfterFileOp(const std::filesystem::path& s
 {
     if (! move || sourcePath.empty() || destPath.empty())
         return;
-    const auto srcNorm = sourcePath.lexically_normal();
-    const auto dstNorm = destPath.lexically_normal();
+    const auto srcNorm = NormalizeRootPath(sourcePath);
+    const auto dstNorm = NormalizeRootPath(destPath);
+    const auto& srcStr = srcNorm.native();
     auto rebaseOne     = [&](std::filesystem::path& p)
     {
         if (p.empty())
             return false;
-        const auto norm = p.lexically_normal();
+        const auto norm = NormalizeRootPath(p);
         if (! isDirectory)
         {
-            std::error_code ec;
-            if (norm == srcNorm || std::filesystem::equivalent(norm, srcNorm, ec))
+            if (EqualOrdinalIgnoreCase(norm.native(), srcStr))
             {
                 p = dstNorm;
                 return true;
             }
             return false;
         }
-        const auto rel = norm.lexically_relative(srcNorm);
-        if (! rel.empty() && *rel.begin() != L"..")
+        if (! IsPathInsideOrEqualDirectory(norm, srcNorm))
+            return false;
+        const auto& normStr = norm.native();
+        if (EqualOrdinalIgnoreCase(normStr, srcStr))
         {
-            p = (dstNorm / rel).lexically_normal();
+            p = dstNorm;
             return true;
         }
-        return false;
+        std::size_t suffixStart = srcStr.size();
+        if (! srcStr.ends_with(L'\\') && suffixStart < normStr.size() && normStr[suffixStart] == L'\\')
+            ++suffixStart;
+        p = NormalizeRootPath(dstNorm / std::wstring_view(normStr).substr(suffixStart));
+        return true;
     };
 
-    if (rebaseOne(_session.path))
+    bool dirtyDocRebased{};
+    const bool activeRebased = rebaseOne(_session.path);
+    if (activeRebased)
     {
-        if (auto* const ed = ActiveEditor())
-            (void)AcceptSourceResult(ed->TrySetDocumentFilePath(_session.path.native()));
-        UpdateCaption(_session.path.empty() ? Resource(IDS_UNTITLED) : _session.path.filename().native());
+        if (_editor)
+            (void)AcceptSourceResult(_editor->TrySetDocumentFilePath(_session.path.native()));
+        if (_mirror)
+            (void)AcceptSourceResult(_mirror->TrySetDocumentFilePath(_session.path.native()));
+        const auto displayName = ActiveDocumentDisplayName();
+        if (_title)
+            _title->SetText(displayName);
+        UpdateCaption(FormatStringResource(nullptr, IDS_WINDOWTITLE, Dirty() ? L"\x2022 " : L"", displayName));
+        RememberActiveDocument();
         Layout();
+        if (Dirty())
+            dirtyDocRebased = true;
     }
     for (auto& doc : _inactiveDocuments)
-        (void)rebaseOne(doc.metadata.path);
+    {
+        if (rebaseOne(doc.metadata.path) && doc.dirty)
+            dirtyDocRebased = true;
+    }
+    if (rebaseOne(_settings.lastDocument) && ! activeRebased)
+        SavePreferences();
+    if (isDirectory && ! _collapsedFolders.empty())
+    {
+        std::set<std::filesystem::path, PathOrdinalIgnoreCaseLess> updatedCollapsed;
+        for (auto folder : _collapsedFolders)
+        {
+            (void)rebaseOne(folder);
+            updatedCollapsed.insert(std::move(folder));
+        }
+        _collapsedFolders = std::move(updatedCollapsed);
+    }
+    if (dirtyDocRebased)
+        RefreshLeftRailDots();
     CheckpointWorkspaceRecovery(RecoverySnapshotKind::CrashRecovery);
 }
 } // namespace RedTilde

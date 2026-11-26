@@ -36,14 +36,17 @@ after normalization, and keep each accepted replacement in one source/history tr
 - **Split** displays Compose on the left and Source on the right over one shared `DxUi::RichText::Document` and
   unified 128-step Undo/Redo history ([Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md)).
   Clicking inside either pane's text viewport or pressing `F6`
-  transfers authoritative editing (`ExchangeDocumentState`) to that side while keeping the opposite side a read-only
-  synchronized mirror (scrollbar pointer clicks never steal active edit focus; leaving Split or switching workspace
+  transfers authoritative editing (`[[nodiscard]] bool EnsurePrimaryEditorAuthoritative()` / `ExchangeDocumentState()`)
+  to that side while keeping the opposite side a read-only
+  synchronized mirror (propagating `ExchangeEditorsWithoutCallbacks` success/failure before updating `_splitActivePane` or
+  committing `_settings.view`; scrollbar pointer clicks never steal active edit focus; leaving Split or switching workspace
   documents returns authority cleanly to `_editor`). Entering Split and subsequent edits synchronize source, selection,
   and when `splitScrollSync` is enabled (`true` by default, toggleable via the center Split seam button or
-  `Ctrl+Shift+Y`), vertical scope via source-offset alignment guarded against ping-pong reentrancy; disabling
-  `splitScrollSync` allows completely independent scrolling on both panes and suppresses automatic mirror selection
-  scroll. Toolbar commands, Find/Replace highlights, and `FloatingSelectionTools` follow `ActiveEditor()->GetViewMode()`.
-  Compose/Source defer hidden mirror updates, and the mirror never becomes a second independent editable document.
+  `Ctrl+Shift+Y`), vertical scope via source-offset alignment guarded against ping-pong reentrancy (targeting the active
+  mirror editor cleanly); disabling `splitScrollSync` allows completely independent scrolling on both panes and suppresses
+  automatic mirror selection scroll. Toolbar commands, Find/Replace highlights, and `FloatingSelectionTools` follow
+  `ActiveEditor()->GetViewMode()`. Compose/Source defer hidden mirror updates, and the mirror never becomes a second
+  independent editable document.
 - The read-only Source mirror shares the primary immutable snapshot through the pinned public DxUi API while
   retaining its own revision counter and independent parser. Changed source retires derived state; same source
   and selection skip repeated work. An incompatible mirror profile retains exact `SetText` fallback. After any
@@ -94,8 +97,10 @@ and recovery. The preview and printed document share the formatted content and i
 
 Paper width and hardware offsets come from the accepted printer configuration in 96-DPI units. The print
 layout uses dark ink on the paper, up to ¾-inch insets and fixed paper typography. Prepare it at the printable
-width independently of the editor's theme, view, zoom or viewport. Page breaks follow prepared lines, with
-headings kept with following text and rows and objects kept together where they fit. Scale an oversized
+width independently of the editor's theme, view, zoom or viewport (`Pages` remains strictly single-threaded on worker
+Thread A, streaming per-page `ID2D1CommandList` objects to Thread B and reusing its WARP device, editor, and decoded
+images across paper/printer changes via `Pages::SetPaper()`). Page breaks follow prepared lines, with
+headings kept with following text (soft non-transitive `Band::keepWithNext`) and rows and objects kept together where they fit. Scale an oversized
 indivisible band to fit the page. Empty source yields one blank sheet. Resolve allowed local image files
 through the application image reader. Use retained, approved pixels for remote and network-file images
 that are already available. An unavailable source uses the image's alternative without a new network fetch.
@@ -104,7 +109,10 @@ paper when the selected printer's geometry is unavailable. Reflow on destination
 the revised pages before submission. Preserve and revalidate the page selection in the preview. A single
 number selects one sheet. A list accepts up to 32 page numbers or inclusive ranges separated by commas.
 Ignore surrounding whitespace at each number. Reject zero, reversed ranges and endpoints beyond the
-displayed page count. Submit each selected page of the reviewed layout once in document order.
+displayed page count. Submit each selected page of the reviewed layout once in document order; closing preview during
+active submission prompts via `TaskDialogIndirect`, and `FileOutput` holds a `ProcessWorkLease` and drains cancellation cleanly.
+Detached OS spooler queries (`RunPrinterConfigProbe`, `RunSpoolerSubmit`) execute without holding a `DxUi::Failure::Scope`
+across blocking driver calls while wrapping WinSpool/COM calls through `InvokeNative`.
 
 Draw hyperlink labels without automatic link underlines in preview and print output. Explicit document
 formatting still applies. The Windows print path sends drawing primitives and a PrintTicket. Files produced
@@ -203,8 +211,8 @@ Compose/Source/Split presentation and the read-only Split mirror use the newly a
 merge histories. `Command::CloseDocument` (`Ctrl+W`) protects dirty edits via `AskThen`, switches to the adjacent
 retained slot (retiring the closed document's recovery slot), or resets the final document to a clean untitled buffer.
 Drag-and-drop (`WM_DROPFILES` / `OpenDroppedFile`) opens a single valid `.md`, `.markdown`, or `.txt` file through the
-same dirty-safe file flow and refuses multi-drops, directories, or unsupported extensions without prompting or mutating
-the active document.
+same dirty-safe file flow (only when `CanAcceptCommand()`, `!HasActiveModalUi()`, `!_printPreview`, and `!files.Busy()`) and
+refuses multi-drops, directories, or unsupported extensions without prompting or mutating the active document.
 The first opened/saved file seeds an empty root. After that, Open File, Save As and New keep that root. Explicit
 Open File, Open Folder, New and Close protect every dirty document through Save/Discard/Cancel. A decision applies
 only to the exact document/source revision shown; edits made during an asynchronous save/open need fresh protection.
@@ -470,42 +478,51 @@ Windows spell-checking COM access from prose masking, custom dictionary storage,
 
 - **Read-only OS provider & deterministic test double**: `Common/WinSpellProvider` implements `ISpellProvider` over
   `<spellcheck.h>` (`ISpellCheckerFactory` / `ISpellChecker`) strictly read-only on `SpellService`'s lazy STA worker
+  (caching `installedLanguagesEnumerated`, polling `shouldAbort()`, and yielding to urgent suggestion/enumeration work)
   with an 8-entry LRU checker cache (`ResetComObjects()` before `CoUninitialize()`), never calling `ISpellChecker::Add`,
   `Ignore`, `Remove`, or `IUserDictionariesRegistrar` and never mutating `%APPDATA%\Microsoft\Spelling`. Headless
-  tests and captures may inject `FakeSpellProvider`.
+  tests and captures under `ENABLE_TESTS` may inject `FakeSpellProvider` (with zero `catch (...)`).
 - **Zero silent English fallback**: Languages resolve from session override -> optional front-matter `lang:` /
   `language:` hint -> `spelling.languages` (default `["auto"]`, `1..3` normalized BCP-47 tags). Checking validates
   `languages[0]` first and filters errors through `languages[1..N-1]`. When configured languages report
-  `NoDictionary` or `DictionaryUnreadable`, RedTilde emits zero squiggles and reports truthful status
-  (`(<lang> — no dictionary)` / `(<lang> — dictionary unreadable)`) without falling back to `en-US`.
-- **Offset-preserving prose masking & script-aware filters**: `Common/ProseExtractor` masks excluded spans (inline/fenced
+  `NoDictionary`, `DictionaryUnreadable`, or `Unavailable`, RedTilde emits zero squiggles and reports truthful status
+  (`(<lang> — no dictionary)` / `(<lang> — dictionary unreadable)` / `(unavailable)`) without falling back to `en-US`.
+- **Offset-preserving prose masking & script-aware filters**: `Common/ProseExtractor` avoids flattening `Snapshot().Text()`
+  on unrelated checks where unnecessary, passes `ignoreInternetAndPaths` to both `ExtractSemanticProse` and
+  `ExtractSourceProse` (gating URL/e-mail/path masking), and masks excluded spans (inline/fenced
   code, inline/display LaTeX math, Mermaid diagrams, HTML blocks, metadata envelopes, generated/object display spans,
-  link destinations while retaining prose link labels, autolinks, bare URLs, e-mail addresses, and Windows/UNC paths)
-  using identical-length `\uFFFC` sentinels so offsets align cleanly while preserving contractions (`don't`) and elisions
-  (`l'arbre`, `aujourd'hui`, `peut-être`) across `<= 4,096`-unit chunks. `IsScriptAwareAllUppercase` skips acronyms only
-  when cased uppercase letters exist (`C1_UPPER` present, `C1_LOWER` absent) and never skips caseless scripts
-  (e.g., Hebrew, Arabic, CJK); digit-containing tokens follow `spelling.ignoreWordsWithDigits`.
+  link destinations while retaining prose link labels, plus autolinks, bare URLs, e-mail addresses, and Windows/UNC paths
+  when enabled) using identical-length `\uFFFC` sentinels so offsets align cleanly while preserving contractions (`don't`)
+  and elisions (`l'arbre`, `aujourd'hui`, `peut-être`) across `<= 4,096`-unit chunks. `IsScriptAwareAllUppercase` batches
+  `GetStringTypeW` checks, skips acronyms only when cased uppercase letters exist (`C1_UPPER` present, `C1_LOWER` absent),
+  and never skips caseless scripts (e.g., Hebrew, Arabic, CJK); digit-containing tokens follow `spelling.ignoreWordsWithDigits`.
 - **Portable custom dictionaries (`CUSTOM.DIC` interop)**: `Common/CustomDictionary` manages `%LOCALAPPDATA%\RedTilde\custom-dictionary.txt`
-  (or `--data-dir` / user-chosen `customDictionaryPath`). It reads and writes UTF-8, UTF-8 BOM, UTF-16LE BOM (`CUSTOM.DIC`),
-  and UTF-16BE BOM (plus BOM-less UTF-16LE detection), preserves original encoding, EOLs, comments/directives (`#`, `;`,
-  `//`), and entry casing verbatim, refuses legacy ANSI/Windows-1252 (`ERROR_NO_UNICODE_TRANSLATION`) and symlinks/reparse
-  points fail-closed without overwriting, enforces `4 MiB` / `100,000` words / `64` scalar chars caps, and persists via
-  atomic same-directory replacement (retaining session-added words in memory if disk persistence fails). Keys normalize
-  via `NormalizeString(NormalizationC, ...)` + `LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_LOWERCASE, ...)`. `Ignore Once`
-  tracks `(workspaceKey, occurrenceKey, key)`, `Ignore All` stays in session memory only, and only `Add to Dictionary`
-  writes to disk.
+  (or `--data-dir` / user-chosen `customDictionaryPath`). It uses `4 MiB` Win32 UTF-8/UTF-16 codecs (`MultiByteToWideChar` /
+  `WideCharToMultiByte` validating strict UTF-8 before BOM-less UTF-16LE and retrying `NormalizeString` on buffer growth)
+  and `Common/PathSecurity.h` ancestor-and-self surrogate-reparse checks, treats `ERROR_PATH_NOT_FOUND` on cold startup
+  like a missing dictionary, stages `Load()` transactionally (`&_stamp`), preserves original encoding (`UTF-8`, `UTF-8 BOM`,
+  `UTF-16LE BOM`, `UTF-16BE BOM`, BOM-less `UTF-16LE`), EOLs, comments/directives (`#`, `;`, `//`), and entry casing verbatim,
+  refuses legacy ANSI/Windows-1252 (`ERROR_NO_UNICODE_TRANSLATION`) and symlinks/reparse points fail-closed without overwriting,
+  enforces `4 MiB` / `100,000` words / `64` scalar chars caps, and persists via atomic same-directory replacement (retaining
+  session-added words in memory if disk persistence fails). `IsAcceptedNormalized` uses transparent lookup over keys
+  normalized via `NormalizeString(NormalizationC, ...)` + `LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_LOWERCASE, ...)`.
+  `Ignore Once` tracks `(workspaceKey, occurrenceKey, key)` across source anchors and workspace cleanup, `Ignore All` stays
+  in session memory only, and only `Add to Dictionary` writes to disk. `SuggestionCache` retains NFC original-cased keys.
 - **Viewport projection, suppression & guarded edits**: Completed async checks validated by `SpellRequestKey` populate
-  `SpellIssueTable` (`<= 4,096` raw issues). Only issues overlapping the visible source window (`+/- 2,048` units) are
-  projected onto the primary `_editor` via `TrySetDecorations` (`<= 256` `Squiggle` / `Error` / `SpellingError` items,
-  with backoff on `E_BOUNDS`); the read-only Split `_mirror` and Printing/Print Preview receive zero squiggles. Active
-  typing suppresses squiggles on the word touching the caret until caret exit or the `300 ms` debounce expires; IME
-  composition and open `F2` block drafts suspend updates and refuse mutations. Clicking once inside a flagged word
-  (collapsed caret, no drag or modifier keys) or opening the editor context menu (`Right-click` / `Shift+F10`) surfaces
-  up to 5 suggestions, **Ignore Once**, **Ignore All**, and **Add to Dictionary**, while Settings Proofing and the status
-  bar both expose synchronized language `DxUi::ComboBox` selectors. Mid-word formatting (`**re**commnd`)
-  splits into boundary-validated disjoint fragments committed as one undoable `ApplySourceEdits` step after revalidating
-  `(workspaceKey, sourceSnapshot, revision, selection, lifetime)`. External locale tags, paths, and provider error strings
-  pass through `SanitizeSpellUiText` (stripping controls, bidi overrides/isolates, zero-width chars, and `U+E0000..U+E007F`).
+  `SpellIssueTable` (`<= 4,096` raw issues). Only issues overlapping the visible source window (`+/- 2,048` units, checked
+  visible-viewport-first) are projected onto `ActiveEditor()` via `TrySetDecorations` (`<= 256` `Squiggle` / `Error` /
+  `SpellingError` items, with backoff on `E_BOUNDS`); the read-only Split `_mirror` and Printing/Print Preview receive zero
+  squiggles. Active typing suppresses squiggles on the word touching the caret until caret exit or the `300 ms` debounce
+  expires (killing `SpellDebounceTimerId` cleanly); `immediatePending`, IME composition, Split switches, file opens, and
+  open `F2` block drafts reschedule safely, suspend updates, and refuse mutations. Left-clicking once inside a flagged word
+  (early-outing when clean, collapsed caret, no drag or modifier keys, avoiding redundant `TryGetTextInputRangeRects`) or
+  opening the editor context menu (`Right-click` / `Shift+F10`) surfaces up to 5 suggestions (supporting `CORRECTIVE_ACTION_NONE`,
+  `CORRECTIVE_ACTION_REPLACE` with span validation, and `CORRECTIVE_ACTION_DELETE`), **Ignore Once**, **Ignore All**, and
+  **Add to Dictionary**, while Settings Proofing and the cached status-bar `IDWriteTextLayout` `DxUi::ComboBox` selectors
+  avoid double combo refresh. Mid-word formatting (`**re**commnd`) splits into boundary-validated disjoint fragments committed
+  as one undoable `ApplySourceEdits` step after revalidating `(workspaceKey, sourceSnapshot, revision, selection, lifetime)`.
+  External locale tags, paths, GitHub strings, and provider error strings pass through `SanitizeUiText` / `SanitizeSpellUiText`
+  (stripping controls, bidi overrides/isolates, zero-width chars including `U+061C`, `U+180E`, `U+2060..U+2069`, and `U+E0000..U+E007F`).
 - **Read-through GitHub documents (`DocumentOriginInfo::Kind::GitHub`)**: Opening a `.md` or `.markdown` file from a
   connected GitHub repository loads its decoded UTF-8 Markdown into an ordinary editable workspace document carrying its
   `owner`/`repo`/`branch`/`relativePath` metadata while clearing any local path so **Save** (`Ctrl+S`) opens **Save As…**

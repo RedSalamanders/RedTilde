@@ -1,5 +1,6 @@
 #pragma once
 #include "SpellProvider.h"
+#include "TextUtilities.h"
 #include <DxUi/MarkdownSyntax.h>
 #include <DxUi/RichDocument.h>
 #include <DxUi/RichSemanticDocument.h>
@@ -25,10 +26,7 @@ struct ExtractedProse
     bool semanticMode{};
 };
 
-// Script-aware uppercase filter: returns true only when cased uppercase letters are present (>= 2),
-// zero lowercase letters are present, and no caseless-only scripts are misclassified as acronyms.
-[[nodiscard]] bool IsScriptAwareAllUppercase(std::wstring_view word) noexcept;
-[[nodiscard]] bool ContainsAsciiOrUnicodeDigit(std::wstring_view word) noexcept;
+// Script-aware uppercase filter and digit helper live in Common/TextUtilities.h.
 [[nodiscard]] bool LooksLikeInternetOrFilePath(std::wstring_view segment, std::size_t start, std::size_t length) noexcept;
 [[nodiscard]] bool ShouldSkipSpellError(std::wstring_view segment, SpellErrorSpan span, const SpellCheckOptions& options) noexcept;
 
@@ -38,10 +36,11 @@ struct ExtractedProse
 // Compose / Split extractor: masks non-prose semantic spans 1:1 with U+FFFC so every display offset matches Display().
 [[nodiscard]] ExtractedProse ExtractSemanticProse(const DxUi::RichText::SemanticDocument& document,
                                                   const DxUi::RichText::MarkdownSyntax* syntax,
-                                                  std::wstring_view sourceText);
+                                                  std::wstring_view sourceText,
+                                                  bool ignoreInternetAndPaths = true);
 
 // Source-view extractor: masks non-prose Markdown blocks/inlines/destinations 1:1 with U+FFFC so every offset matches Source().
-[[nodiscard]] ExtractedProse ExtractSourceProse(const DxUi::RichText::MarkdownSyntax& syntax, std::wstring_view sourceText);
+[[nodiscard]] ExtractedProse ExtractSourceProse(const DxUi::RichText::MarkdownSyntax& syntax, std::wstring_view sourceText, bool ignoreInternetAndPaths = true);
 
 // Map a provider-reported display range back to ascending, disjoint, UTF-16 boundary-valid raw source fragments.
 [[nodiscard]] bool TryProjectDisplayErrorToSource(const DxUi::RichText::SemanticDocument& document,

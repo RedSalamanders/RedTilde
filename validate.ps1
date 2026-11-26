@@ -53,11 +53,8 @@ Check 'Exact dependency and capability status' {
     if ($capabilities.status -cne 'production' -or $capabilities.version -cnotmatch '^\d+\.\d+\.\d+$' -or @($capabilities.pending).Count -ne 0 -or @($capabilities.deferred).Count -eq 0) {
         throw 'Production capability status must declare a semantic version, zero pending release gates, and explicit post-release deferrals.'
     }
-    $versionHeader=Get-Content (Join-Path $PSScriptRoot 'Common/Version.h') -Raw
-    $majorMatch=[regex]::Match($versionHeader,'(?m)^#define\s+REDTILDE_VERSION_MAJOR\s+(\d+)\b')
-    $minorMatch=[regex]::Match($versionHeader,'(?m)^#define\s+REDTILDE_VERSION_MINOR\s+(\d+)\b')
-    if (-not $majorMatch.Success -or -not $minorMatch.Success) { throw 'Common/Version.h must define REDTILDE_VERSION_MAJOR and REDTILDE_VERSION_MINOR.' }
-    $headerBase="$($majorMatch.Groups[1].Value).$($minorMatch.Groups[1].Value)"
+    Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
+    $headerBase = (Get-RedTildeVersionBase -Root $PSScriptRoot).VersionBase
     $ciProject=Get-Content (Join-Path $PSScriptRoot '.ci/project.json') -Raw | ConvertFrom-Json
     if ($ciProject.versionBase -cne $headerBase) {
         throw ".ci/project.json versionBase '$($ciProject.versionBase)' does not match Common/Version.h '$headerBase'."

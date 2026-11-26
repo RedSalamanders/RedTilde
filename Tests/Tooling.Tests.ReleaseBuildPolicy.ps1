@@ -6,11 +6,8 @@ $ErrorActionPreference='Stop'
 if(-not $Root){$Root=(& git -C $PSScriptRoot rev-parse --show-toplevel).Trim()}
 $Root=[IO.Path]::GetFullPath($Root)
 if(-not $IsWindows){Write-Host 'SKIP Release build-policy evaluation: Windows MSVC required; native qualification remains open.';return}
-$vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
-$installation=(& $vswhere -latest -prerelease -products '*' -requires Microsoft.Component.MSBuild -property installationPath).Trim()
-$msbuild=Join-Path $installation 'MSBuild/Current/Bin/amd64/MSBuild.exe'
-if([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()-eq 'Arm64'){$msbuild=Join-Path $installation 'MSBuild/Current/Bin/arm64/MSBuild.exe'}
-if(-not(Test-Path -LiteralPath $msbuild)){throw 'Install Visual Studio 2026 with MSVC 14.52 C++ tools.'}
+Import-Module (Join-Path $Root 'Build/Toolchain.psm1') -Force
+$msbuild=Get-RedTildeMSBuild
 $scratch=Join-Path $Root ('.build/ReleaseBuildPolicy/'+[guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($scratch)
 $nativePolicyFile=Join-Path $Root 'Build/NativeBuildPolicy.targets'
@@ -131,7 +128,6 @@ Write-Host "PASS Release policy: $checked native profiles, $($archiveChecked.Cou
 # the lease. The adopted SDK now enforces Release /GL itself; verify its defaults
 # as well as the consumer's explicit binding instead of requiring the historical bug.
 if($dependencySource){
-    Import-Module (Join-Path $Root 'Build/Toolchain.psm1') -Force
     $leaseProject=Join-Path $dependencySource 'Tests/InteractiveLease/DxUi.InteractiveLease.vcxproj'
     $archiveProject=Join-Path $dependencySource 'src/DxUi.vcxproj'
     $leaseProfiles=[Collections.Generic.List[object]]::new()
@@ -140,7 +136,7 @@ if($dependencySource){
     $mixedCaseControls=[Collections.Generic.List[object]]::new()
     $identityBindings=[Collections.Generic.List[object]]::new()
     Import-Module (Join-Path $dependencySource 'Tools/ConsumerBuild.psm1') -Force
-    $identityMSBuild=Get-RedTildeMSBuild
+    $identityMSBuild=$msbuild
     $toolsetProbe=Join-Path $scratch 'AmbientToolset.targets'
     [IO.File]::WriteAllText($toolsetProbe,'<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup><VCToolsVersion>14.52.99999</VCToolsVersion></PropertyGroup><ItemGroup><Link Include="ReleasePolicyLinkProbe"/></ItemGroup></Project>')
     function Get-CompilerFacts($Value){

@@ -82,6 +82,82 @@ public:
     {
         return app._settings;
     }
+
+    [[nodiscard]] static const auto& SaveConfirmSessionState(const Application& app) noexcept
+    {
+        return app._saveConfirmSession;
+    }
+
+    [[nodiscard]] static auto& MutableRecoveryCandidates(Application& app) noexcept
+    {
+        return app._recoveryCandidates;
+    }
+
+    [[nodiscard]] static bool IsClosingAfterSave(const Application& app) noexcept
+    {
+        return app.IsClosingAfterSave();
+    }
+
+    [[nodiscard]] static Application::LifecyclePhase Phase(const Application& app) noexcept
+    {
+        return app._lifecyclePhase;
+    }
+
+    static void SetPhase(Application& app, Application::LifecyclePhase phase) noexcept
+    {
+        app.TransitionLifecycle(phase);
+    }
+
+    static void SetOverlay(Application& app, Application::OverlayKind kind)
+    {
+        app.SetActiveOverlay(kind);
+    }
+
+    static DxUi::Panel* SaveConfirmPanel(const Application& app) noexcept
+    {
+        return app._saveConfirmPanel;
+    }
+
+    static std::vector<DxUi::Button*> SaveConfirmButtons(const Application& app)
+    {
+        return {app._saveConfirmPrimary, app._saveConfirmKeepExit, app._saveConfirmDiscard, app._saveConfirmCancel};
+    }
+
+    static bool AdoptCandidate(Application& app, const RecoveryCandidate& candidate, bool asSessionResume, bool startNewSlot)
+    {
+        return app.AdoptRecoveryCandidate(candidate, asSessionResume, startNewSlot);
+    }
+
+    static const auto& FilesModelRows(const Application& app) noexcept
+    {
+        return app._filesModel.rows;
+    }
+
+    static void CloseAppCleanly(Application& app)
+    {
+        app.BeginClose(false);
+    }
+
+    static void Relayout(Application& app)
+    {
+        app.Layout();
+    }
+
+    static void OpenSaveConfirmModal(Application& app, std::function<void()> cont, bool closingApplication, bool activeOnly = false)
+    {
+        app.ShowSaveConfirmModal(std::move(cont), closingApplication, activeOnly);
+    }
+
+    static void SetTwoRecoveryCandidates(Application& app, std::wstring validText, std::wstring invalidText)
+    {
+        Application::OfferedRecoveryCandidate c0;
+        c0.id            = L"m7-valid-rc";
+        c0.snapshot.text = std::move(validText);
+        Application::OfferedRecoveryCandidate c1;
+        c1.id                   = L"m7-invalid-rc";
+        c1.snapshot.text        = std::move(invalidText);
+        app._recoveryCandidates = {std::move(c0), std::move(c1)};
+    }
 };
 
 namespace
@@ -440,6 +516,166 @@ void RegisterSaveDialogTests(const std::filesystem::path& root, const std::funct
                     "shutdown draft is preserved in workspace as dirty resumedUnsaved");
         }
         Require(foreground.NeverAcquiredForeground(), "Keep & Exit and shutdown resume tests never acquire desktop focus");
+    });
+
+    test("Editor.M7SaveConfirmCloseBatchAndSessionRecovery",
+         [&]
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        const auto dir      = root / L"m7-saveconfirm-recovery";
+        const auto filesDir = dir / L"files";
+        std::filesystem::create_directories(filesDir);
+        const auto file1 = filesDir / L"doc1.md";
+        const auto file2 = filesDir / L"doc2.md";
+        Success(WriteBytesAtomic(file1, "# Doc 1\r\n"), "seed doc1.md");
+        Success(WriteBytesAtomic(file2, "# Doc 2\r\n"), "seed doc2.md");
+
+        // P0-16: Recovery v2 "recovered" boolean field round-trip + strict boolean rejection.
+        {
+            RecoverySnapshot snap;
+            snap.text        = L"# Recovered\nContent\n";
+            snap.generation  = 9u;
+            snap.kind        = RecoverySnapshotKind::SessionResume;
+            snap.recovered   = true;
+            const auto bytes = SerializeRecovery(snap);
+            Require(bytes.find("RedTilde.Recovery/2\n") == 0u && bytes.find("\"recovered\":true") != std::string::npos,
+                    "Recovery v2 serializes recovered=true cleanly");
+            RecoverySnapshot parsed;
+            Success(ParseRecovery(bytes, parsed), "parse Recovery v2 with recovered=true");
+            Require(parsed.recovered, "Recovery v2 preserves recovered=true");
+
+            const std::string badMeta =
+                "{\"kind\":1,\"order\":0,\"active\":true,\"recovered\":1,\"bom\":false,\"anchor\":0,\"caret\":0,\"generation\":9,\"path\":\"\"}";
+            const std::string badText   = "# Bad\n";
+            const std::string badHeader = std::format("{} {}", badMeta.size(), badText.size());
+            const std::string badEnvelope =
+                std::string("RedTilde.Recovery/2\n") + badHeader + std::format(" {}\n", ContentHash(badHeader + "\n" + badMeta + badText)) + badMeta + badText;
+            RecoverySnapshot rejected;
+            Require(ParseRecovery(badEnvelope, rejected) == HRESULT_FROM_WIN32(ERROR_INVALID_DATA),
+                    "Recovery v2 rejects non-boolean recovered field with ERROR_INVALID_DATA");
+
+            RecoverySnapshot v1Snap;
+            v1Snap.text        = L"# Crash v1\n";
+            v1Snap.generation  = 4u;
+            v1Snap.kind        = RecoverySnapshotKind::CrashRecovery;
+            v1Snap.recovered   = false;
+            const auto v1Bytes = SerializeRecovery(v1Snap);
+            Require(v1Bytes.find("RedTilde.Recovery/1\n") == 0u, "CrashRecovery with recovered=false preserves Recovery/1 header");
+            RecoverySnapshot v1Parsed;
+            Success(ParseRecovery(v1Bytes, v1Parsed), "parse CrashRecovery v1 envelope");
+            Require(! v1Parsed.recovered, "CrashRecovery v1 leaves recovered=false");
+        }
+
+        // P0-07, P0-06, P0-03, P0-18, P1-03 footer packing
+        {
+            bool conflictTriggered = false;
+            LaunchOptions launch;
+            launch.headless                   = true;
+            launch.dataDirectory              = dir / L"appdata-batch";
+            launch.forceDxUiSaveDialogForTest = true;
+            launch.saveConflictForTest        = [&]
+            {
+                conflictTriggered = true;
+                return SaveConflictChoice::Cancel;
+            };
+            Application app(launch);
+            Success(app.Initialize(), "initialize M7 batch/close app");
+
+            StoredDocument d1, d2;
+            Success(LoadDocument(file1, d1), "load doc1.md");
+            Success(LoadDocument(file2, d2), "load doc2.md");
+            Require(app.SetDocument(d1.text, file1, d1.bom, d1.stamp), "open doc1.md");
+            Edit(app, L"Dirty 1\r\n");
+            Require(WorkspaceDialogsProbe::StartDoc(app), "open slot 2");
+            Require(app.SetDocument(d2.text, file2, d2.bom, d2.stamp), "open doc2.md");
+            Edit(app, L"Dirty 2\r\n");
+
+            // P0-07: Ctrl+W prompts ONLY for active document.
+            app.Execute(Command::CloseDocument);
+            Await(app, [&] { return WorkspaceDialogsProbe::SaveConfirmVisible(app); }, "Ctrl+W opens SaveConfirmModal");
+            Require(WorkspaceDialogsProbe::SaveConfirmSessionState(app).has_value() &&
+                        WorkspaceDialogsProbe::SaveConfirmSessionState(app)->items.size() == 1u &&
+                        WorkspaceDialogsProbe::SaveConfirmSessionState(app)->activeDocumentOnly && ! WorkspaceDialogsProbe::SelectAllBox(app)->IsVisible(),
+                    "Ctrl+W limits SaveConfirmModal to the active document only");
+
+            // P1-03: Visible-only footer button packing leaves zero blank gap when Keep & Exit is hidden.
+            WorkspaceDialogsProbe::Relayout(app);
+            const auto btns = WorkspaceDialogsProbe::SaveConfirmButtons(app);
+            std::vector<D2D1_RECT_F> visRects;
+            for (auto* b : btns)
+                if (b && b->IsVisible())
+                    visRects.push_back(b->GetBounds());
+            Require(visRects.size() == 3u, "single-doc Prompt footer shows Save, Don't Save, Cancel cleanly");
+            for (std::size_t i = 1; i < visRects.size(); ++i)
+                Require(visRects[i].left - visRects[i - 1].right >= 6.f && visRects[i].left - visRects[i - 1].right <= 10.f,
+                        "visible footer buttons pack contiguously without hidden button gap");
+
+            app.Execute(Command::CloseDrawer);
+            Require(! WorkspaceDialogsProbe::SaveConfirmVisible(app) && WorkspaceDialogsProbe::InactiveDocs(app).size() == 1u,
+                    "cancelling Ctrl+W preserves workspace slots");
+
+            // P0-06: Conflict Cancel clears _saveConfirmSession without hanging in ClosingAfterSave.
+            Require(WorkspaceDialogsProbe::SwitchDoc(app, 0u), "switch to doc1.md");
+            Success(WriteBytesAtomic(file1, "# Doc 1\r\nExternal disk change!\r\n"), "create external edit on doc1.md");
+            WorkspaceDialogsProbe::OpenSaveConfirmModal(app, [] {}, true);
+            Await(app, [&] { return WorkspaceDialogsProbe::SaveConfirmVisible(app); }, "multi-doc SaveConfirmModal visible");
+            app.Execute(Command::SaveConfirmAccept);
+            Await(app, [&] { return conflictTriggered; }, "sequential save triggers SaveConflict on doc1.md");
+            Require(! WorkspaceDialogsProbe::SaveConfirmSessionState(app).has_value() && ! WorkspaceDialogsProbe::IsClosingAfterSave(app),
+                    "SaveConflict cancellation clears _saveConfirmSession cleanly without ClosingAfterSave hang");
+
+            // P0-18: Partial failure in RestoreAllRecovery rolls back provisional slot and calls RefreshFiles().
+            WorkspaceDialogsProbe::SetTwoRecoveryCandidates(app, L"# Valid Recovery\nLine\n", L"\xD800");
+            const auto inactiveBefore = WorkspaceDialogsProbe::InactiveDocs(app).size();
+            app.Execute(Command::RestoreAllRecovery);
+            Require(WorkspaceDialogsProbe::InactiveDocs(app).size() == inactiveBefore + 1u &&
+                        app.Document().GetText().find(L"Valid Recovery") != std::wstring::npos && WorkspaceDialogsProbe::FilesModelRows(app).size() >= 1u,
+                    "partial RestoreAllRecovery rolls back failed provisional slot, preserves adopted doc, and refreshes Files tree");
+            WorkspaceDialogsProbe::MutableRecoveryCandidates(app).clear();
+
+            // P0-03: WM_ENDSESSION wParam==FALSE restores _phaseBeforeSessionEnd rather than forcing Active.
+            WorkspaceDialogsProbe::SetPhase(app, Application::LifecyclePhase::ClosingAfterSave);
+            (void)SendMessageW(app.Window(), WM_ENDSESSION, TRUE, ENDSESSION_CLOSEAPP);
+            Require(WorkspaceDialogsProbe::Phase(app) == Application::LifecyclePhase::SessionEnding, "WM_ENDSESSION TRUE transitions to SessionEnding");
+            (void)SendMessageW(app.Window(), WM_ENDSESSION, FALSE, ENDSESSION_CLOSEAPP);
+            Require(WorkspaceDialogsProbe::Phase(app) == Application::LifecyclePhase::ClosingAfterSave, "WM_ENDSESSION FALSE restores prior lifecycle phase");
+            WorkspaceDialogsProbe::SetPhase(app, Application::LifecyclePhase::Active);
+            WorkspaceDialogsProbe::CloseAppCleanly(app);
+            Await(app, [&] { return app.Window() == nullptr; }, "BeginClose settles cleanly");
+        }
+
+        // P0-16: SessionResume adoption defers while HasActiveModalUi() is true and completes after CloseDrawer.
+        {
+            const auto resumeDir = dir / L"appdata-defer-resume";
+            RecoverySnapshot snap;
+            snap.text               = L"# Deferred SessionResume\r\nDraft bytes\r\n";
+            snap.originalPath       = file1;
+            snap.generation         = 5u;
+            snap.kind               = RecoverySnapshotKind::SessionResume;
+            snap.wasActive          = true;
+            snap.savedBaselineStamp = FileStamp{};
+            const auto recFile      = resumeDir / L"Recovery" / L"session-00000000000000000000000000000042.rtd";
+            std::filesystem::create_directories(recFile.parent_path());
+            Success(WriteBytesAtomic(recFile, SerializeRecovery(snap)), "seed deferred SessionResume recovery file");
+
+            LaunchOptions launch;
+            launch.headless              = true;
+            launch.dataDirectory         = resumeDir;
+            launch.startupRestoreForTest = true;
+            Application app(launch);
+            Success(app.Initialize(), "initialize app with SessionResume");
+            WorkspaceDialogsProbe::SetOverlay(app, Application::OverlayKind::RenameFileModal);
+            Await(app, [&] { return app.RecoveryReady(); }, "recovery scan completes");
+            Pump(app, 8);
+            Require(app.Document().GetText().find(L"Deferred SessionResume") == std::wstring::npos,
+                    "SessionResume adoption defers cleanly while a modal overlay is active");
+            WorkspaceDialogsProbe::SetOverlay(app, Application::OverlayKind::None);
+            Await(app, [&] {
+                return app.Document().GetText().find(L"Deferred SessionResume") != std::wstring::npos;
+            }, "deferred SessionResume auto-adopts as soon as modal overlay closes");
+        }
+
+        Require(foreground.NeverAcquiredForeground(), "M7 save-confirm/recovery tests never acquire foreground");
     });
 }
 } // namespace RedTilde

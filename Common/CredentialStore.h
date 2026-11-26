@@ -1,5 +1,7 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <windows.h>
@@ -7,6 +9,27 @@
 namespace RedTilde
 {
 inline constexpr std::wstring_view GitHubCredentialTarget = L"RedTilde/GitHub/api.github.com";
+inline constexpr std::size_t MaximumCredentialSecretChars = 1280u;
+
+class ScrubbedWideSecret final
+{
+public:
+    ScrubbedWideSecret() noexcept = default;
+    ~ScrubbedWideSecret() noexcept;
+    ScrubbedWideSecret(const ScrubbedWideSecret&)            = delete;
+    ScrubbedWideSecret& operator=(const ScrubbedWideSecret&) = delete;
+    ScrubbedWideSecret(ScrubbedWideSecret&& other) noexcept;
+    ScrubbedWideSecret& operator=(ScrubbedWideSecret&& other) noexcept;
+
+    void Assign(std::wstring_view value);
+    void Clear() noexcept;
+    [[nodiscard]] bool Empty() const noexcept;
+    [[nodiscard]] std::wstring_view View() const noexcept;
+
+private:
+    std::unique_ptr<wchar_t[]> _data;
+    std::size_t _size{};
+};
 
 struct StoredCredential
 {
@@ -45,4 +68,5 @@ private:
 };
 
 void ScrubWideString(std::wstring& text) noexcept;
+void ScrubString(std::string& text) noexcept;
 } // namespace RedTilde

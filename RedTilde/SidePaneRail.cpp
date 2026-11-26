@@ -16,6 +16,37 @@ constexpr std::uint64_t MaxAnimationStepMs = 100u;
 {
     return point.x >= rect.left && point.x < rect.right && point.y >= rect.top && point.y < rect.bottom;
 }
+
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5026 5027)
+class RailExpandButton final : public DxUi::Button
+{
+public:
+    explicit RailExpandButton(CollapsedPaneRail& owner) : DxUi::Button(L""), _owner(&owner)
+    {
+    }
+    RailExpandButton(const RailExpandButton&)            = delete;
+    RailExpandButton& operator=(const RailExpandButton&) = delete;
+    RailExpandButton(RailExpandButton&&)                 = delete;
+    RailExpandButton& operator=(RailExpandButton&&)      = delete;
+
+    bool OnKeyDown(DxUi::ControlHost& host, UINT virtualKey, UINT modifiers) override
+    {
+        if (virtualKey == VK_DOWN && (modifiers & MK_CONTROL) == 0u && _owner && _owner->VisibleDotCount() > 0u)
+        {
+            if (auto* firstDot = _owner->DotButton(0u))
+            {
+                host.SetFocusControl(firstDot, host.GetTextInputHwnd() != nullptr);
+                return true;
+            }
+        }
+        return DxUi::Button::OnKeyDown(host, virtualKey, modifiers);
+    }
+
+private:
+    CollapsedPaneRail* _owner{};
+};
+#pragma warning(pop)
 } // namespace
 
 RailDotButton::RailDotButton(CollapsedPaneRail& owner, std::size_t visibleIndex, PaneSide side)
@@ -184,7 +215,7 @@ bool RailDotButton::OnMouseWheel(DxUi::ControlHost& host, D2D1_POINT_2F point, f
 
 CollapsedPaneRail::CollapsedPaneRail(PaneSide side) : _side(side)
 {
-    _expandButton = AddChild<DxUi::Button>(L"");
+    _expandButton = AddChild<RailExpandButton>(*this);
     _expandButton->SetVariant(DxUi::ButtonVariant::IconOnly);
     _expandButton->SetAppearance(DxUi::ButtonAppearance::Subtle);
     (void)_expandButton->SetContentFontSizeDip(13.f);
@@ -204,37 +235,79 @@ void CollapsedPaneRail::ConfigureStrings(std::wstring expandTooltip, std::wstrin
         _expandButton->SetAccessibleName(expandTooltip);
         _expandButton->SetTooltipText(std::move(expandTooltip));
     }
-    if (_items.empty())
-        SetTooltipText(_emptyTooltip);
-    else
-        SetTooltipText(L"");
+    const bool emptyNow     = _items.empty();
+    _lastEmptyTooltipActive = emptyNow;
+    SetTooltipText(emptyNow ? _emptyTooltip : std::wstring{});
 }
 
 void CollapsedPaneRail::SetItems(std::vector<RailDotItem> items, bool ensureActiveVisible)
 {
-    const bool countChanged = _items.size() != items.size();
-    _items                  = std::move(items);
-    if (_items.empty())
-        SetTooltipText(_emptyTooltip);
-    else
-        SetTooltipText(L"");
+    const bool emptyNow = items.empty();
+    if (! _lastEmptyTooltipActive || *_lastEmptyTooltipActive != emptyNow)
+    {
+        _lastEmptyTooltipActive = emptyNow;
+        SetTooltipText(emptyNow ? _emptyTooltip : std::wstring{});
+    }
+
+    const bool itemsChanged = (_items != items);
+    if (! itemsChanged && ! ensureActiveVisible && ! _dotsSyncPending)
+        return;
 
     const std::size_t maxNoOverflow = ComputeVisibleCapacity(false);
-    const std::size_t cap           = _items.size() > maxNoOverflow ? ComputeVisibleCapacity(true) : maxNoOverflow;
-    if (ensureActiveVisible && cap > 0u && _items.size() > cap)
+    const std::size_t cap           = items.size() > maxNoOverflow ? ComputeVisibleCapacity(true) : maxNoOverflow;
+    std::size_t nextScrollOffset    = _scrollOffset;
+    if (items.size() != _items.size() && nextScrollOffset >= items.size())
+        nextScrollOffset = 0u;
+    if (ensureActiveVisible && cap > 0u && items.size() > cap)
     {
-        if (const auto active = ActiveItemIndex())
+        std::optional<std::size_t> active;
+        for (std::size_t i = 0u; i < items.size(); ++i)
+        {
+            if (items[i].active)
+            {
+                active = i;
+                break;
+            }
+        }
+        if (active && (active.value() < nextScrollOffset || active.value() >= nextScrollOffset + cap))
         {
             const std::size_t half       = cap / 2u;
-            const std::size_t maxScroll  = _items.size() - cap;
+            const std::size_t maxScroll  = items.size() - cap;
             const std::size_t targetBase = active.value() > half ? active.value() - half : 0u;
-            _scrollOffset                = std::min(targetBase, maxScroll);
+            nextScrollOffset             = std::min(targetBase, maxScroll);
         }
     }
-    if (countChanged && _scrollOffset >= _items.size())
-        _scrollOffset = 0u;
+    else if (cap > 0u && items.size() > cap)
+    {
+        nextScrollOffset = std::min(nextScrollOffset, items.size() - cap);
+    }
+    else
+    {
+        nextScrollOffset = 0u;
+    }
+
+    const bool scrollChanged = nextScrollOffset != _scrollOffset;
+    if (! itemsChanged && ! scrollChanged && ! _dotsSyncPending)
+        return;
+
+    _items        = std::move(items);
+    _scrollOffset = nextScrollOffset;
+    if (! IsVisible())
+    {
+        _dotsSyncPending = true;
+        return;
+    }
     SyncVisibleDots();
     RequestInvalidate();
+}
+
+void CollapsedPaneRail::SyncIfNeeded()
+{
+    if (_dotsSyncPending)
+    {
+        SyncVisibleDots();
+        RequestInvalidate();
+    }
 }
 
 std::size_t CollapsedPaneRail::ComputeVisibleCapacity(bool reserveOverflow) const noexcept
@@ -247,18 +320,25 @@ std::size_t CollapsedPaneRail::ComputeVisibleCapacity(bool reserveOverflow) cons
 
 void CollapsedPaneRail::SyncVisibleDots()
 {
+    _dotsSyncPending                 = false;
     const auto bounds                = GetBounds();
     const std::size_t maxNoOverflow  = ComputeVisibleCapacity(false);
     const bool hasOverflow           = _items.size() > maxNoOverflow;
-    const std::size_t cap            = hasOverflow ? std::max<std::size_t>(1u, ComputeVisibleCapacity(true)) : maxNoOverflow;
+    const std::size_t cap            = hasOverflow ? ComputeVisibleCapacity(true) : maxNoOverflow;
     const std::size_t maxScroll      = cap > 0u && _items.size() > cap ? _items.size() - cap : 0u;
     _scrollOffset                    = std::min(_scrollOffset, maxScroll);
     const std::size_t visible        = _items.size() > _scrollOffset ? std::min(cap, _items.size() - _scrollOffset) : 0u;
     _visibleDotCount                 = visible;
     _overflowCount                   = _items.size() > visible ? _items.size() - visible : 0u;
     const std::size_t remainingBelow = _items.size() > _scrollOffset + visible ? _items.size() - (_scrollOffset + visible) : 0u;
-    const std::size_t badgeCount     = remainingBelow > 0u ? remainingBelow : _overflowCount;
-    _overflowBadgeText               = badgeCount > 0u ? FormatStringResource(nullptr, IDS_RAIL_MORE_ITEMS, badgeCount) : std::wstring{};
+    _overflowBadgeText               = remainingBelow > 0u ? FormatStringResource(nullptr, IDS_RAIL_MORE_ITEMS, remainingBelow) : std::wstring{};
+
+    if (! _lastUiaOverflowCount || *_lastUiaOverflowCount != _overflowCount)
+    {
+        _lastUiaOverflowCount = _overflowCount;
+        (void)SetAccessibleFormProperties(
+            nullptr, false, true, _overflowCount > 0u ? FormatStringResource(nullptr, IDS_RAIL_MORE_ITEMS, _overflowCount) : std::wstring{});
+    }
 
     while (_dotPool.size() < visible)
     {
@@ -287,11 +367,17 @@ void CollapsedPaneRail::SyncVisibleDots()
         auto* dot = _dotPool[i];
         if (i < visible)
         {
-            const float dotTop = startY + static_cast<float>(i) * DotPitchDip;
-            dot->SetBounds(D2D1::RectF(dotLeft, dotTop, std::max(dotLeft + 8.f, dotRight), dotTop + DotHitHeightDip));
-            dot->SetDotItem(_items[_scrollOffset + i], i);
+            const float dotTop             = startY + static_cast<float>(i) * DotPitchDip;
+            const D2D1_RECT_F targetBounds = D2D1::RectF(dotLeft, dotTop, std::max(dotLeft + 8.f, dotRight), dotTop + DotHitHeightDip);
+            const auto prevBounds          = dot->GetBounds();
+            if (prevBounds.left != targetBounds.left || prevBounds.top != targetBounds.top || prevBounds.right != targetBounds.right ||
+                prevBounds.bottom != targetBounds.bottom)
+                dot->SetBounds(targetBounds);
+            const auto& targetItem = _items[_scrollOffset + i];
+            if (! dot->IsVisible() || dot->DotItem() != targetItem || dot->VisibleIndex() != i)
+                dot->SetDotItem(targetItem, i);
         }
-        else
+        else if (dot->IsVisible())
         {
             dot->SetVisible(false);
             dot->SetFocusable(false);
@@ -396,19 +482,24 @@ void CollapsedPaneRail::StartExpand(DxUi::ControlHost& host, bool toOverlay) noe
     Invalidate(host);
 }
 
-void CollapsedPaneRail::StartCollapse(DxUi::ControlHost& host, bool fromOverlay) noexcept
+void CollapsedPaneRail::StartCollapse(DxUi::ControlHost& host, bool fromOverlay)
 {
     if (_state.mode == PaneDisplayMode::CollapsedRail && _state.phase == PaneAnimationPhase::Settled && _state.progress <= 0.f)
         return;
     _state.collapseFromOverlay = fromOverlay;
     if (host.GetTheme().reducedMotion)
     {
-        _state.mode           = PaneDisplayMode::CollapsedRail;
-        _state.progress       = 0.f;
-        _state.startProgress  = 0.f;
-        _state.phase          = PaneAnimationPhase::Settled;
-        _state.phaseElapsedMs = 0u;
-        _state.tickAnchored   = false;
+        _state.mode                = PaneDisplayMode::CollapsedRail;
+        _state.progress            = 0.f;
+        _state.startProgress       = 0.f;
+        _state.phase               = PaneAnimationPhase::Settled;
+        _state.phaseElapsedMs      = 0u;
+        _state.tickAnchored        = false;
+        _state.collapseFromOverlay = false;
+        if (onAnimationStep)
+            onAnimationStep();
+        if (onCollapseSettled)
+            onCollapseSettled();
         Invalidate(host);
         return;
     }
@@ -560,7 +651,7 @@ void CollapsedPaneRail::Paint(DxUi::ControlHost& host) const
     if (auto* bg = host.GetSolidBrush(theme.surfaceBackground))
         target->FillRectangle(bounds, bg);
 
-    if (auto* line = host.GetSolidBrush(theme.borderDefault))
+    if (auto* line = host.GetSolidBrush(theme.highContrast ? theme.text : theme.borderDefault))
     {
         if (_side == PaneSide::Left)
             target->DrawLine(D2D1::Point2F(bounds.right - 0.5f, bounds.top), D2D1::Point2F(bounds.right - 0.5f, bounds.bottom), line);
@@ -575,7 +666,7 @@ void CollapsedPaneRail::Paint(DxUi::ControlHost& host) const
         if (auto* format = host.GetTextFormat(
                 DxUi::FontRole::Small, 10.5f, DWRITE_FONT_WEIGHT_SEMI_BOLD, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, false))
         {
-            if (auto* textBrush = host.GetSolidBrush(theme.subduedText))
+            if (auto* textBrush = host.GetSolidBrush(theme.highContrast ? theme.text : theme.subduedText))
             {
                 const D2D1_RECT_F badgeRect = D2D1::RectF(bounds.left + 1.f, bounds.bottom - OverflowFooterHeightDip, bounds.right - 1.f, bounds.bottom - 2.f);
                 target->DrawTextW(
@@ -707,7 +798,9 @@ bool CollapsedPaneRail::OnMouseWheel(DxUi::ControlHost& host, D2D1_POINT_2F /*po
     const std::size_t maxNoOverflow = ComputeVisibleCapacity(false);
     if (_items.size() <= maxNoOverflow)
         return false;
-    const std::size_t cap       = std::max<std::size_t>(1u, ComputeVisibleCapacity(true));
+    const std::size_t cap = ComputeVisibleCapacity(true);
+    if (cap == 0u || _items.size() <= cap)
+        return false;
     const std::size_t maxScroll = _items.size() - cap;
     _wheelRemainder += static_cast<int>(std::lround(wheelDelta));
     const int notches = _wheelRemainder / WHEEL_DELTA;

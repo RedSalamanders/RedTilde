@@ -65,6 +65,11 @@ inline constexpr std::size_t DefaultDocumentBytes = 4u * 65536u + 4096u;
                                 std::string& bytes,
                                 FileStamp* stamp         = nullptr,
                                 std::size_t maximumBytes = DefaultDocumentBytes) noexcept;
+[[nodiscard]] HRESULT ReadBytesNoReparse(const std::filesystem::path& path,
+                                         std::string& bytes,
+                                         FileStamp* stamp         = nullptr,
+                                         std::size_t maximumBytes = DefaultDocumentBytes,
+                                         bool* outReparseRejected = nullptr) noexcept;
 // Worker-only image I/O. Pin checked parents while opening each component, refuse
 // name-surrogate reparse points and read at most 16 MiB through the retained file.
 // Network permission and same-share admission are the transport caller's policy.
@@ -89,7 +94,8 @@ inline constexpr std::size_t DefaultDocumentBytes = 4u * 65536u + 4096u;
                                        const std::filesystem::path* baselinePath = nullptr,
                                        bool rejectHardlinkedTarget               = false,
                                        bool* unsupportedReplacement              = nullptr,
-                                       std::size_t maximumBytes                  = DefaultDocumentBytes) noexcept;
+                                       std::size_t maximumBytes                  = DefaultDocumentBytes,
+                                       bool refuseSurrogateReparse               = false) noexcept;
 [[nodiscard]] HRESULT LoadDocument(const std::filesystem::path& path, StoredDocument& document, std::size_t* rejectedUnits = nullptr) noexcept;
 [[nodiscard]] HRESULT SaveDocument(const std::filesystem::path& path,
                                    std::wstring_view text,

@@ -12,6 +12,7 @@
 #include "Common/Resources.h"
 #include "Common/Settings.h"
 #include "Common/SpellProvider.h"
+#include "Common/TextUtilities.h"
 #include "EditDiagnostics.h"
 #include "GitHubService.h"
 #include "ImageLoader.h"
@@ -22,6 +23,7 @@
 #include "UiControls.h"
 #include <array>
 #include <cstdint>
+#include <deque>
 #include <exception>
 #include <filesystem>
 #include <functional>
@@ -177,13 +179,15 @@ struct LaunchOptions
 {
     int showCommand = SW_SHOWNORMAL;
     bool explicitShowCommand{};
-    bool headless{}, selfTest{}, crashProbe{}, preferencesProbe{}, recoveryProbe{}, recoveryRestartProbe{};
+    bool headless{};
     bool resourceProbe{}, forceWarp{}, controlDiagnostics{};
     unsigned performanceCycles = 12;
     unsigned captureDpi{}, viewportWidthPx{}, viewportHeightPx{};
     std::wstring scenario = L"compose-light";
-    std::filesystem::path document, capture, dataDirectory, benchmark, performance, designInteractive;
+    std::filesystem::path document, capture, dataDirectory, benchmark, performance;
 #if defined(ENABLE_TESTS)
+    bool selfTest{}, crashProbe{}, preferencesProbe{}, recoveryProbe{}, recoveryRestartProbe{};
+    std::filesystem::path designInteractive;
     bool startupRestoreForTest{}; // Exercise ordinary startup policy in a hidden owner; no new production switch.
     bool watchSettingsForTest{};  // Exercise live settings watcher against an isolated test directory.
     // Hidden harness replacement for the ordinary unsaved-change question.
@@ -214,6 +218,7 @@ struct LaunchOptions
     std::shared_ptr<IGitHubTransport> githubTransportForTest;
     std::shared_ptr<ICredentialStore> credentialStoreForTest;
     std::function<std::optional<std::wstring>()> ghCliImporterForTest;
+    std::string githubDeviceClientIdForTest;
 #endif
 };
 struct ApplicationActivity
@@ -281,6 +286,7 @@ public:
         std::vector<SaveConfirmItem> items;
         std::function<void()> continuation;
         bool closingApplication{};
+        bool activeDocumentOnly{};
         std::size_t pendingSaveIndex{};
         bool sequentialSaveActive{};
     };
@@ -415,6 +421,23 @@ public:
     {
         return _modalPrompt != ModalPromptKind::None;
     }
+    [[nodiscard]] static constexpr bool IsModalOverlayKind(OverlayKind kind) noexcept
+    {
+        return kind == OverlayKind::RecoveryModal || kind == OverlayKind::SaveConfirmModal || kind == OverlayKind::RenameFileModal ||
+               kind == OverlayKind::FileConflictModal || kind == OverlayKind::OpenGitHubModal;
+    }
+    [[nodiscard]] bool IsModalOverlay() const noexcept
+    {
+        return IsModalOverlayKind(_activeOverlay);
+    }
+    [[nodiscard]] bool HasBlockDraft() const noexcept
+    {
+        return _activeOverlay == OverlayKind::BlockDraftModal && _blockDraftSession.has_value() && _blockDraft && _blockDraft->IsVisible();
+    }
+    [[nodiscard]] bool HasActiveModalUi() const noexcept
+    {
+        return HasActiveModalPrompt() || HasBlockDraft() || IsModalOverlay() || (_saveConfirmSession && _saveConfirmSession->sequentialSaveActive);
+    }
     [[nodiscard]] Editor& Document() const
     {
         return *ActiveEditor();
@@ -434,10 +457,6 @@ public:
     [[nodiscard]] DxUi::TextField* BlockDraft() const
     {
         return _blockDraftText;
-    }
-    [[nodiscard]] bool HasBlockDraft() const
-    {
-        return _activeOverlay == OverlayKind::BlockDraftModal && _blockDraftSession.has_value() && _blockDraft && _blockDraft->IsVisible();
     }
     [[nodiscard]] std::size_t RecoveryCount() const
     {
@@ -485,9 +504,9 @@ private:
     friend class PerformanceProbe;
     friend class DesignRefreshProbe;
     friend class CloseProbe;
-    friend class DesignInteractiveProbe;
     friend class PrintPreview;
 #if defined(ENABLE_TESTS)
+    friend class DesignInteractiveProbe;
     friend int RunFailureHostProbe(std::wstring_view, const std::filesystem::path&, ApplicationRuntime&);
     friend class PrintingProbe;
     friend class FilesProbe;
@@ -524,7 +543,7 @@ private:
     [[nodiscard]] bool AcceptSourceResult(DxUi::RichText::SourceResult result);
     void ExecuteCommand(Command command, unsigned zoomSteps = 1);
     void DispatchUiMessage(const MSG& message) noexcept;
-    void OnMenuClosed(std::optional<int> selected) noexcept;
+    void OnMenuClosed(std::optional<int> selected, DxUi::Control* restoreFocusControl = nullptr) noexcept;
     EditDiagnostics* _editDiagnostics{}; // Borrowed only for a synchronous harness transaction.
     ApplicationActivity _activity;
     template <typename T> class ReentrantPublication
@@ -584,13 +603,40 @@ private:
     DxUi::ControlHost _host;
     FilesService _folderFiles;
     MultiFolderFilesService _multiFolderFiles;
+    struct OrdinalIgnoreCaseLess
+    {
+        using is_transparent = void;
+        [[nodiscard]] bool operator()(std::wstring_view left, std::wstring_view right) const noexcept
+        {
+            return LessOrdinalIgnoreCase(left, right);
+        }
+    };
+    struct PathOrdinalIgnoreCaseLess
+    {
+        using is_transparent = void;
+        [[nodiscard]] bool operator()(const std::filesystem::path& left, const std::filesystem::path& right) const noexcept
+        {
+            return LessOrdinalIgnoreCase(left.native(), right.native());
+        }
+    };
     std::optional<FilesSnapshot> _folderSnapshot;
     std::vector<FilesSnapshot> _folderSnapshots;
-    std::set<std::filesystem::path> _collapsedFolders;
-    std::set<std::filesystem::path> _collapsedLocalRoots;
+    std::set<std::filesystem::path, PathOrdinalIgnoreCaseLess> _collapsedFolders;
+    std::set<std::filesystem::path, PathOrdinalIgnoreCaseLess> _collapsedLocalRoots;
     std::set<std::wstring> _collapsedGitHubRepos;
     std::set<std::wstring> _collapsedGitHubDirs;
-    std::set<std::wstring> _cutFilePaths;
+    std::set<std::wstring, OrdinalIgnoreCaseLess> _cutFilePaths;
+    struct PendingPasteItem
+    {
+        std::filesystem::path source;
+        std::filesystem::path targetDirectory;
+        bool move{};
+        bool forceOverwrite{};
+        bool forceNumbered{};
+    };
+    static constexpr std::size_t MaximumPendingPasteItems = 256u;
+    std::deque<PendingPasteItem> _pendingPasteQueue;
+    std::optional<std::uint64_t> _activePasteRequestId;
     FileOpsService _fileOps;
     GitHubService _github;
     std::shared_ptr<ICredentialStore> _credentials;
@@ -603,18 +649,11 @@ private:
         std::vector<GitHubTreeEntry> entries;
         bool loaded{};
         bool loading{};
+        bool truncated{};
+        bool limitReached{};
         HRESULT lastError{S_OK};
         std::wstring errorMessage;
         bool operator==(const GitHubConnectedRepoState&) const noexcept = default;
-    };
-    struct PendingGitHubDocumentOpen
-    {
-        std::uint64_t requestId{};
-        std::wstring owner;
-        std::wstring repo;
-        std::wstring branch;
-        std::wstring repoPath;
-        bool keepExistingPreferred{};
     };
     struct FilesRowContextBinding
     {
@@ -643,10 +682,9 @@ private:
     std::vector<GitHubRepoSummary> _githubUserRepoCache;
     std::wstring _githubSignedInLogin;
     std::wstring _githubDeviceCodePromptText;
-    std::vector<PendingGitHubDocumentOpen> _pendingGitHubOpens;
     struct PendingFilesContextMenu
     {
-        std::uint64_t id{};
+        FilesRowContextBinding target;
         POINT screenPoint{};
         bool keyboardInvocation{};
     };
@@ -665,7 +703,8 @@ private:
         *_aboutTitle{}, *_aboutVersion{}, *_aboutSummary{}, *_shortcutsList{}, *_proofingTitle{}, *_spellingHelp{}, *_spellingDictPathLabel{},
         *_strikeTasksHelp{}, *_localNetworkImagesHelp{}, *_imageFirstPasteHelp{}, *_spellingLanguageLabel{}, *_keepUnsavedHelp{}, *_accountsTitle{},
         *_accountsStatusLabel{};
-    DxUi::ComboBox *_spellStatusCombo{}, *_spellingLanguageCombo{};
+    StatusLanguageComboBox* _spellStatusCombo{};
+    DxUi::ComboBox* _spellingLanguageCombo{};
     DxUi::Toggle *_outlineToggle{}, *_focusToggle{}, *_dimToggle{}, *_strikeTasksToggle{}, *_keepUnsavedToggle{}, *_remoteImagesToggle{},
         *_localNetworkImagesToggle{}, *_imageFirstPasteToggle{}, *_spellingEnabledToggle{}, *_spellingIgnoreUpperToggle{}, *_spellingIgnoreDigitsToggle{},
         *_spellingIgnorePathsToggle{};
@@ -680,17 +719,17 @@ private:
         std::vector<DxUi::RichText::MarkdownRange> sourceFragments;
         std::wstring word;
         std::wstring normalizedKey;
-        std::uint8_t primaryLanguageIndex{};
+        SpellIssueKind kind{SpellIssueKind::Misspelled};
     };
     struct PendingSpellMenu
     {
         unsigned workspaceKey{};
+        Editor* editor{};
         DxUi::RichText::SourceSnapshot source;
         std::uint64_t revision{};
         DxUi::RichText::Selection selection;
         SpellIssue issue;
         std::vector<std::wstring> suggestions;
-        std::vector<std::wstring> languages;
         std::weak_ptr<int> lifetime;
     };
     struct PendingLeftClickRequest
@@ -699,6 +738,9 @@ private:
         std::uint64_t revision{};
         std::size_t issueIndex{};
         POINT screenPt{};
+        std::optional<SpellRequestKey> appliedKey;
+        std::uint64_t languageConfigVersion{};
+        std::uint64_t dictionaryGeneration{};
     };
     struct SpellControllerState
     {
@@ -713,6 +755,10 @@ private:
         bool typingSuppressionActive{};
         bool checkPending{};
         bool immediatePending{};
+        bool imeSuppressionActive{};
+#if defined(ENABLE_TESTS)
+        bool imeCompositionOverrideForTest{};
+#endif
         bool syncingLanguageCombos{};
         POINT leftDownClientPt{};
         std::uint64_t leftDownRevision{};
@@ -722,11 +768,10 @@ private:
         std::optional<PendingSpellMenu> pendingMenu;
         std::optional<PendingLeftClickRequest> pendingLeftClick;
         std::optional<std::wstring> cachedUserLocale;
-        bool statusInitialized{};
     } _spell;
     std::array<DxUi::Toggle*, MarkdownSyntaxCount> _syntaxToggles{};
     std::array<DxUi::Label*, MarkdownSyntaxCount> _syntaxHelp{};
-    std::array<DxUi::Separator*, 6> _commandDividers{};
+    std::array<DxUi::Separator*, 5> _commandDividers{};
     DirtyDot* _dirtyDot{};
     DxUi::Label *_filesSectionTitle{}, *_outlineCount{}, *_filesRootIcon{}, *_listSummaryIcon{};
     DxUi::Button* _blockSourceAction{};
@@ -782,7 +827,6 @@ private:
     };
     FindController _find;
     int _zoomWheelRemainder{};
-    std::vector<std::filesystem::path> _visibleFilePaths;
     std::optional<std::size_t> _currentHeading;
     struct CurrentBlockLabelFacts
     {
@@ -817,8 +861,10 @@ private:
     FileChangeService _imageFiles;
     std::vector<std::filesystem::path> _watchedImagePaths;
     std::shared_ptr<const DxUi::RichText::SemanticDocument> _imageWatchSemantic;
+    std::shared_ptr<const DxUi::RichText::SemanticDocument> _imageWatchAcknowledgedSemantic;
     std::filesystem::path _imageWatchDocumentPath;
     bool _imageBindingTransition{};
+    bool _imageWatchWasRichVisible{};
     std::uint64_t _imageFileRefreshes{}, _imageWatchPathBuilds{};
     BitmapPasteWriter _bitmapWriter;
     struct PendingBitmapPaste
@@ -839,7 +885,7 @@ private:
     CollapsedPaneRail* _rightRail{};
     Surface *_root{}, *_documentBar{}, *_commandBar{}, *_page{}, *_sidebar{}, *_floating{}, *_drawer{}, *_findBar{}, *_blockDraft{};
     DxUi::CardPanel *_splitComposeChipBg{}, *_splitSourceChipBg{};
-    DxUi::Label *_title{}, *_stats{}, *_feedback{}, *_outlineTitle{}, *_equationHelp{}, *_modeHint{};
+    DxUi::Label *_title{}, *_stats{}, *_feedback{}, *_outlineTitle{}, *_equationHelp{};
     DxUi::Label *_splitComposeTitle{}, *_splitSourceTitle{}, *_splitComposeChip{}, *_splitSourceChip{}, *_splitSwitchHint{};
     DxUi::Button* _splitScrollSyncButton{};
     PaneSide _lastPinnedSide{PaneSide::Left};
@@ -859,19 +905,22 @@ private:
     bool _pointerInsideClient = false;
     DxUi::RichTextEditor* _equation{};
     DxUi::TextField* _findText{};
-    DxUi::Button* _findCaseToggle{};
+    DxUi::Button *_findPrevBtn{}, *_findNextBtn{}, *_findCloseBtn{}, *_replaceBtn{}, *_replaceAllBtn{}, *_findCaseToggle{};
+    DxUi::Label *_blockDraftTitle{}, *_blockDraftHelp{};
     DxUi::TextField* _blockDraftText{};
+    DxUi::Button *_blockDraftApplyBtn{}, *_blockDraftCancelBtn{};
     Surface* _recoveryPanel{};
     DxUi::TextField* _recoveryPreview{};
-    DxUi::Label* _recoveryDescription{};
-    DxUi::Button* _restoreAllRecovery{};
+    DxUi::Label *_recoveryTitle{}, *_recoveryDescription{};
+    DxUi::Button *_recoveryRestoreBtn{}, *_recoveryDiscardBtn{}, *_recoveryLaterBtn{}, *_restoreAllRecovery{};
     Surface *_saveConfirmPanel{}, *_renamePanel{}, *_fileConflictPanel{}, *_openGitHubPanel{};
     DxUi::Label *_saveConfirmTitle{}, *_saveConfirmHint{}, *_renameTitle{}, *_renameLocation{}, *_renameError{}, *_fileConflictTitle{}, *_fileConflictDesc{},
         *_openGitHubTitle{}, *_openGitHubAuthLabel{}, *_openGitHubSuggestLabel{}, *_openGitHubErrorLabel{};
     DxUi::ScrollPanel* _saveConfirmScroll{};
     DxUi::Checkbox* _saveConfirmSelectAll{};
-    DxUi::Button *_saveConfirmPrimary{}, *_saveConfirmKeepExit{}, *_saveConfirmDiscard{}, *_saveConfirmCancel{}, *_renameConfirmBtn{}, *_conflictReplaceBtn{},
-        *_conflictKeepBothBtn{}, *_openGitHubOpenBtn{}, *_openGitHubDeviceBtn{}, *_openGitHubImportGhBtn{}, *_openGitHubUseTokenBtn{};
+    DxUi::Button *_saveConfirmPrimary{}, *_saveConfirmKeepExit{}, *_saveConfirmDiscard{}, *_saveConfirmCancel{}, *_renameConfirmBtn{}, *_renameCancelBtn{},
+        *_conflictReplaceBtn{}, *_conflictKeepBothBtn{}, *_fileConflictCancelBtn{}, *_openGitHubOpenBtn{}, *_openGitHubCancelBtn{}, *_openGitHubDeviceBtn{},
+        *_openGitHubImportGhBtn{}, *_openGitHubUseTokenBtn{};
     DxUi::TextField *_renameInput{}, *_openGitHubUrlInput{}, *_openGitHubBranchInput{}, *_openGitHubTokenInput{};
     std::vector<SaveConfirmRowControls> _saveConfirmRowControls;
     std::optional<SaveConfirmSession> _saveConfirmSession;
@@ -879,6 +928,9 @@ private:
     std::optional<FileConflictSession> _fileConflictSession;
     bool _syncingSaveConfirmChecks{};
     OverlayKind _activeOverlay{OverlayKind::None};
+    bool _compactFilesHeader{};
+    std::optional<bool> _lastPinOutlineDocked;
+    std::optional<bool> _lastPinFilesDocked;
     std::optional<BlockDraftSession> _blockDraftSession;
     std::vector<DxUi::Button*> _tools, _floatingActions, _themeButtons;
     std::array<DxUi::Button*, 3> _modeButtons{};
@@ -945,6 +997,13 @@ private:
         EditorView selectionFactsView = EditorView::Compose;
         std::uint64_t selectionFactsAnalysis{};
         std::uint64_t outlineRowsRevision{};
+        struct SyntaxLookupCache
+        {
+            std::shared_ptr<const DxUi::RichText::MarkdownSyntax> syntax;
+            std::vector<std::uint32_t> topLevelBlocks;
+            std::vector<std::uint32_t> fencedMathBlocks;
+        };
+        mutable SyntaxLookupCache syntaxCache;
 
         void Reset() noexcept
         {
@@ -960,6 +1019,7 @@ private:
             selectionFactsView      = EditorView::Compose;
             selectionFactsAnalysis  = 0;
             outlineRowsRevision     = 0;
+            syntaxCache             = {};
         }
     };
     DerivedDocumentCaches _derivedCaches;
@@ -977,6 +1037,8 @@ private:
     };
     std::optional<SelectionToolsFocusRequest> _selectionToolsFocus;
     LifecyclePhase _lifecyclePhase{LifecyclePhase::Uninitialized};
+    LifecyclePhase _phaseBeforeSessionEnd{LifecyclePhase::Active};
+    std::uint64_t _viewTransitionGeneration{};
     bool _sessionEndCommitted{};
     bool _reportingUiFailure{};
     ModalPromptKind _modalPrompt{ModalPromptKind::None};
@@ -999,8 +1061,18 @@ private:
     static constexpr UINT_PTR GitHubDevicePollTimerId = 0x52545354u;
     std::uint64_t _nextFileOpRequestId{1u};
     std::uint64_t _nextGitHubRequestId{1u};
-    std::uint64_t _filesMultiFolderGeneration{};
-    std::optional<GitHubDeviceCodeInfo> _pendingDeviceFlow;
+    std::uint64_t _nextGitHubFlowId{1u};
+    std::uint64_t _activeDeviceFlowId{};
+    bool _githubImportInProgress{};
+    struct PendingDeviceFlowState
+    {
+        GitHubDeviceCodeInfo info;
+        std::uint64_t flowId{};
+        unsigned currentIntervalSeconds{5u};
+        ULONGLONG deadlineTickMs{};
+        unsigned transientErrors{};
+    };
+    std::optional<PendingDeviceFlowState> _pendingDeviceFlow;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
                           FolderReady = WM_APP + 405, ExternalLinkReady = WM_APP + 406, BitmapReady = WM_APP + 407, ImageFileChanged = WM_APP + 408,
                           PrintReady = WM_APP + 409, PostPreparePlacement = WM_APP + 410, SettingsChanged = WM_APP + 411, SpellReady = WM_APP + 412,
@@ -1013,6 +1085,8 @@ private:
     void RefreshOutline();
     [[nodiscard]] bool PreviewOutlineMatchesCommitted() const;
     void RefreshFiles(bool rootChanged = false);
+    void NormalizeFilesRootsSettings();
+    void UpdateCollapsedFoldersFromSnapshot(const FilesSnapshot* previousSnap, const FilesSnapshot& nextSnap, bool pruneRemovedUnderRoot);
     void EnsureFilesRoot();
     void SelectFilesRoot(const std::filesystem::path& path);
     void AddFilesRoot(const std::filesystem::path& path);
@@ -1021,19 +1095,21 @@ private:
     void AddFolder();
     void UpdateCurrentFileDirtyBadge(bool dirty);
     void FolderCompleted();
+    [[nodiscard]] bool HasClipboardDropFiles() const;
     void OnFilesContextMenu(std::uint64_t id, POINT screenPoint);
-    void ShowFilesContextMenuNow(std::uint64_t id, POINT screenPoint, bool keyboardInvocation);
+    void ShowFilesContextMenuNow(const FilesRowContextBinding& target, POINT screenPoint, bool keyboardInvocation);
     void ExecuteFilesContextAction(Command command);
     void OpenPath(const std::filesystem::path& path);
     [[nodiscard]] bool OpenDroppedFile(const std::filesystem::path& path);
     void CloseActiveDocument();
     [[nodiscard]] bool SwitchWorkspaceDocument(std::size_t index, bool savePreviousRecovery = true, bool refreshFiles = true);
     [[nodiscard]] bool StartWorkspaceDocument();
-    void ResetWorkspace(bool retireRecovery = true);
+    void ResetWorkspace(bool retireRecovery = true, bool forceOnClose = false);
     void CheckpointWorkspaceRecovery(RecoverySnapshotKind kind = RecoverySnapshotKind::CrashRecovery);
     void AskWorkspaceThen(std::function<void()> continuation, std::vector<WorkspaceApproval> approved = {}, bool closingApplication = false);
-    void ShowSaveConfirmModal(std::function<void()> continuation, bool closingApplication);
+    void ShowSaveConfirmModal(std::function<void()> continuation, bool closingApplication, bool activeDocumentOnly = false);
     void AdvanceSaveConfirmSequentialSave();
+    void AbortSaveConfirmBatch() noexcept;
     void ShowRenameFileModal(const std::filesystem::path& path, bool isDirectory);
     void CommitRenameFileModal();
     void ShowFileConflictModal(std::vector<std::filesystem::path> sources,
@@ -1046,10 +1122,15 @@ private:
                                     bool move,
                                     bool forceOverwrite = false,
                                     bool forceNumbered  = false);
+    void DispatchNextPendingPaste();
     void FileOpCompleted();
     void ShowOpenGitHubModal();
     void RefreshOpenGitHubSuggestTree();
     void RefreshGitHubAuthControls();
+    [[nodiscard]] std::wstring FormatGitHubAuthStatusText() const;
+    void ClearGitHubTokenInputs();
+    void ClearPendingDeviceFlow() noexcept;
+    void ToggleGitHubRepoExpanded(std::wstring_view owner, std::wstring_view repo, std::optional<bool> forceExpanded = std::nullopt);
     void CommitOpenGitHubModal();
     void RemoveConnectedGitHubRepo(std::wstring_view owner, std::wstring_view repo);
     void OpenGitHubDocument(std::wstring_view owner, std::wstring_view repo, std::wstring_view branch, std::wstring_view path);
@@ -1057,7 +1138,6 @@ private:
     void RefreshAccountsDrawerControls();
     void RebaseWorkspacePathsAfterFileOp(const std::filesystem::path& sourcePath, const std::filesystem::path& destPath, bool isDirectory, bool move);
     [[nodiscard]] std::filesystem::path ActivePasteTargetDirectory() const;
-    [[nodiscard]] bool IsFilesRowTargetLocalEntry(std::uint64_t id) const;
     void LayoutOverlayPanels(float left, float right, float top, float bottom, float width, float height);
     void RefreshFind();
     void ReplaceFind(bool all);
@@ -1086,6 +1166,10 @@ private:
     void RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot& source, bool committed);
     void UpdateCounts();
     void UpdateCaption(std::wstring caption);
+    [[nodiscard]] std::wstring ActiveDocumentDisplayName() const;
+    [[nodiscard]] static bool IsMarkdownCommandCapacityExceeded(const Editor& editor,
+                                                                const DxUi::RichText::MarkdownCommandRequest& request,
+                                                                DxUi::RichText::Selection selection);
     void SelectionChanged(bool refreshTools = true);
     [[nodiscard]] bool PublishCurrentBlockLabelIfVisible(bool sidebarWillBeVisible = false);
     void FocusSelectionTools();
@@ -1107,11 +1191,13 @@ private:
     std::filesystem::path PickFile(bool saving, bool image = false, bool folder = false);
     void Menu(POINT point, bool insertOnly = false, bool headingOnly = false, bool keyboardInvocation = false);
     void InitializeSpelling();
+    [[nodiscard]] bool IsSpellImeComposing() const noexcept;
     [[nodiscard]] std::filesystem::path ActiveCustomDictionaryPath() const;
     [[nodiscard]] std::vector<std::wstring> ResolveEffectiveSpellLanguages(const std::optional<std::wstring>& frontMatterHint) const;
     void ScheduleSpellCheck(bool immediate = false);
     void DispatchSpellCheckNow();
     void OnSpellDebounceTimer();
+    void ReconcileSpellImeExit();
     void SpellCompleted() noexcept;
     void ProcessSpellResult();
     void OnSpellEditorChanged();
@@ -1123,6 +1209,12 @@ private:
     void RefreshSpellLanguageCombos(bool queryInstalled = false);
     void ApplySpellLanguageSelection(std::wstring_view value, bool fromStatusBar);
     void UpdateSpellSuppressionFromCaret();
+    [[nodiscard]] bool CanRunSpellPointerInteraction(bool checkComboPopups);
+    [[nodiscard]] bool IsIssueSuppressedByTyping(const SpellIssue& issue) const noexcept;
+    [[nodiscard]] std::optional<std::size_t> TryHitSpellIssueAtPoint(Editor& editor,
+                                                                     D2D1_POINT_2F ptDip,
+                                                                     std::optional<std::size_t> hitOffset,
+                                                                     std::optional<D2D1_RECT_F>* outRect = nullptr) const;
     [[nodiscard]] std::optional<std::size_t> FindSpellIssueAtSourceOffset(std::size_t sourceOffset) const noexcept;
     [[nodiscard]] std::vector<DxUi::MenuFlyoutItem> BuildSpellActionMenuItems(std::size_t issueIndex, DxUi::RichText::Selection selection);
     void PopulateSpellContextMenu(POINT screenPoint, bool keyboardInvocation, std::vector<DxUi::MenuFlyoutItem>& items);
@@ -1139,13 +1231,16 @@ private:
     void ApplyBlockSource();
     void FindNext(bool previous = false);
     void SetActiveOverlay(OverlayKind next);
+    [[nodiscard]] DxUi::Panel* ActiveModalPanel() const noexcept;
+    [[nodiscard]] bool HandleModalTabKey();
+    void EnsureSyntaxLookupCache(const std::shared_ptr<const DxUi::RichText::MarkdownSyntax>& syntax);
     [[nodiscard]] bool ReconcilePostPreparePlacement();
     void CloseDrawers();
     [[nodiscard]] Editor* ActiveEditor() const noexcept;
     [[nodiscard]] Editor* MirrorEditor() const noexcept;
     void BindEditorCallbacks();
     void SwitchSplitActivePane(SplitActivePane target, bool moveFocus = false, std::optional<DxUi::RichText::Selection> overrideSelection = std::nullopt);
-    void EnsurePrimaryEditorAuthoritative();
+    [[nodiscard]] bool EnsurePrimaryEditorAuthoritative();
     void OnSplitPaneScrolled(Editor* sourcePane, float scrollDip);
     void ApplySplitScrollSync(Editor* sourcePane, float scrollDip, bool allowDefer = true);
     void UpdateSplitHeaders();
@@ -1160,6 +1255,7 @@ private:
     void BeginClose(bool preserveSessionResume = false);
     void ResumeAfterSaveClose();
     void RecoveryCompleted();
+    [[nodiscard]] bool AdoptRecoveryCandidate(const RecoveryCandidate& candidate, bool asSessionResume, bool startNewSlot);
     void ShowRecovery();
     void FinishClose();
     DxUi::Button* Action(DxUi::Panel& parent, unsigned label, Command command, std::wstring tooltip = {});
@@ -1170,6 +1266,7 @@ private:
 [[nodiscard]] std::wstring_view ResourceView(unsigned id);
 [[nodiscard]] std::wstring Resource(unsigned id);
 [[nodiscard]] std::wstring SampleDocument();
+#if defined(ENABLE_TESTS)
 enum class CoreTestScope
 {
     All,
@@ -1185,9 +1282,8 @@ enum class CoreTestScope
     EditorMedia
 };
 int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope = CoreTestScope::All, bool listOnly = false);
-#if defined(ENABLE_TESTS)
 int RunLinkedSaveInterruptionProbe(const std::filesystem::path& root, bool restart);
+int RunDesignInteractiveProbe(Application& app, const LaunchOptions& options);
 #endif
 int RunPerformanceProbe(Application& app, const LaunchOptions& options);
-int RunDesignInteractiveProbe(Application& app, const LaunchOptions& options);
 } // namespace RedTilde

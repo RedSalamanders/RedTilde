@@ -1,4 +1,5 @@
 #include "SpellService.h"
+#include "Common/TextUtilities.h"
 #include "Common/WinSpellProvider.h"
 #include <DxUi/Failure.h>
 #include <algorithm>
@@ -25,12 +26,6 @@ namespace
     key.append(normalizedWord);
     return key;
 }
-
-[[nodiscard]] bool EqualLanguageTagIgnoreCase(std::wstring_view a, std::wstring_view b) noexcept
-{
-    return a.size() == b.size() &&
-           (a.empty() || CompareStringOrdinal(a.data(), static_cast<int>(a.size()), b.data(), static_cast<int>(b.size()), TRUE) == CSTR_EQUAL);
-}
 } // namespace
 
 SpellService::~SpellService() noexcept
@@ -54,6 +49,7 @@ void SpellService::Initialize(HWND window, UINT readyMessage) noexcept
         _state->phase = WorkerPhase::Idle;
 }
 
+#if defined(ENABLE_TESTS)
 void SpellService::SetProviderForTest(std::shared_ptr<ISpellProvider> provider) noexcept
 {
     std::lock_guard lock(_state->mutex);
@@ -62,6 +58,7 @@ void SpellService::SetProviderForTest(std::shared_ptr<ISpellProvider> provider) 
     _state->cachedInstalledLanguages.clear();
     _state->installedLanguagesEnumerated = false;
 }
+#endif
 
 HRESULT SpellService::EnsureWorkerStartedLocked() noexcept
 {
@@ -139,11 +136,11 @@ try
     if (word.empty() || maxSuggestions == 0u || languages.empty())
         return S_OK;
 
-    std::wstring normalizedKey;
-    if (! TryNormalizeDictionaryKey(word, normalizedKey))
-        normalizedKey = std::wstring(word);
+    std::wstring nfcWord;
+    if (! TryNormalizeUnicodeNfc(word, nfcWord))
+        nfcWord = std::wstring(word);
 
-    const std::wstring cacheKey = BuildSuggestCacheKey(languages, normalizedKey, dictionaryGeneration);
+    const std::wstring cacheKey = BuildSuggestCacheKey(languages, nfcWord, dictionaryGeneration);
 
     std::shared_ptr<PendingSuggest> req;
     {
@@ -417,10 +414,40 @@ catch (const std::bad_alloc&)
 void SpellService::ProcessCheck(SharedState& state, ISpellProvider& provider, const SpellCheckRequest& req, std::uint64_t seq) noexcept
 try
 {
-    auto shouldAbort = [&]() noexcept
+    auto serviceUrgentOrAbort = [&]() -> bool
     {
-        std::lock_guard lock(state.mutex);
-        return state.closing || state.nextCheckSeq != seq;
+        for (;;)
+        {
+            std::shared_ptr<PendingSuggest> urgentSuggest;
+            bool urgentEnumerate{};
+            {
+                std::lock_guard lock(state.mutex);
+                if (state.closing || state.nextCheckSeq != seq)
+                    return false;
+                if (state.pendingSuggest)
+                    urgentSuggest = std::exchange(state.pendingSuggest, nullptr);
+                else if (state.pendingEnumerateLanguages)
+                {
+                    state.pendingEnumerateLanguages = false;
+                    urgentEnumerate                 = true;
+                }
+                else
+                    return true;
+            }
+            if (urgentSuggest)
+            {
+                ProcessSuggest(state, provider, urgentSuggest);
+            }
+            else if (urgentEnumerate)
+            {
+                std::vector<std::wstring> installed;
+                (void)provider.EnumerateInstalledLanguages(installed);
+                std::lock_guard lock(state.mutex);
+                state.cachedInstalledLanguages     = std::move(installed);
+                state.installedLanguagesEnumerated = true;
+                state.suggestCv.notify_all();
+            }
+        }
     };
 
     SpellCheckResult result;
@@ -429,11 +456,21 @@ try
     result.availabilities.reserve(req.languages.size());
     result.diagnostics.reserve(req.languages.size());
 
-    (void)provider.EnumerateInstalledLanguages(result.installedLanguages);
+    bool needEnumerate = false;
     {
         std::lock_guard lock(state.mutex);
-        if (! result.installedLanguages.empty() || ! state.installedLanguagesEnumerated)
+        if (state.closing || state.nextCheckSeq != seq)
+            return;
+        if (state.installedLanguagesEnumerated)
+            result.installedLanguages = state.cachedInstalledLanguages;
+        else
+            needEnumerate = true;
+    }
+    if (needEnumerate)
+    {
+        if (SUCCEEDED(provider.EnumerateInstalledLanguages(result.installedLanguages)))
         {
+            std::lock_guard lock(state.mutex);
             state.cachedInstalledLanguages     = result.installedLanguages;
             state.installedLanguagesEnumerated = true;
             state.suggestCv.notify_all();
@@ -443,7 +480,7 @@ try
     std::vector<std::size_t> readyIndices;
     for (std::size_t i = 0u; i < req.languages.size(); ++i)
     {
-        if (shouldAbort())
+        if (! serviceUrgentOrAbort())
             return;
         ProviderDiagnostic diag;
         const ProviderAvailability avail = provider.CheckAvailability(req.languages[i], &diag);
@@ -477,7 +514,7 @@ try
 
     for (const auto& chunk : req.prose.chunks)
     {
-        if (shouldAbort())
+        if (! serviceUrgentOrAbort())
             return;
 
         chunkSpans.clear();
@@ -495,31 +532,39 @@ try
             const std::wstring_view word(chunk.text.data() + span.start, span.length);
 
             std::wstring normalized;
-            if (TryNormalizeDictionaryKey(word, normalized) && req.dictionarySnapshot.ContainsNormalized(normalized))
-                continue;
-
-            bool acceptedBySecondary = false;
-            for (std::size_t r = 1u; r < readyIndices.size(); ++r)
+            const bool hasNormalized = TryNormalizeDictionaryKey(word, normalized);
+            if (span.kind != SpellIssueKind::RepeatedWord)
             {
-                const std::wstring_view secondaryTag = req.languages[readyIndices[r]];
-                if (EqualLanguageTagIgnoreCase(secondaryTag, primaryTag))
+                if (hasNormalized && req.dictionarySnapshot.ContainsNormalized(normalized))
                     continue;
-                secondarySpans.clear();
-                if (SUCCEEDED(provider.CheckSegment(secondaryTag, word, req.options, secondarySpans)) && secondarySpans.empty())
+
+                bool acceptedBySecondary = false;
+                for (std::size_t r = 1u; r < readyIndices.size(); ++r)
                 {
-                    acceptedBySecondary = true;
-                    break;
+                    if (! serviceUrgentOrAbort())
+                        return;
+                    const std::wstring_view secondaryTag = req.languages[readyIndices[r]];
+                    if (EqualOrdinalIgnoreCase(secondaryTag, primaryTag))
+                        continue;
+                    secondarySpans.clear();
+                    if (SUCCEEDED(provider.CheckSegment(secondaryTag, word, req.options, secondarySpans)) && secondarySpans.empty())
+                    {
+                        acceptedBySecondary = true;
+                        break;
+                    }
                 }
+                if (acceptedBySecondary)
+                    continue;
             }
-            if (acceptedBySecondary)
-                continue;
+            if (! serviceUrgentOrAbort())
+                return;
 
             SpellRawIssue raw;
-            raw.offset               = chunk.baseOffset + span.start;
-            raw.length               = span.length;
-            raw.word                 = std::wstring(word);
-            raw.normalizedKey        = normalized.empty() ? std::wstring(word) : std::move(normalized);
-            raw.primaryLanguageIndex = static_cast<std::uint8_t>(primaryIndex);
+            raw.offset        = chunk.baseOffset + span.start;
+            raw.length        = span.length;
+            raw.word          = std::wstring(word);
+            raw.normalizedKey = hasNormalized && ! normalized.empty() ? std::move(normalized) : std::wstring(word);
+            raw.kind          = span.kind;
             result.issues.push_back(std::move(raw));
             if (result.issues.size() >= MaximumRawIssues)
                 break;

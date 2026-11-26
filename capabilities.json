@@ -115,16 +115,18 @@
     "dxui-save-confirmation-dialog-and-keep-and-exit-session-resume",
     "multi-folder-workspace-sections-and-label-disambiguation",
     "files-pane-context-menu-reveal-and-safe-clipboard-fileops",
-    "open-github-modal-autosuggest-and-read-through-documents"
+    "open-github-modal-autosuggest-and-read-through-documents",
+    "github-pat-and-opt-in-gh-cli-authentication",
+    "paired-release-performance-post-m7-hardening"
   ],
   "pending": [],
   "deferred": [
     "f7-proofing-review-pane",
-    "paired-release-performance-spelling-qualification",
+    "paired-release-performance-spelling-specific-fixture",
     "arm64-runtime-spelling-qualification",
     "arm64-runtime-workspace-dialogs-github-qualification",
     "sibling-redsalamander-select-cli-adoption",
-    "manual-live-github-oauth-device-flow-smoke",
+    "configured-github-oauth-device-flow-client-id-and-live-smoke",
     "upstream-performance-and-product-qualification",
     "documents-over-65536-utf16-units",
     "conditional-cross-process-atomic-replacement",

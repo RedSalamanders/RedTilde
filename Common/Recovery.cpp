@@ -1,4 +1,5 @@
 #include "Recovery.h"
+#include "JsonHelpers.h"
 #include "MonitorDiagnostics.h"
 #include "ProcessWork.h"
 #include <DxUi/Failure.h>
@@ -24,9 +25,6 @@ constexpr std::string_view MagicV2          = "RedTilde.Recovery/2\n";
 constexpr std::size_t MaximumCandidates     = 64;
 constexpr std::size_t MaximumScannedEntries = 512;
 constexpr std::size_t MaximumMetadataBytes  = 64u * 1024u;
-using unique_yyjson_doc                     = wil::unique_any<yyjson_doc*, decltype(&yyjson_doc_free), yyjson_doc_free>;
-using unique_yyjson_mut_doc                 = wil::unique_any<yyjson_mut_doc*, decltype(&yyjson_mut_doc_free), yyjson_mut_doc_free>;
-using unique_yyjson_text                    = wil::unique_any<char*, decltype(&::free), ::free>;
 HRESULT CreateRecoveryId(std::wstring& id)
 {
     GUID guid{};
@@ -60,7 +58,7 @@ bool ValidSnapshot(const RecoverySnapshot& value) noexcept
 }
 bool NeedsV2Envelope(const RecoverySnapshot& snapshot) noexcept
 {
-    return snapshot.kind != RecoverySnapshotKind::CrashRecovery || snapshot.workspaceOrder != 0u || snapshot.wasActive ||
+    return snapshot.kind != RecoverySnapshotKind::CrashRecovery || snapshot.workspaceOrder != 0u || snapshot.wasActive || snapshot.recovered ||
            snapshot.savedBaselineStamp.has_value() || snapshot.origin.kind != DocumentOriginInfo::Kind::Local || ! snapshot.origin.owner.empty() ||
            ! snapshot.origin.repo.empty() || ! snapshot.origin.relativePath.empty();
 }
@@ -197,77 +195,57 @@ try
         return S_OK;
     }
 
-    const unique_yyjson_mut_doc doc(yyjson_mut_doc_new(nullptr));
-    if (! doc)
-        DxUi::Failure::FailAllocation();
-    auto* const root = yyjson_mut_obj(doc.get());
-    if (! root)
-        DxUi::Failure::FailAllocation();
+    const unique_yyjson_mut_doc doc = CreateMutableJsonDoc();
+    auto* const root                = CreateMutableJsonObject(doc.get());
     yyjson_mut_doc_set_root(doc.get(), root);
 
-    const auto checkedAddVal = [&](yyjson_mut_val* parent, const char* key, yyjson_mut_val* val) noexcept
-    {
-        auto* const keyVal = yyjson_mut_strcpy(doc.get(), key);
-        if (! keyVal || ! val || ! yyjson_mut_obj_put(parent, keyVal, val))
-            DxUi::Failure::FailAllocation();
-    };
-    const auto putStr = [&](yyjson_mut_val* parent, const char* key, std::string_view val) noexcept
-    { checkedAddVal(parent, key, yyjson_mut_strncpy(doc.get(), val.data(), val.size())); };
     const auto putWide = [&](yyjson_mut_val* parent, const char* key, std::wstring_view wide)
     {
         std::string utf8;
         if (DxUi::RichText::TryEncodeUtf8(wide, utf8) != DxUi::RichText::SourceResult::Success)
             return false;
-        putStr(parent, key, utf8);
+        PutJsonObjectString(doc.get(), parent, key, utf8);
         return true;
     };
 
-    checkedAddVal(root, "kind", yyjson_mut_uint(doc.get(), static_cast<std::uint64_t>(snapshot.kind)));
-    checkedAddVal(root, "order", yyjson_mut_uint(doc.get(), snapshot.workspaceOrder));
-    checkedAddVal(root, "active", yyjson_mut_bool(doc.get(), snapshot.wasActive));
-    checkedAddVal(root, "bom", yyjson_mut_bool(doc.get(), snapshot.bom));
-    checkedAddVal(root, "anchor", yyjson_mut_uint(doc.get(), snapshot.selection.anchor));
-    checkedAddVal(root, "caret", yyjson_mut_uint(doc.get(), snapshot.selection.caret));
-    checkedAddVal(root, "generation", yyjson_mut_uint(doc.get(), snapshot.generation));
-    putStr(root, "path", path);
+    PutJsonObjectUint(doc.get(), root, "kind", static_cast<std::uint64_t>(snapshot.kind));
+    PutJsonObjectUint(doc.get(), root, "order", snapshot.workspaceOrder);
+    PutJsonObjectBool(doc.get(), root, "active", snapshot.wasActive);
+    PutJsonObjectBool(doc.get(), root, "recovered", snapshot.recovered);
+    PutJsonObjectBool(doc.get(), root, "bom", snapshot.bom);
+    PutJsonObjectUint(doc.get(), root, "anchor", snapshot.selection.anchor);
+    PutJsonObjectUint(doc.get(), root, "caret", snapshot.selection.caret);
+    PutJsonObjectUint(doc.get(), root, "generation", snapshot.generation);
+    PutJsonObjectString(doc.get(), root, "path", path);
 
     if (snapshot.savedBaselineStamp)
     {
-        auto* const stampObj = yyjson_mut_obj(doc.get());
-        if (! stampObj)
-            DxUi::Failure::FailAllocation();
-        const auto& s = snapshot.savedBaselineStamp.value();
-        checkedAddVal(stampObj, "exists", yyjson_mut_bool(doc.get(), s.exists));
-        checkedAddVal(stampObj, "size", yyjson_mut_uint(doc.get(), s.size));
-        checkedAddVal(stampObj, "modified", yyjson_mut_uint(doc.get(), s.modified));
-        checkedAddVal(stampObj, "hash", yyjson_mut_uint(doc.get(), s.hash));
-        checkedAddVal(stampObj, "volume", yyjson_mut_uint(doc.get(), s.volume));
-        checkedAddVal(stampObj, "fileIndex", yyjson_mut_uint(doc.get(), s.fileIndex));
-        checkedAddVal(stampObj, "fileIndexHigh", yyjson_mut_uint(doc.get(), s.fileIndexHigh));
-        checkedAddVal(root, "stamp", stampObj);
+        auto* const stampObj = CreateMutableJsonObject(doc.get());
+        const auto& s        = snapshot.savedBaselineStamp.value();
+        PutJsonObjectBool(doc.get(), stampObj, "exists", s.exists);
+        PutJsonObjectUint(doc.get(), stampObj, "size", s.size);
+        PutJsonObjectUint(doc.get(), stampObj, "modified", s.modified);
+        PutJsonObjectUint(doc.get(), stampObj, "hash", s.hash);
+        PutJsonObjectUint(doc.get(), stampObj, "volume", s.volume);
+        PutJsonObjectUint(doc.get(), stampObj, "fileIndex", s.fileIndex);
+        PutJsonObjectUint(doc.get(), stampObj, "fileIndexHigh", s.fileIndexHigh);
+        PutJsonObjectValue(doc.get(), root, "stamp", stampObj);
     }
     if (snapshot.origin.kind != DocumentOriginInfo::Kind::Local)
     {
-        auto* const originObj = yyjson_mut_obj(doc.get());
-        if (! originObj)
-            DxUi::Failure::FailAllocation();
-        checkedAddVal(originObj, "kind", yyjson_mut_uint(doc.get(), static_cast<std::uint64_t>(snapshot.origin.kind)));
+        auto* const originObj = CreateMutableJsonObject(doc.get());
+        PutJsonObjectUint(doc.get(), originObj, "kind", static_cast<std::uint64_t>(snapshot.origin.kind));
         if (! putWide(originObj, "owner", snapshot.origin.owner) || ! putWide(originObj, "repo", snapshot.origin.repo) ||
             ! putWide(originObj, "branch", snapshot.origin.branch) || ! putWide(originObj, "relativePath", snapshot.origin.relativePath) ||
             ! putWide(originObj, "blobSha", snapshot.origin.blobSha) || ! putWide(originObj, "htmlUrl", snapshot.origin.htmlUrl))
             return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
-        checkedAddVal(root, "origin", originObj);
+        PutJsonObjectValue(doc.get(), root, "origin", originObj);
     }
 
     std::size_t metaLen{};
-    yyjson_write_err writeErr{};
-    const unique_yyjson_text metaText(yyjson_mut_write_opts(doc.get(), 0, nullptr, &metaLen, &writeErr));
+    const unique_yyjson_text metaText = WriteJsonDocument(doc.get(), 0, metaLen);
     if (! metaText)
-    {
-        if (writeErr.code == YYJSON_WRITE_ERROR_MEMORY_ALLOCATION)
-            DxUi::Failure::FailAllocation();
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
-    }
     if (metaLen > MaximumMetadataBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
 
@@ -351,16 +329,11 @@ try
         ContentHash(std::string(metadata) + "\n" + std::string(payload)) != v2Header[2])
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
 
-    const auto metaSlice = payload.substr(0, static_cast<std::size_t>(v2Header[0]));
-    const auto textSlice = payload.substr(static_cast<std::size_t>(v2Header[0]));
-    yyjson_read_err readErr{};
-    const unique_yyjson_doc jsonDoc(yyjson_read_opts(const_cast<char*>(metaSlice.data()), metaSlice.size(), 0, nullptr, &readErr));
+    const auto metaSlice            = payload.substr(0, static_cast<std::size_t>(v2Header[0]));
+    const auto textSlice            = payload.substr(static_cast<std::size_t>(v2Header[0]));
+    const unique_yyjson_doc jsonDoc = ParseJsonDocument(metaSlice);
     if (! jsonDoc)
-    {
-        if (readErr.code == YYJSON_READ_ERROR_MEMORY_ALLOCATION)
-            DxUi::Failure::FailAllocation();
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
-    }
     auto* const root = yyjson_doc_get_root(jsonDoc.get());
     if (! root || ! yyjson_is_obj(root))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
@@ -375,6 +348,12 @@ try
         staged.workspaceOrder = static_cast<std::uint32_t>(yyjson_get_uint(orderVal));
     if (auto* const activeVal = yyjson_obj_get(root, "active"); activeVal && yyjson_is_bool(activeVal))
         staged.wasActive = yyjson_get_bool(activeVal);
+    if (auto* const recVal = yyjson_obj_get(root, "recovered"))
+    {
+        if (! yyjson_is_bool(recVal))
+            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+        staged.recovered = yyjson_get_bool(recVal);
+    }
     if (auto* const bomVal = yyjson_obj_get(root, "bom"); bomVal && yyjson_is_bool(bomVal))
         staged.bom = yyjson_get_bool(bomVal);
     if (auto* const genVal = yyjson_obj_get(root, "generation"); genVal && yyjson_is_uint(genVal))
@@ -473,7 +452,7 @@ struct RecoveryService::State
     struct PendingSnapshot
     {
         std::optional<RecoverySnapshot> snapshot;
-        std::wstring retire;
+        std::vector<std::wstring> retireIds;
         ULONGLONG first{}, latest{};
         bool immediate{};
     };
@@ -555,13 +534,14 @@ struct RecoveryService::State
             auto lease = Lease(root, candidate);
             if (! lease) // Another running session (or access error) retains ownership.
                 continue;
+            const auto leasePath = root / (L"session-" + std::wstring(candidate) + L".lease");
             std::string bytes;
             RecoverySnapshot snapshot;
             const HRESULT read = ReadBytes(entry.path(), bytes);
             if (FAILED(read))
             {
                 lease.reset();
-                (void)Remove(root / (L"session-" + std::wstring(candidate) + L".lease"));
+                (void)Remove(leasePath);
                 continue;
             }
             const HRESULT parsed = ParseRecovery(bytes, snapshot);
@@ -571,9 +551,11 @@ struct RecoveryService::State
                 quarantine += L".quarantine";
                 (void)MoveFileW(entry.path().c_str(), quarantine.c_str()); // No overwrite, preserve unknown/corrupt bytes.
                 lease.reset();
-                (void)Remove(root / (L"session-" + std::wstring(candidate) + L".lease"));
+                (void)Remove(leasePath);
                 continue;
             }
+            lease.reset();
+            (void)Remove(leasePath);
             {
                 std::lock_guard lock(mutex);
                 candidates.push_back({std::wstring(candidate), std::move(snapshot)});
@@ -707,9 +689,15 @@ struct RecoveryService::State
                         std::lock_guard lock(self->mutex);
                         self->snapshotStatuses[document] = outcome;
                     }
-                    // Retire a restored candidate only after its replacement is durable.
-                    if (SUCCEEDED(outcome) && ! update.retire.empty())
-                        discards.push_back(std::move(update.retire));
+                    // Retire restored candidates only after their replacement is durable.
+                    if (SUCCEEDED(outcome))
+                    {
+                        for (auto& retireId : update.retireIds)
+                        {
+                            if (std::ranges::find(discards, retireId) == discards.end())
+                                discards.push_back(std::move(retireId));
+                        }
+                    }
                 }
                 std::vector<std::wstring> batchFailedDiscards;
                 for (const auto& candidate : discards)
@@ -841,8 +829,10 @@ try
         pending.first = now;
     pending.latest   = now;
     pending.snapshot = std::move(snapshot);
-    if (! retire.empty())
-        pending.retire = std::move(retire);
+    if (! retire.empty() && pending.retireIds.size() < MaximumCandidates && std::ranges::find(pending.retireIds, retire) == pending.retireIds.end())
+    {
+        pending.retireIds.push_back(std::move(retire));
+    }
     pending.immediate = pending.immediate || immediate;
     _state->UpdateSettlementLocked();
     (void)SetEvent(_state->wake.get());

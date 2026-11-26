@@ -265,6 +265,27 @@ try {
         $composeLightHash=(Get-FileHash -LiteralPath (Join-Path $run 'compose-light.png')).Hash
         $panelHoverHash=(Get-FileHash -LiteralPath (Join-Path $run 'panel-toggle-hover.png')).Hash
         if($composeLightHash -eq $panelHoverHash){throw 'panel-toggle-hover capture must differ from resting compose-light pixels.'}
+        $relCaptureDir=Join-Path $run 'rel-capture-check'
+        [void][IO.Directory]::CreateDirectory($relCaptureDir)
+        try{
+            $relExit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--capture','rel-capture.png','--scenario','compose-light','--data-dir','rel-capture-data') -LogPrefix (Join-Path $run 'rel-capture') -WorkingDirectory $relCaptureDir
+            $relPng=Join-Path $relCaptureDir 'rel-capture.png'
+            $relSidecar=$relPng+'.scenario.json'
+            if($relExit -ne 0 -or -not(Test-Path -LiteralPath $relPng) -or -not(Test-Path -LiteralPath $relSidecar)){
+                throw "Relative --capture + --data-dir regression check failed ($relExit)."
+            }
+            $relBytes=[IO.File]::ReadAllBytes($relPng)
+            if($relBytes.Length -lt 24 -or [Convert]::ToHexString($relBytes[0..7]) -cne '89504E470D0A1A0A'){
+                throw 'Relative --capture regression check produced an invalid PNG header.'
+            }
+            foreach($emptyFlag in @('--capture','--benchmark','--performance-probe','--resource-probe')){
+                $emptyData=Join-Path $relCaptureDir ('empty-'+$emptyFlag.TrimStart('-'))
+                $emptyExit=Invoke-RedTildeHarness -Executable $exe -Arguments @($emptyFlag,'','--data-dir',$emptyData) -LogPrefix (Join-Path $run ('empty-'+$emptyFlag.TrimStart('-'))) -WorkingDirectory $relCaptureDir
+                if($emptyExit -ne 1 -or (Test-Path -LiteralPath $emptyData)){throw "Empty path flag '$emptyFlag' did not cleanly refuse with exit 1."}
+            }
+        }finally{
+            if(Test-Path -LiteralPath $relCaptureDir){Remove-Item -LiteralPath $relCaptureDir -Recurse -Force -ErrorAction SilentlyContinue}
+        }
         Write-Host "$($captures.Count) actual hidden application captures generated with viewport/DPI provenance."
     }
     if ('Crash' -in $Suites) {

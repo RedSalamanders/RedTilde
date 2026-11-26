@@ -4,6 +4,9 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <string>
@@ -18,6 +21,38 @@ inline constexpr std::size_t MaximumGitHubUserRepos     = 500u;
 inline constexpr std::size_t MaximumGitHubTreeEntries   = 5000u;
 inline constexpr unsigned MaximumGitHubTreeDepth        = 8u;
 
+enum class GitHubErrorCode : std::uint8_t
+{
+    None = 0,
+    EmptyUrl,
+    UrlTooLongOrInvalidEncoding,
+    UrlUnsafeCharacters,
+    HttpsRequired,
+    HostNotGitHub,
+    UnsupportedScheme,
+    DotPathSegment,
+    MissingOwnerOrRepo,
+    InvalidOwnerOrRepo,
+    InvalidBranch,
+    InvalidFilePath,
+    UnsupportedUrlPath,
+    RateLimited,
+    Unauthorized,
+    NotFound,
+    HttpStatus,
+    ServerMessage,
+    GhCliUnavailable,
+    DeviceFlowNotConfigured,
+    DeviceAccessDenied,
+    DeviceExpired,
+    InvalidResponse,
+    FileTooLarge,
+    FileNotUtf8,
+    Cancelled,
+    Timeout,
+    TransportFailed
+};
+
 struct ParsedGitHubTarget
 {
     bool valid{};
@@ -25,7 +60,7 @@ struct ParsedGitHubTarget
     std::wstring repo;
     std::wstring branch;
     std::wstring filePath;
-    std::wstring errorReason;
+    GitHubErrorCode errorCode{GitHubErrorCode::None};
 };
 
 struct GitHubRepoSummary
@@ -86,7 +121,7 @@ struct GitHubDevicePollResult
     };
     State state{State::Pending};
     std::wstring accessToken;
-    unsigned intervalSeconds{5u};
+    std::optional<unsigned> serverIntervalSeconds;
     std::wstring errorMessage;
 };
 
@@ -108,9 +143,19 @@ struct GitHubHttpResponse
     unsigned httpStatusCode{};
     std::string body;
     std::wstring errorMessage;
+    GitHubErrorCode errorCode{GitHubErrorCode::None};
     bool rateLimited{};
     bool hasNextPage{};
 };
+
+#if defined(ENABLE_TESTS)
+struct GitHubLoopbackEndpoint
+{
+    std::wstring host{L"127.0.0.1"};
+    unsigned short port{};
+    bool useHttps{false};
+};
+#endif
 
 class IGitHubTransport
 {
@@ -125,11 +170,36 @@ public:
 class WinHttpGitHubTransport final : public IGitHubTransport
 {
 public:
+    struct SessionHolder;
+
+    WinHttpGitHubTransport() noexcept;
+    ~WinHttpGitHubTransport() override;
+    WinHttpGitHubTransport(const WinHttpGitHubTransport&)            = delete;
+    WinHttpGitHubTransport& operator=(const WinHttpGitHubTransport&) = delete;
+    WinHttpGitHubTransport(WinHttpGitHubTransport&&)                 = delete;
+    WinHttpGitHubTransport& operator=(WinHttpGitHubTransport&&)      = delete;
+
+#if defined(ENABLE_TESTS)
+    void SetLoopbackEndpointForTest(std::optional<GitHubLoopbackEndpoint> endpoint) noexcept;
+#endif
+
     [[nodiscard]] HRESULT SendRequest(const GitHubHttpRequest& request,
                                       const std::atomic_bool* cancellation,
                                       HANDLE abortEvent,
                                       GitHubHttpResponse& outResponse) noexcept override;
+
+private:
+    std::mutex _sessionMutex;
+    std::shared_ptr<SessionHolder> _sessionHolder;
+#if defined(ENABLE_TESTS)
+    std::optional<GitHubLoopbackEndpoint> _loopbackForTest;
+#endif
 };
+
+// Shared GitHub path & URL validation/encoding helpers.
+[[nodiscard]] bool IsValidGitHubRelativePath(std::wstring_view path) noexcept;
+[[nodiscard]] std::string PercentEncodeUrlPathSegments(std::wstring_view utf16Path);
+[[nodiscard]] std::string PercentEncodeQueryComponent(std::wstring_view utf16Value);
 
 // Pure URL parser & autosuggest scorer.
 [[nodiscard]] ParsedGitHubTarget ParseGitHubUrl(std::wstring_view input);
@@ -147,9 +217,17 @@ public:
     std::string_view jsonBytes, std::wstring_view owner, std::wstring_view repo, std::wstring_view branch, GitHubTreeSnapshot& outSnapshot) noexcept;
 [[nodiscard]] HRESULT ParseGitHubDeviceCodeJson(std::string_view jsonBytes, GitHubDeviceCodeInfo& outInfo) noexcept;
 [[nodiscard]] HRESULT ParseGitHubDevicePollJson(std::string_view jsonBytes, GitHubDevicePollResult& outResult) noexcept;
-[[nodiscard]] std::wstring FormatGitHubErrorMessage(const GitHubHttpResponse& response);
+[[nodiscard]] GitHubErrorCode ClassifyGitHubHttpError(const GitHubHttpResponse& response) noexcept;
 
 // Explicit user-triggered opt-in helper to read token via installed GitHub CLI (`gh auth token`).
 // Never called implicitly on startup or background polling.
-[[nodiscard]] HRESULT TryImportGhCliToken(std::wstring& outToken) noexcept;
+[[nodiscard]] HRESULT TryImportGhCliToken(std::wstring& outToken, const std::atomic_bool* cancellation = nullptr, HANDLE abortEvent = nullptr) noexcept;
+#if defined(ENABLE_TESTS)
+[[nodiscard]] HRESULT TryImportGhCliTokenWithExecutableForTest(const std::filesystem::path& executablePath,
+                                                               std::wstring_view arguments,
+                                                               std::wstring& outToken,
+                                                               DWORD timeoutMs                      = 3000u,
+                                                               const std::atomic_bool* cancellation = nullptr,
+                                                               HANDLE abortEvent                    = nullptr) noexcept;
+#endif
 } // namespace RedTilde

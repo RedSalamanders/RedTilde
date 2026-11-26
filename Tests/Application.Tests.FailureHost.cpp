@@ -351,6 +351,8 @@ void RegisterFailureHostTests(const std::filesystem::path& root, const std::func
         Require(TakePendingCrashNotice(directory, true) == report && ! std::filesystem::exists(marker),
                 "first interactive startup names and claims the legacy report");
         Require(! TakePendingCrashNotice(directory, true).has_value(), "second interactive startup has no repeat notice");
+        Require(InstallCrashHandler(L"") == E_INVALIDARG && InstallCrashHandler(L"relative-crashes") == E_INVALIDARG && CrashReportingPrepared(),
+                "InstallCrashHandler rejects empty and relative paths without clearing the active handler");
     });
     test("Settings.Api5OriginalContextAndNativeIsolation",
          [&]

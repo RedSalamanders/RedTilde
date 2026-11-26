@@ -50,7 +50,7 @@ struct SpellRawIssue
     std::size_t length{};
     std::wstring word;
     std::wstring normalizedKey;
-    std::uint8_t primaryLanguageIndex{};
+    SpellIssueKind kind{SpellIssueKind::Misspelled};
 };
 
 struct SpellCheckResult
@@ -87,7 +87,9 @@ public:
     SpellService& operator=(const SpellService&) = delete;
 
     void Initialize(HWND window, UINT readyMessage) noexcept;
+#if defined(ENABLE_TESTS)
     void SetProviderForTest(std::shared_ptr<ISpellProvider> provider) noexcept;
+#endif
 
     [[nodiscard]] HRESULT SubmitCheck(SpellCheckRequest request) noexcept;
     [[nodiscard]] HRESULT SuggestSyncBounded(const std::vector<std::wstring>& languages,

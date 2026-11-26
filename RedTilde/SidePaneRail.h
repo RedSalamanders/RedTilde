@@ -55,6 +55,7 @@ struct RailDotItem
     std::wstring itemStatus;
     unsigned level{};
     bool active{};
+    bool operator==(const RailDotItem&) const noexcept = default;
 };
 
 class CollapsedPaneRail;
@@ -72,6 +73,10 @@ public:
     [[nodiscard]] const RailDotItem& DotItem() const noexcept
     {
         return _item;
+    }
+    [[nodiscard]] std::size_t VisibleIndex() const noexcept
+    {
+        return _visibleIndex;
     }
 
     void Paint(DxUi::ControlHost& host) const override;
@@ -110,6 +115,7 @@ public:
 
     void ConfigureStrings(std::wstring expandTooltip, std::wstring emptyTooltip);
     void SetItems(std::vector<RailDotItem> items, bool ensureActiveVisible = false);
+    void SyncIfNeeded();
     void LayoutChildren();
 
     [[nodiscard]] PaneSide Side() const noexcept
@@ -130,7 +136,7 @@ public:
     void BeginLeaveGrace(DxUi::ControlHost& host) noexcept;
     void CancelLeaveGrace() noexcept;
     void StartExpand(DxUi::ControlHost& host, bool toOverlay) noexcept;
-    void StartCollapse(DxUi::ControlHost& host, bool fromOverlay) noexcept;
+    void StartCollapse(DxUi::ControlHost& host, bool fromOverlay);
 
     void HandlePointerMoveDip(DxUi::ControlHost& host, D2D1_POINT_2F point, bool insideRailOrOverlay) noexcept;
     void NotifyDotHovered(DxUi::ControlHost* host, bool hovered) noexcept;
@@ -195,6 +201,9 @@ private:
     float _dotsBottomDip{DotsStartOffsetDip};
     PaneSide _side{PaneSide::Right};
     int _wheelRemainder{};
+    bool _dotsSyncPending{};
+    std::optional<std::size_t> _lastUiaOverflowCount;
+    std::optional<bool> _lastEmptyTooltipActive;
 };
 #pragma warning(pop)
 } // namespace RedTilde

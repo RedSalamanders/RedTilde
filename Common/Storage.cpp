@@ -1,4 +1,5 @@
 #include "Storage.h"
+#include "PathSecurity.h"
 #include "Recovery.h"
 #include <DxUi/Failure.h>
 #include <DxUi/RichDocument.h>
@@ -103,6 +104,8 @@ HRESULT CompleteIdentity(HANDLE file, FileStamp& stamp) noexcept
         stamp.volume = info.VolumeSerialNumber;
         std::memcpy(&stamp.fileIndex, info.FileId.Identifier, sizeof(stamp.fileIndex));
         std::memcpy(&stamp.fileIndexHigh, info.FileId.Identifier + sizeof(stamp.fileIndex), sizeof(stamp.fileIndexHigh));
+        if (stamp.volume == 0u && (stamp.fileIndex || stamp.fileIndexHigh))
+            stamp.volume = VolumeRootFingerprint(file);
         return S_OK;
     }
     const auto error = GetLastError();
@@ -140,16 +143,23 @@ HRESULT ReadOpenedIdentity(HANDLE file, FileStamp& stamp, DWORD* links = nullptr
     return CompleteIdentity(file, stamp);
 }
 
-HRESULT CheckGuardedName(const std::filesystem::path& path, const FileStamp& guarded, bool rejectHardlinkedTarget) noexcept
+HRESULT CheckGuardedName(const std::filesystem::path& path, const FileStamp& guarded, bool rejectHardlinkedTarget, bool refuseSurrogateReparse) noexcept
 {
-    wil::unique_handle selected(
-        CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    const DWORD flags = refuseSurrogateReparse ? FILE_FLAG_OPEN_REPARSE_POINT : FILE_ATTRIBUTE_NORMAL;
+    wil::unique_handle selected(CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, flags, nullptr));
     if (! selected)
     {
         const DWORD error = GetLastError();
         if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
             return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
         return HRESULT_FROM_WIN32(error);
+    }
+    if (refuseSurrogateReparse)
+    {
+        bool reparse{};
+        const HRESULT verifyHr = VerifyDiskHandle(selected.get(), false, &reparse);
+        if (FAILED(verifyHr))
+            return reparse ? HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE) : (verifyHr == E_INVALIDARG ? HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) : verifyHr);
     }
     FileStamp identity;
     DWORD links{};
@@ -161,10 +171,10 @@ HRESULT CheckGuardedName(const std::filesystem::path& path, const FileStamp& gua
     return rejectHardlinkedTarget && links > 1u ? HRESULT_FROM_WIN32(ERROR_RETRY) : S_OK;
 }
 
-void RefreshPublishedTimestamp(const std::filesystem::path& path, FileStamp& stamp) noexcept
+void RefreshPublishedTimestamp(const std::filesystem::path& path, FileStamp& stamp, bool refuseSurrogateReparse = false) noexcept
 {
-    wil::unique_handle published(
-        CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    const DWORD flags = refuseSurrogateReparse ? FILE_FLAG_OPEN_REPARSE_POINT : FILE_ATTRIBUTE_NORMAL;
+    wil::unique_handle published(CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, flags, nullptr));
     if (! published)
         return;
     BY_HANDLE_FILE_INFORMATION info{};
@@ -261,6 +271,8 @@ std::uint64_t ContentHash(std::string_view bytes) noexcept
 HRESULT ReadBytes(const std::filesystem::path& path, std::string& bytes, FileStamp* stamp, std::size_t maximumBytes) noexcept
 try
 {
+    if (! IsValidWin32PathString(path.native()))
+        return E_INVALIDARG;
     wil::unique_handle file(CreateFileW(
         path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
     if (! file)
@@ -272,99 +284,22 @@ catch (const std::bad_alloc&)
     DxUi::Failure::FailAllocation();
 }
 
-namespace
+HRESULT ReadBytesNoReparse(const std::filesystem::path& path, std::string& bytes, FileStamp* stamp, std::size_t maximumBytes, bool* outReparseRejected) noexcept
+try
 {
-std::size_t ImageShareEnd(std::wstring_view path) noexcept
-{
-    if (! path.starts_with(L"\\\\") || path.starts_with(L"\\\\?\\") || path.starts_with(L"\\\\.\\"))
-        return path.npos;
-    const auto server = path.find(L'\\', 2u);
-    if (server == path.npos || server == 2u || server + 1u == path.size())
-        return path.npos;
-    const auto share = path.find(L'\\', server + 1u);
-    const auto end   = share == path.npos ? path.size() : share;
-    return end == server + 1u ? path.npos : end;
+    if (outReparseRejected)
+        *outReparseRejected = false;
+    if (path.empty() || ! path.is_absolute())
+        return E_INVALIDARG;
+    wil::unique_handle file;
+    RETURN_IF_FAILED(OpenPinnedDiskEntry(path.native(), false, file, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, outReparseRejected));
+    return ReadOpenedBytes(file.get(), bytes, stamp, maximumBytes);
 }
-HRESULT CheckedImageEntry(HANDLE file, bool directory) noexcept
+catch (const std::bad_alloc&)
 {
-    FILE_ATTRIBUTE_TAG_INFO info{};
-    if (! GetFileInformationByHandleEx(file, FileAttributeTagInfo, &info, sizeof(info)))
-        return LastError();
-    if (GetFileType(file) != FILE_TYPE_DISK || ((info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) != directory)
-        return E_INVALIDARG;
-    // Cloud/provider tags without name redirection keep their provider semantics.
-    if ((info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && IsReparseTagNameSurrogate(info.ReparseTag))
-        return E_ACCESSDENIED;
-    return S_OK;
+    DxUi::Failure::FailAllocation();
 }
-HRESULT OpenImageEntry(std::wstring_view path, bool directory, wil::unique_handle& output)
-{
-    if (path.empty() || path.size() > 32750u || path.find(L'\0') != path.npos || std::ranges::any_of(path, [](wchar_t c) { return c < 32u; }))
-        return E_INVALIDARG;
-    std::wstring text(path);
-    std::ranges::replace(text, L'/', L'\\');
-    if (text.starts_with(L"\\\\?\\UNC\\"))
-        text.replace(0u, 8u, L"\\\\");
-    else if (text.starts_with(L"\\\\?\\"))
-        text.erase(0u, 4u);
-    std::size_t rootEnd{};
-    if (text.size() >= 3u && ((text[0] >= L'A' && text[0] <= L'Z') || (text[0] >= L'a' && text[0] <= L'z')) && text[1] == L':' && text[2] == L'\\')
-        rootEnd = 2u;
-    else if (const auto share = ImageShareEnd(text); share != std::wstring_view::npos)
-        rootEnd = share;
-    else
-        return E_INVALIDARG;
-    while (text.size() > rootEnd + 1u && text.back() == L'\\')
-        text.pop_back();
-    if (text.size() <= rootEnd + 1u && ! directory)
-        return E_INVALIDARG;
-    const bool unc      = text.starts_with(L"\\\\");
-    std::wstring prefix = unc ? L"\\\\?\\UNC\\" : L"\\\\?\\";
-    prefix.append(text, unc ? 2u : 0u, rootEnd - (unc ? 2u : 0u));
-    prefix.push_back(L'\\');
-    std::array<wil::unique_handle, 128u> parents;
-    std::size_t count{};
-    const auto open = [&](bool final) -> HRESULT
-    {
-        const bool isDirectory = ! final || directory;
-        const DWORD access     = isDirectory ? FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES : GENERIC_READ;
-        const DWORD share      = final && directory ? FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE : FILE_SHARE_READ;
-        const DWORD flags      = FILE_FLAG_OPEN_REPARSE_POINT | (isDirectory ? FILE_FLAG_BACKUP_SEMANTICS : FILE_FLAG_SEQUENTIAL_SCAN) |
-                                 (final && directory ? FILE_FLAG_OVERLAPPED : 0u);
-        wil::unique_handle file(CreateFileW(prefix.c_str(), access, share, nullptr, OPEN_EXISTING, flags, nullptr));
-        if (! file)
-            return LastError();
-        RETURN_IF_FAILED(CheckedImageEntry(file.get(), isDirectory));
-        if (final)
-            output = std::move(file);
-        else
-        {
-            if (count == parents.size())
-                return HRESULT_FROM_WIN32(ERROR_FILENAME_EXCED_RANGE);
-            parents[count++] = std::move(file);
-        }
-        return S_OK;
-    };
-    if (text.size() <= rootEnd + 1u)
-        return open(true);
-    RETURN_IF_FAILED(open(false));
-    std::size_t at = rootEnd + 1u;
-    while (at < text.size())
-    {
-        const auto slash = text.find(L'\\', at);
-        const auto end   = slash == text.npos ? text.size() : slash;
-        const auto part  = std::wstring_view(text).substr(at, end - at);
-        if (part.empty() || part == L"." || part == L".." || part.find_first_of(L":<>\"|?*") != part.npos)
-            return E_INVALIDARG;
-        if (prefix.back() != L'\\')
-            prefix.push_back(L'\\');
-        prefix.append(part);
-        RETURN_IF_FAILED(open(end == text.size()));
-        at = end + 1u;
-    }
-    return S_OK;
-}
-} // namespace
+
 bool SharesImageNetworkRoot(std::wstring_view document, std::wstring_view image) noexcept
 {
     // SDK image requests already contain canonical decoded UNC paths. Do not
@@ -373,7 +308,7 @@ bool SharesImageNetworkRoot(std::wstring_view document, std::wstring_view image)
     {
         if (path.starts_with(L"\\\\?\\UNC\\"))
             return path.substr(8u);
-        if (ImageShareEnd(path) != path.npos)
+        if (UncShareEnd(path) != path.npos)
             return path.substr(2u);
         return {};
     };
@@ -396,7 +331,7 @@ try
     if (cancel && cancel->load(std::memory_order_relaxed))
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
     wil::unique_handle file;
-    RETURN_IF_FAILED(OpenImageEntry(path, false, file));
+    RETURN_IF_FAILED(OpenPinnedDiskEntry(path, false, file));
     std::string staged;
     RETURN_IF_FAILED(ReadOpenedBytes(file.get(), staged, nullptr, 16u * 1024u * 1024u));
     if (cancel && cancel->load(std::memory_order_relaxed))
@@ -412,7 +347,7 @@ HRESULT OpenImageDirectoryForNotifications(std::wstring_view path, wil::unique_h
 try
 {
     wil::unique_handle staged;
-    RETURN_IF_FAILED(OpenImageEntry(path, true, staged));
+    RETURN_IF_FAILED(OpenPinnedDiskEntry(path, true, staged));
     directory = std::move(staged);
     return S_OK;
 }
@@ -424,7 +359,7 @@ catch (const std::bad_alloc&)
 HRESULT WriteNewBytesDurable(const std::filesystem::path& path, std::string_view bytes, FileStamp& saved, std::size_t maximumBytes) noexcept
 try
 {
-    if (! path.is_absolute() || ! maximumBytes || maximumBytes > 64u * 1024u * 1024u)
+    if (! path.is_absolute() || ! IsValidWin32PathString(path.native()) || ! maximumBytes || maximumBytes > 64u * 1024u * 1024u)
         return E_INVALIDARG;
     if (bytes.size() > maximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
@@ -472,7 +407,7 @@ catch (const std::bad_alloc&)
 HRESULT RemoveCreatedBytesIfUnchanged(const std::filesystem::path& path, const FileStamp& expected, std::size_t maximumBytes) noexcept
 try
 {
-    if (! path.is_absolute() || ! HasIdentity(expected) || ! maximumBytes || maximumBytes > 64u * 1024u * 1024u)
+    if (! path.is_absolute() || ! IsValidWin32PathString(path.native()) || ! HasIdentity(expected) || ! maximumBytes || maximumBytes > 64u * 1024u * 1024u)
         return E_INVALIDARG;
     wil::unique_handle file(CreateFileW(
         path.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
@@ -507,36 +442,82 @@ HRESULT WriteBytesAtomic(const std::filesystem::path& path,
                          const std::filesystem::path* baselinePath,
                          bool rejectHardlinkedTarget,
                          bool* unsupportedReplacement,
-                         std::size_t maximumBytes) noexcept
+                         std::size_t maximumBytes,
+                         bool refuseSurrogateReparse) noexcept
 try
 {
     if (unsupportedReplacement)
         *unsupportedReplacement = false;
+    if (! path.is_absolute() || ! IsValidWin32PathString(path.native()))
+        return E_INVALIDARG;
+    if (baselinePath && ! baselinePath->empty() && ! IsValidWin32PathString(baselinePath->native()))
+        return E_INVALIDARG;
     if (bytes.size() > maximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
-    const DWORD attributes = GetFileAttributesW(path.c_str());
-    const bool exists      = attributes != INVALID_FILE_ATTRIBUTES;
-    if (! exists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
-        return LastError();
-    if (exists && (attributes & FILE_ATTRIBUTE_DIRECTORY))
-        return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
-    FileStamp beforeStaging;
-    if (exists)
+
+    wil::unique_handle pinnedParent;
+    if (refuseSurrogateReparse)
     {
-        wil::unique_handle selected(
-            CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        if (path.parent_path().empty())
+            return E_INVALIDARG;
+        bool parentReparse{};
+        const HRESULT pinHr =
+            OpenPinnedDiskEntry(path.parent_path().native(), true, pinnedParent, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, &parentReparse);
+        if (FAILED(pinHr))
+            return parentReparse ? HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE) : pinHr;
+    }
+
+    bool exists{};
+    FileStamp beforeStaging;
+    if (refuseSurrogateReparse)
+    {
+        wil::unique_handle selected(CreateFileW(
+            path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
         if (! selected)
         {
             const DWORD error = GetLastError();
-            if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
-                return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
-            return HRESULT_FROM_WIN32(error);
+            if (error != ERROR_FILE_NOT_FOUND && error != ERROR_PATH_NOT_FOUND)
+                return HRESULT_FROM_WIN32(error);
         }
-        const auto result = ReadOpenedIdentity(selected.get(), beforeStaging);
-        if (FAILED(result))
-            return result;
-        if (! HasIdentity(beforeStaging))
-            return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+        else
+        {
+            bool reparse{};
+            const HRESULT verifyHr = VerifyDiskHandle(selected.get(), false, &reparse);
+            if (FAILED(verifyHr))
+                return reparse ? HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE) : (verifyHr == E_INVALIDARG ? HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) : verifyHr);
+            exists            = true;
+            const auto result = ReadOpenedIdentity(selected.get(), beforeStaging);
+            if (FAILED(result))
+                return result;
+            if (! HasIdentity(beforeStaging))
+                return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+        }
+    }
+    else
+    {
+        const DWORD attributes = GetFileAttributesW(path.c_str());
+        exists                 = attributes != INVALID_FILE_ATTRIBUTES;
+        if (! exists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
+            return LastError();
+        if (exists && (attributes & FILE_ATTRIBUTE_DIRECTORY))
+            return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
+        if (exists)
+        {
+            wil::unique_handle selected(
+                CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+            if (! selected)
+            {
+                const DWORD error = GetLastError();
+                if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+                    return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+                return HRESULT_FROM_WIN32(error);
+            }
+            const auto result = ReadOpenedIdentity(selected.get(), beforeStaging);
+            if (FAILED(result))
+                return result;
+            if (! HasIdentity(beforeStaging))
+                return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+        }
     }
     std::filesystem::path temporary;
     wil::unique_handle file;
@@ -583,8 +564,13 @@ try
     wil::unique_handle metadata;
     if (saved)
     {
-        metadata.reset(
-            CreateFileW(temporary.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        metadata.reset(CreateFileW(temporary.c_str(),
+                                   0,
+                                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                   nullptr,
+                                   OPEN_EXISTING,
+                                   refuseSurrogateReparse ? FILE_FLAG_OPEN_REPARSE_POINT : FILE_ATTRIBUTE_NORMAL,
+                                   nullptr));
         if (! metadata)
             return LastError();
     }
@@ -607,29 +593,62 @@ try
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::Staged, path, atomicWriteContext);
 #endif
-    const DWORD finalAttributes = GetFileAttributesW(path.c_str());
-    const bool finalExists      = finalAttributes != INVALID_FILE_ATTRIBUTES;
-    if (! finalExists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
-        return LastError();
-    if (finalExists && (finalAttributes & FILE_ATTRIBUTE_DIRECTORY))
-        return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
-    if (finalExists != exists)
-        return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
     wil::unique_handle guard;
     FileStamp guarded;
-    if (finalExists)
+    bool finalExists{};
+    if (refuseSurrogateReparse)
     {
-        // ReplaceFileW can publish while this handle stays open. Deny writers on
-        // the selected object, then recheck the name before the pathname commit.
-        guard.reset(
-            CreateFileW(path.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        // Open directly with FILE_FLAG_OPEN_REPARSE_POINT so symlinks are never traversed.
+        guard.reset(CreateFileW(
+            path.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
         if (! guard)
         {
             const DWORD error = GetLastError();
-            if (error == ERROR_SHARING_VIOLATION || error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+            if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+                finalExists = false;
+            else if (error == ERROR_SHARING_VIOLATION)
                 return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
-            return HRESULT_FROM_WIN32(error);
+            else
+                return HRESULT_FROM_WIN32(error);
         }
+        else
+        {
+            finalExists = true;
+            bool reparse{};
+            const HRESULT verifyHr = VerifyDiskHandle(guard.get(), false, &reparse);
+            if (FAILED(verifyHr))
+                return reparse ? HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE) : (verifyHr == E_INVALIDARG ? HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) : verifyHr);
+        }
+        if (finalExists != exists)
+            return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+    }
+    else
+    {
+        const DWORD finalAttributes = GetFileAttributesW(path.c_str());
+        finalExists                 = finalAttributes != INVALID_FILE_ATTRIBUTES;
+        if (! finalExists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
+            return LastError();
+        if (finalExists && (finalAttributes & FILE_ATTRIBUTE_DIRECTORY))
+            return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
+        if (finalExists != exists)
+            return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+        if (finalExists)
+        {
+            // ReplaceFileW can publish while this handle stays open. Deny writers on
+            // the selected object, then recheck the name before the pathname commit.
+            guard.reset(
+                CreateFileW(path.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+            if (! guard)
+            {
+                const DWORD error = GetLastError();
+                if (error == ERROR_SHARING_VIOLATION || error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+                    return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+                return HRESULT_FROM_WIN32(error);
+            }
+        }
+    }
+    if (finalExists)
+    {
         DWORD links{};
         const auto identityResult = ReadOpenedIdentity(guard.get(), guarded, &links);
         if (FAILED(identityResult))
@@ -657,7 +676,7 @@ try
         if (atomicWriteHook)
             atomicWriteHook(AtomicWriteCheckpoint::BeforeGuardedNameCheck, path, atomicWriteContext);
 #endif
-        const auto named = CheckGuardedName(path, guarded, rejectHardlinkedTarget);
+        const auto named = CheckGuardedName(path, guarded, rejectHardlinkedTarget, refuseSurrogateReparse);
         if (FAILED(named))
             return named;
     }
@@ -683,9 +702,10 @@ try
             const bool unsupported = error == ERROR_NOT_SUPPORTED || error == ERROR_INVALID_FUNCTION || error == ERROR_CALL_NOT_IMPLEMENTED;
             if (unsupported)
             {
-                const auto named = CheckGuardedName(path, guarded, rejectHardlinkedTarget);
+                const auto named = CheckGuardedName(path, guarded, rejectHardlinkedTarget, refuseSurrogateReparse);
                 if (FAILED(named))
                     return named;
+                guard.reset();
                 // Providers without ReplaceFileW (such as WSL 2 9P) still support single-link atomic replacement via MoveFileExW.
                 if (! MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
                 {
@@ -695,7 +715,6 @@ try
                     if (unsupportedReplacement)
                         *unsupportedReplacement = moveUnsupported;
 #ifdef ENABLE_TESTS
-                    guard.reset();
                     if (moveUnsupported && atomicWriteHook)
                         atomicWriteHook(AtomicWriteCheckpoint::ReplacementUnsupported, path, atomicWriteContext);
 #endif
@@ -723,7 +742,7 @@ try
 #endif
     if (saved)
     {
-        RefreshPublishedTimestamp(path, writtenStamp);
+        RefreshPublishedTimestamp(path, writtenStamp, refuseSurrogateReparse);
         *saved = writtenStamp;
     }
 #ifdef ENABLE_TESTS
@@ -914,7 +933,7 @@ HRESULT ResolveSymbolicTarget(const std::filesystem::path& path, wil::unique_han
         return LastError();
     if (! IsReparseTagNameSurrogate(tag.ReparseTag))
         return S_OK; // Cloud and other non-name-surrogate tags retain their provider path.
-    probe.reset(CreateFileW(path.c_str(), 0, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+    probe.reset(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
     if (! probe || ! GetFileInformationByHandleEx(probe.get(), FileAttributeTagInfo, &tag, sizeof(tag)))
         return LastError();
     if (! IsReparseTagNameSurrogate(tag.ReparseTag))
@@ -954,6 +973,10 @@ HRESULT SaveDocument(const std::filesystem::path& path,
                      const SaveRecoveryContext* recovery) noexcept
 try
 {
+    if (! path.is_absolute() || ! IsValidWin32PathString(path.native()))
+        return E_INVALIDARG;
+    if (baselinePath && ! baselinePath->empty() && ! IsValidWin32PathString(baselinePath->native()))
+        return E_INVALIDARG;
     if (text.size() > DxUi::RichText::Document::MaximumUnits)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     if (text.find(L'\0') != text.npos)

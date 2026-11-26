@@ -54,9 +54,15 @@ struct CrashRecordText
         Add("\r\n");
     }
 };
+std::array<wchar_t, 1200> dumpPathBuffer{};
+std::array<wchar_t, 1200> sidecarPathBuffer{};
+std::array<wchar_t, 1200> markerPathBuffer{};
+CrashRecordText recordTextBuffer{};
 HRESULT WriteRecord(HANDLE output, const DxUi::Failure::Record& record, HRESULT dumpResult) noexcept
 {
-    CrashRecordText text;
+    auto& text    = recordTextBuffer;
+    text.used     = 0u;
+    text.complete = true;
     text.Number("protocol=", record.version);
     text.Number("process=", GetCurrentProcessId());
     text.Number("thread=", record.threadId);
@@ -98,11 +104,13 @@ HRESULT WriteRecord(HANDLE output, const DxUi::Failure::Record& record, HRESULT 
 
 HRESULT WriteReport(EXCEPTION_POINTERS* exception, DWORD faultThread, const DxUi::Failure::Record* record = nullptr) noexcept
 {
-    const auto thread = static_cast<LONG>(faultThread);
-    const auto owner  = InterlockedCompareExchange(&ownerThread, thread, 0);
+    if (crashDirectory[0] == L'\0')
+        return E_UNEXPECTED;
+    const auto currentThread = static_cast<LONG>(GetCurrentThreadId());
+    const auto owner         = InterlockedCompareExchange(&ownerThread, currentThread, 0);
     if (owner != 0)
     {
-        if (owner != thread && dumpFinished)
+        if (owner != currentThread && dumpFinished)
             (void)WaitForSingleObject(dumpFinished.get(), 10000);
         return HRESULT_FROM_WIN32(ERROR_BUSY);
     }
@@ -117,11 +125,11 @@ HRESULT WriteReport(EXCEPTION_POINTERS* exception, DWORD faultThread, const DxUi
     if (! GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user))
         return HRESULT_FROM_WIN32(GetLastError());
     ULARGE_INTEGER creation{};
-    creation.LowPart  = created.dwLowDateTime;
-    creation.HighPart = created.dwHighDateTime;
-    wchar_t path[1200]{};
-    const HRESULT formatted = StringCchPrintfW(path,
-                                               std::size(path),
+    creation.LowPart        = created.dwLowDateTime;
+    creation.HighPart       = created.dwHighDateTime;
+    dumpPathBuffer[0]       = L'\0';
+    const HRESULT formatted = StringCchPrintfW(dumpPathBuffer.data(),
+                                               dumpPathBuffer.size(),
                                                L"%s\\%s%04u%02u%02u-%02u%02u%02u-%lu-%016llx.dmp",
                                                crashDirectory.data(),
                                                kCrashReportPrefix,
@@ -139,14 +147,15 @@ HRESULT WriteReport(EXCEPTION_POINTERS* exception, DWORD faultThread, const DxUi
     HRESULT recordResult = S_OK;
     if (record)
     {
-        wchar_t sidecar[1200]{};
-        const auto prefixLength = wcslen(path) - 4u;
-        if (FAILED(StringCchCopyNW(sidecar, std::size(sidecar), path, prefixLength)) || FAILED(StringCchCatW(sidecar, std::size(sidecar), L".record")))
+        sidecarPathBuffer[0]    = L'\0';
+        const auto prefixLength = wcslen(dumpPathBuffer.data()) - 4u;
+        if (FAILED(StringCchCopyNW(sidecarPathBuffer.data(), sidecarPathBuffer.size(), dumpPathBuffer.data(), prefixLength)) ||
+            FAILED(StringCchCatW(sidecarPathBuffer.data(), sidecarPathBuffer.size(), L".record")))
             return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
-        recordFile.reset(CreateFileW(sidecar, GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
+        recordFile.reset(CreateFileW(sidecarPathBuffer.data(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
         recordResult = recordFile ? WriteRecord(recordFile.get(), *record, E_PENDING) : HRESULT_FROM_WIN32(GetLastError());
     }
-    wil::unique_handle file(CreateFileW(path, GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
+    wil::unique_handle file(CreateFileW(dumpPathBuffer.data(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
     HRESULT dumpResult = file ? S_OK : HRESULT_FROM_WIN32(GetLastError());
     if (file)
     {
@@ -168,16 +177,16 @@ HRESULT WriteReport(EXCEPTION_POINTERS* exception, DWORD faultThread, const DxUi
     }
     if (SUCCEEDED(dumpResult))
     {
-        wchar_t marker[1200]{};
-        const HRESULT markerPath = StringCchPrintfW(marker, std::size(marker), L"%s\\pending.txt", crashDirectory.data());
+        markerPathBuffer[0]      = L'\0';
+        const HRESULT markerPath = StringCchPrintfW(markerPathBuffer.data(), markerPathBuffer.size(), L"%s\\pending.txt", crashDirectory.data());
         if (FAILED(markerPath))
             return markerPath;
-        wil::unique_handle pending(CreateFileW(marker, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+        wil::unique_handle pending(CreateFileW(markerPathBuffer.data(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
         if (! pending)
             return HRESULT_FROM_WIN32(GetLastError());
         DWORD written{};
-        const DWORD bytes = static_cast<DWORD>(wcslen(path) * sizeof(wchar_t));
-        if (! WriteFile(pending.get(), path, bytes, &written, nullptr))
+        const DWORD bytes = static_cast<DWORD>(wcslen(dumpPathBuffer.data()) * sizeof(wchar_t));
+        if (! WriteFile(pending.get(), dumpPathBuffer.data(), bytes, &written, nullptr))
             return HRESULT_FROM_WIN32(GetLastError());
         if (written != bytes)
             return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
@@ -235,6 +244,8 @@ try
 {
     // Prepare the bounded fault path even when healthy directory creation/retention later reports an error.
     // The SDK reporter can then attempt the configured destination and preserve its native failure result.
+    if (directory.empty() || ! directory.is_absolute() || directory.native().find(L'\0') != std::wstring::npos)
+        return E_INVALIDARG;
     if (directory.native().size() >= crashDirectory.size())
         return HRESULT_FROM_WIN32(ERROR_FILENAME_EXCED_RANGE);
     if (FAILED(StringCchCopyW(crashDirectory.data(), crashDirectory.size(), directory.c_str())))
@@ -332,8 +343,10 @@ bool CrashReportingPrepared() noexcept
 {
     return crashDirectory[0] != L'\0' && static_cast<bool>(dumpFinished);
 }
+#if defined(ENABLE_TESTS)
 [[noreturn]] void CrashProbe() noexcept
 {
     Fatal(0xE05254FF);
 }
+#endif
 } // namespace RedTilde

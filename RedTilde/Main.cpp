@@ -8,6 +8,7 @@
 #include "Tests/Application.Tests.FailureHost.h"
 #include "Tests/Application.Tests.FailureReports.h"
 #endif
+#include <filesystem>
 #include <format>
 #include <shellapi.h>
 #include <stdexcept>
@@ -62,6 +63,13 @@ int WriteCommandVersion()
     return WriteConsoleText(STD_OUTPUT_HANDLE, text);
 }
 
+[[noreturn]] void HandleAllocationFailure() noexcept
+{
+    if (DxUi::Failure::IsConfigured())
+        DxUi::Failure::FailAllocation();
+    std::terminate();
+}
+
 void WriteConsoleError(std::string_view message) noexcept
 {
     try
@@ -82,10 +90,18 @@ void WriteConsoleError(std::string_view message) noexcept
     }
     catch (const std::bad_alloc&)
     {
-        if (DxUi::Failure::IsConfigured())
-            DxUi::Failure::FailAllocation();
-        std::terminate();
+        HandleAllocationFailure();
     }
+}
+
+int HandleUnexpectedException(const std::exception& error) noexcept
+{
+    WriteConsoleError(error.what());
+    OutputDebugStringA(error.what());
+    MonitorDiagnostics::Write(RedMonitor::Severity::Error, L"application operation failed; document state retained");
+    if (DxUi::Failure::IsConfigured())
+        DxUi::Failure::FailUnexpected();
+    return 1;
 }
 
 bool IsHelpArgument(std::wstring_view argument) noexcept
@@ -160,13 +176,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         options.showCommand         = startupShow ? startup.wShowWindow : showCommand;
         options.explicitShowCommand = startupShow || (showCommand != SW_SHOWNORMAL && showCommand != SW_SHOWDEFAULT);
 #if defined(ENABLE_TESTS)
+        CoreTestScope testScope = CoreTestScope::All;
+        bool testScopeSpecified{}, listTests{};
         bool sanitizerProbe{};
         bool linkedSaveCrash{}, linkedSaveRestart{};
         bool failureReportSelfTest{};
         std::wstring failureHostProbe;
 #endif
-        CoreTestScope testScope = CoreTestScope::All;
-        bool testScopeSpecified{}, listTests{}, showHelp{}, showVersion{};
+        bool showHelp{}, showVersion{};
         try
         {
             for (int index = 1; index < count; ++index)
@@ -190,14 +207,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 };
                 if (argument == L"--capture")
                 {
-                    options.capture  = value();
+                    const auto capture = value();
+                    if (capture.empty())
+                        throw std::invalid_argument("Capture path cannot be empty");
+                    options.capture  = std::filesystem::absolute(capture).lexically_normal();
                     options.headless = true;
                 }
-                else if (argument == L"--design-interactive-probe")
-                    options.designInteractive = value();
                 else if (argument == L"--benchmark")
                 {
-                    options.benchmark = value();
+                    const auto benchmark = value();
+                    if (benchmark.empty())
+                        throw std::invalid_argument("Benchmark path cannot be empty");
+                    options.benchmark = std::filesystem::absolute(benchmark).lexically_normal();
                     options.headless  = true;
                 }
                 else if (argument == L"--capture-dpi" || argument == L"--viewport-width" || argument == L"--viewport-height")
@@ -222,7 +243,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                     options.scenario = value();
                 else if (argument == L"--performance-probe" || argument == L"--resource-probe")
                 {
-                    options.performance   = value();
+                    const auto performance = value();
+                    if (performance.empty())
+                        throw std::invalid_argument("Performance report path cannot be empty");
+                    options.performance   = std::filesystem::absolute(performance).lexically_normal();
                     options.resourceProbe = argument == L"--resource-probe";
                     options.headless      = true;
                 }
@@ -240,9 +264,29 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 else if (argument == L"--control-diagnostics")
                     options.controlDiagnostics = true;
                 else if (argument == L"--data-dir")
-                    options.dataDirectory = value();
+                {
+                    const auto directory = value();
+                    if (directory.empty())
+                        throw std::invalid_argument("Data directory cannot be empty");
+                    options.dataDirectory = std::filesystem::absolute(directory).lexically_normal();
+                }
                 else if (argument == L"--document")
-                    options.document = std::filesystem::absolute(value());
+                {
+                    if (! options.document.empty())
+                        throw std::invalid_argument("Only one document can be opened per window");
+                    const auto document = value();
+                    if (document.empty())
+                        throw std::invalid_argument("Document path cannot be empty");
+                    options.document = std::filesystem::absolute(document).lexically_normal();
+                }
+#if defined(ENABLE_TESTS)
+                else if (argument == L"--design-interactive-probe")
+                {
+                    const auto designInteractive = value();
+                    if (designInteractive.empty())
+                        throw std::invalid_argument("Interactive probe path cannot be empty");
+                    options.designInteractive = std::filesystem::absolute(designInteractive).lexically_normal();
+                }
                 else if (argument == L"--self-test")
                 {
                     options.selfTest = true;
@@ -280,10 +324,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 }
                 else if (argument == L"--list-tests")
                     listTests = true;
-#if defined(ENABLE_TESTS)
                 else if (argument == L"--failure-host-probe")
                 {
                     failureHostProbe = value();
+                    if (failureHostProbe.empty())
+                        throw std::invalid_argument("Failure-host probe mode cannot be empty");
                     options.headless = true;
                 }
                 else if (argument == L"--crash-probe")
@@ -325,7 +370,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 else if (argument.starts_with(L"--") || argument.starts_with(L"-"))
                     throw std::invalid_argument("Unknown command argument");
                 else if (options.document.empty())
-                    options.document = std::filesystem::absolute(argument);
+                {
+                    if (argument.empty())
+                        throw std::invalid_argument("Document path cannot be empty");
+                    options.document = std::filesystem::absolute(argument).lexically_normal();
+                }
                 else
                     throw std::invalid_argument("Only one document can be opened per window");
             }
@@ -333,17 +382,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 return WriteCommandHelp();
             if (showVersion)
                 return WriteCommandVersion();
+#if defined(ENABLE_TESTS)
             if ((testScopeSpecified || listTests) && ! options.selfTest)
                 throw std::invalid_argument("Test scope/list options require --self-test");
-#if defined(ENABLE_TESTS)
             if (! failureHostProbe.empty() && (options.dataDirectory.empty() || ! options.dataDirectory.is_absolute()))
                 throw std::invalid_argument("Failure-host probe requires an explicit absolute test data directory");
             if ((linkedSaveCrash || linkedSaveRestart) && (options.dataDirectory.empty() || ! options.dataDirectory.is_absolute()))
                 throw std::invalid_argument("Linked save probe requires an explicit absolute test data directory");
-#endif
             if (! options.designInteractive.empty() && (options.headless || options.crashProbe || options.preferencesProbe || options.recoveryProbe ||
                                                         options.recoveryRestartProbe || options.dataDirectory.empty()))
                 throw std::invalid_argument("Interactive probe requires an explicit data directory and an ordinary visible host");
+#endif
             if (options.forceWarp && ! options.headless)
                 throw std::invalid_argument("Explicit WARP is a hidden harness option");
             if ((options.captureDpi || options.viewportWidthPx || options.viewportHeightPx) && (! options.headless || ! options.performance.empty()))
@@ -383,9 +432,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 return;
             if (! autoHarnessCrashes.empty() && std::filesystem::exists(autoHarnessCrashes, cleanupError))
             {
-                for (const auto& entry : std::filesystem::directory_iterator(autoHarnessCrashes, cleanupError))
+                for (std::filesystem::directory_iterator it(autoHarnessCrashes, cleanupError), end; ! cleanupError && it != end; it.increment(cleanupError))
                 {
-                    if (! cleanupError && entry.path().native().ends_with(L".dmp"))
+                    if (it->path().native().ends_with(L".dmp"))
                         return;
                 }
             }
@@ -421,75 +470,73 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         auto runtime = wil::make_unique_nothrow<ApplicationRuntime>();
         if (! runtime || FAILED(runtime->Start()))
             return 2;
-        MonitorDiagnostics::Initialize();
-        (void)MonitorDiagnostics::HandleCommand(commandLine);
-        MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
-#if defined(ENABLE_TESTS)
-        if (! failureHostProbe.empty())
+        try
         {
-            const int result = RunFailureHostProbe(failureHostProbe, options.dataDirectory, *runtime);
-            if (result == RetainRuntimeForSessionEnd)
+            MonitorDiagnostics::Initialize();
+            (void)MonitorDiagnostics::HandleCommand(commandLine);
+            MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
+#if defined(ENABLE_TESTS)
+            if (! failureHostProbe.empty())
+            {
+                const int result = RunFailureHostProbe(failureHostProbe, options.dataDirectory, *runtime);
+                if (result == RetainRuntimeForSessionEnd)
+                {
+                    runtime->KeepForProcessTeardown();
+                    (void)runtime.release();
+                    return 0;
+                }
+                return result;
+            }
+            if (linkedSaveCrash || linkedSaveRestart)
+                return RunLinkedSaveInterruptionProbe(options.dataDirectory, linkedSaveRestart);
+            if (options.selfTest)
+                return RunCoreTests(options.dataDirectory, testScope, listTests);
+#endif
+            if (! options.headless)
+                RetainRecentCrashReports(crashes);
+            if (const auto report = TakePendingCrashNotice(crashes, ! options.headless))
+            {
+                const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, report->native());
+                MessageBoxW(nullptr, message.c_str(), Resource(IDS_APP).c_str(), MB_OK | MB_ICONINFORMATION);
+            }
+            std::unique_ptr<Application> app;
+            {
+                // Scope only direct construction. Initialization owns narrower construction scopes, while native
+                // COM/window setup, the message pump and final drain keep their independent checked boundaries.
+                const DxUi::Failure::Scope startupScope;
+                app = std::make_unique<Application>(std::move(options));
+            }
+            const HRESULT result = app->Initialize();
+            if (FAILED(result))
+            {
+                MonitorDiagnostics::Write(RedMonitor::Severity::Error, L"application initialization failed; document state retained");
+                return 2;
+            }
+            const int exitCode = app->Run();
+            if (app->IsSessionEnding())
             {
                 runtime->KeepForProcessTeardown();
+                // Explicit terminal ownership transfer: OS process teardown releases this owner and its handles.
+                // It keeps callbacks' borrowed registry and SDK reporter alive without extending session-end waits.
                 (void)runtime.release();
-                return 0;
             }
-            return result;
+            return exitCode;
         }
-        if (linkedSaveCrash || linkedSaveRestart)
-            return RunLinkedSaveInterruptionProbe(options.dataDirectory, linkedSaveRestart);
-#endif
-        if (options.selfTest)
+        catch (const std::bad_alloc&)
         {
-#if defined(ENABLE_TESTS)
-            return RunCoreTests(options.dataDirectory, testScope, listTests);
-#else
-            return 2;
-#endif
+            HandleAllocationFailure();
         }
-        if (! options.headless)
-            RetainRecentCrashReports(crashes);
-        if (const auto report = TakePendingCrashNotice(crashes, ! options.headless))
+        catch (const std::exception& error)
         {
-            const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, report->native());
-            MessageBoxW(nullptr, message.c_str(), Resource(IDS_APP).c_str(), MB_OK | MB_ICONINFORMATION);
+            return HandleUnexpectedException(error);
         }
-        std::unique_ptr<Application> app;
-        {
-            // Scope only direct construction. Initialization owns narrower construction scopes, while native
-            // COM/window setup, the message pump and final drain keep their independent checked boundaries.
-            const DxUi::Failure::Scope startupScope;
-            app = std::make_unique<Application>(std::move(options));
-        }
-        const HRESULT result = app->Initialize();
-        if (FAILED(result))
-        {
-            MonitorDiagnostics::Write(RedMonitor::Severity::Error, L"application initialization failed; document state retained");
-            return 2;
-        }
-        const int exitCode = app->Run();
-        if (app->IsSessionEnding())
-        {
-            runtime->KeepForProcessTeardown();
-            // Explicit terminal ownership transfer: OS process teardown releases this owner and its handles.
-            // It keeps callbacks' borrowed registry and SDK reporter alive without extending session-end waits.
-            (void)runtime.release();
-        }
-        return exitCode;
     }
     catch (const std::bad_alloc&)
     {
-        if (DxUi::Failure::IsConfigured())
-            DxUi::Failure::FailAllocation();
-        std::terminate();
+        HandleAllocationFailure();
     }
     catch (const std::exception& error)
     {
-        WriteConsoleError(error.what());
-        OutputDebugStringA(error.what());
-        MonitorDiagnostics::Write(RedMonitor::Severity::Error, L"application operation failed; document state retained");
-        if (DxUi::Failure::IsConfigured())
-            DxUi::Failure::FailUnexpected();
-        return 1;
+        return HandleUnexpectedException(error);
     }
 }

@@ -1,4 +1,6 @@
 #include "Application.Tests.Settings.h"
+#include "Common/JsonHelpers.h"
+#include "Common/PathSecurity.h"
 #include "Common/Settings.h"
 #include "Common/Storage.h"
 #include "RedTilde/Application.h"
@@ -33,6 +35,16 @@ public:
     [[nodiscard]] static bool PreferencesBusy(const Application& app) noexcept
     {
         return app._preferenceWriter.Busy();
+    }
+
+    [[nodiscard]] static const CustomDictionary& Dictionary(const Application& app) noexcept
+    {
+        return app._customDictionary;
+    }
+
+    [[nodiscard]] static bool KeepUnsavedToggleChecked(const Application& app) noexcept
+    {
+        return app._keepUnsavedToggle && app._keepUnsavedToggle->IsChecked();
     }
 };
 
@@ -69,6 +81,29 @@ bool PumpMessagesUntil(unsigned timeoutMs, const std::function<bool()>& conditio
         const auto remainingMs = static_cast<DWORD>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
         (void)MsgWaitForMultipleObjects(0, nullptr, FALSE, std::min<DWORD>(remainingMs, 25u), QS_ALLINPUT);
     }
+}
+
+std::string EscapeJsonWidePath(std::wstring_view path)
+{
+    std::string utf8;
+    if (! path.empty())
+    {
+        const int needed = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, path.data(), static_cast<int>(path.size()), nullptr, 0, nullptr, nullptr);
+        if (needed > 0)
+        {
+            utf8.resize(static_cast<std::size_t>(needed));
+            (void)WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, path.data(), static_cast<int>(path.size()), utf8.data(), needed, nullptr, nullptr);
+        }
+    }
+    std::string escaped;
+    escaped.reserve(utf8.size() + 8u);
+    for (const char ch : utf8)
+    {
+        if (ch == '\\' || ch == '"')
+            escaped.push_back('\\');
+        escaped.push_back(ch);
+    }
+    return escaped;
 }
 } // namespace
 
@@ -124,6 +159,29 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
                     savedBytes.find("\"futureDock\"") != std::string::npos && savedBytes.find("\"futureToggle\"") != std::string::npos &&
                     savedBytes.find("\"textScale\": 140") != std::string::npos && savedBytes.find("\"view\": \"split\"") != std::string::npos,
                 "merge-save preserves newer schema and unknown root/nested members while applying updated fields");
+
+        {
+            const auto overflowDoc = ParseJsonDocument("9223372036854775808.0");
+            std::int64_t parsedInt = 123;
+            Require(overflowDoc && ! TryReadJsonIntegral(yyjson_doc_get_root(overflowDoc.get()), INT64_MIN, INT64_MAX, parsedInt) && parsedInt == 123,
+                    "TryReadJsonIntegral rejects 2^63 real without signed overflow UB");
+            const auto minDoc = ParseJsonDocument("-9223372036854775808.0");
+            Require(minDoc && TryReadJsonIntegral(yyjson_doc_get_root(minDoc.get()), INT64_MIN, INT64_MAX, parsedInt) && parsedInt == INT64_MIN,
+                    "TryReadJsonIntegral accepts exact -2^63 real as INT64_MIN");
+            const auto nearMaxDoc = ParseJsonDocument("9223372036854774784.0");
+            Require(nearMaxDoc && ! TryReadJsonIntegral(yyjson_doc_get_root(nearMaxDoc.get()), INT64_MIN, INT64_MAX - 1025, parsedInt),
+                    "TryReadJsonIntegral enforces exact integer maxValue even when double rounds up");
+
+            Require(NormalizeRootPath(L"C:").native() == L"C:\\" && NormalizeRootPath(L"C:\\").native() == L"C:\\" &&
+                        NormalizeRootPath(L"C:\\Notes\\..\\").native() == L"C:\\" && NormalizeRootPath(L"C:\\Notes\\").native() == L"C:\\Notes",
+                    "NormalizeRootPath preserves drive root trailing backslash and strips directory trailing backslash");
+            Require(NormalizeRootPath(L"\\\\files.example.test\\share").native() == L"\\\\files.example.test\\share\\" &&
+                        NormalizeRootPath(L"\\\\files.example.test\\share\\").native() == L"\\\\files.example.test\\share\\" &&
+                        NormalizeRootPath(L"\\\\?\\UNC\\files.example.test\\share").native() == L"\\\\?\\UNC\\files.example.test\\share\\" &&
+                        NormalizeRootPath(L"\\\\?\\UNC\\files.example.test\\share\\").native() == L"\\\\?\\UNC\\files.example.test\\share\\" &&
+                        NormalizeRootPath(L"\\\\files.example.test\\share\\sub\\").native() == L"\\\\files.example.test\\share\\sub",
+                    "NormalizeRootPath preserves UNC and extended UNC share root trailing backslash while stripping subdir trailing backslash");
+        }
     });
 
     test("Settings.ColdLoadMigrationCorruptBackupAndSizeCap",
@@ -288,6 +346,21 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
             return current.appearance == Appearance::Light && current.readingWidth == 640u;
         }),
                 "valid live edit after malformed edit applies cleanly");
+
+        {
+            SettingsWatcher watcher;
+            Require(watcher.Start(L"", L"settings.json", app.Window(), WM_APP + 0x201u) == E_INVALIDARG && ! watcher.Active(),
+                    "SettingsWatcher rejects invalid arguments without marking active");
+            Success(watcher.Start(directory, std::wstring(SettingsFileName()), app.Window(), WM_APP + 0x201u), "start SettingsWatcher on threadpool");
+            Require(watcher.Active(), "SettingsWatcher reports Active() after ready event");
+            const auto beforeClose = GetTickCount64();
+            watcher.Close();
+            Require(! watcher.Active() && GetTickCount64() - beforeClose < 1000u, "SettingsWatcher::Close stops without blocking on the UI thread");
+            Success(watcher.Start(directory, std::wstring(SettingsFileName()), app.Window(), WM_APP + 0x201u), "restart SettingsWatcher after Close");
+            Require(watcher.Active(), "SettingsWatcher supports clean Start after Close");
+            watcher.Close();
+            Require(! watcher.Active(), "second Close clears Active()");
+        }
         Require(foreground.NeverAcquiredForeground(), "live settings reload checks preserve desktop foreground");
     });
 
@@ -456,6 +529,13 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
         const auto roundTripBytes = SerializeSettings(parsed, json5Spelling);
         Require(roundTripBytes.find("\"futureSpellOption\": 42") != std::string::npos, "SerializeSettings merges and preserves unknown spelling sub-keys");
 
+        Settings capped;
+        capped.spelling.languages = {L"en-US", L"en-us", L"fr-FR", L"de-DE", L"es-ES"};
+        Settings reparsed;
+        Success(TryParseSettings(SerializeSettings(capped), reparsed), "parse serialized capped spelling languages");
+        Require(reparsed.spelling.languages == std::vector<std::wstring>{L"en-US", L"fr-FR", L"de-DE"},
+                "SerializeSettings deduplicates language tags case-insensitively and caps at MaximumSpellingLanguages");
+
         Settings badFields = ParseSettings(R"({"schema": 1, "spelling": {"languages": ["not valid!"], "engine": "bogus"}})");
         Require(badFields.spelling.languages == std::vector<std::wstring>{L"auto"} && badFields.spelling.engine == SpellEngine::Auto,
                 "invalid spelling language array and engine fall back to safe defaults");
@@ -477,25 +557,74 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
         Application app(options);
         Success(app.Initialize(), "initialize app for spelling live reload");
 
-        constexpr std::string_view updated = "{\n"
-                                             "  \"schema\": 1,\n"
-                                             "  \"spelling\": {\n"
-                                             "    \"enabled\": false,\n"
-                                             "    \"languages\": [\"fr-FR\"],\n"
-                                             "    \"ignoreUppercase\": false\n"
-                                             "  }\n"
-                                             "}\n";
+        const auto dictFile = directory / L"live-custom.dic";
+        Success(WriteBytesAtomic(dictFile, "CustomLiveWord\n"), "seed custom dictionary for live reload");
+        const std::string updated = std::string("{\n"
+                                                "  \"schema\": 1,\n"
+                                                "  \"spelling\": {\n"
+                                                "    \"enabled\": false,\n"
+                                                "    \"languages\": [\"fr-FR\"],\n"
+                                                "    \"ignoreUppercase\": false,\n"
+                                                "    \"customDictionaryPath\": \"") +
+                                    EscapeJsonWidePath(dictFile.native()) +
+                                    "\"\n"
+                                    "  }\n"
+                                    "}\n";
         Success(WriteBytesAtomic(SettingsPath(directory), updated), "write live spelling settings change");
         Require(PumpMessagesUntil(4000u,
                                   [&]
         {
             const auto& sp = SettingsProbe::CurrentSettings(app).spelling;
-            return ! sp.enabled && ! sp.ignoreUppercase && sp.languages == std::vector<std::wstring>{L"fr-FR"};
+            return ! sp.enabled && ! sp.ignoreUppercase && sp.languages == std::vector<std::wstring>{L"fr-FR"} && sp.customDictionaryPath == dictFile &&
+                   SettingsProbe::Dictionary(app).IsAccepted(L"CustomLiveWord");
         }),
-                "live reload updates spelling configuration cleanly");
+                "live reload updates spelling configuration and reloads customDictionaryPath cleanly");
         std::string diskAfter;
         Success(ReadBytes(SettingsPath(directory), diskAfter), "read back disk after live reload");
         Require(diskAfter == updated && foreground.NeverAcquiredForeground(), "live reload never rewrites file or takes foreground");
+    });
+
+    test("Settings.LiveReloadExitBehaviorAndToggleSync",
+         [&]
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        const auto directory = root / L"live-reload-exit-behavior";
+        Settings initial;
+        initial.exitUnsavedBehavior = ExitUnsavedBehavior::Prompt;
+        Success(SaveSettings(directory, initial), "seed initial settings for exitUnsavedBehavior live reload");
+
+        LaunchOptions options;
+        options.headless             = true;
+        options.watchSettingsForTest = true;
+        options.dataDirectory        = directory;
+
+        Application app(options);
+        Success(app.Initialize(), "initialize app for exitUnsavedBehavior live reload");
+        Require(SettingsProbe::CurrentSettings(app).exitUnsavedBehavior == ExitUnsavedBehavior::Prompt && ! SettingsProbe::KeepUnsavedToggleChecked(app),
+                "initial Prompt mode leaves Keep & Exit toggle unchecked");
+
+        constexpr std::string_view keepJson = R"({"schema": 1, "exitUnsavedBehavior": "keepAndResume"})";
+        Success(WriteBytesAtomic(SettingsPath(directory), keepJson), "write KeepAndResume live reload");
+        Require(PumpMessagesUntil(4000u,
+                                  [&]
+        {
+            return SettingsProbe::CurrentSettings(app).exitUnsavedBehavior == ExitUnsavedBehavior::KeepAndResume &&
+                   SettingsProbe::KeepUnsavedToggleChecked(app);
+        }),
+                "live reload updates exitUnsavedBehavior and synchronizes Keep & Exit drawer toggle");
+
+        std::string diskAfterKeep;
+        Success(ReadBytes(SettingsPath(directory), diskAfterKeep), "read back disk after keepAndResume live reload");
+        Require(diskAfterKeep == keepJson, "live reload never rewrites watched settings file");
+
+        constexpr std::string_view promptJson = R"({"schema": 1, "exitUnsavedBehavior": "prompt"})";
+        Success(WriteBytesAtomic(SettingsPath(directory), promptJson), "write Prompt live reload");
+        Require(PumpMessagesUntil(4000u,
+                                  [&]
+        { return SettingsProbe::CurrentSettings(app).exitUnsavedBehavior == ExitUnsavedBehavior::Prompt && ! SettingsProbe::KeepUnsavedToggleChecked(app); }),
+                "live reload reverts exitUnsavedBehavior and unchecks Keep & Exit drawer toggle");
+
+        Require(foreground.NeverAcquiredForeground(), "exitUnsavedBehavior live reload never acquires foreground");
     });
 }
 } // namespace RedTilde

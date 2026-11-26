@@ -1,14 +1,16 @@
 #include "Files.h"
+#include "DirectoryWatch.h"
+#include "PathSecurity.h"
 #include "ProcessWork.h"
 #include "Settings.h"
 #include "Storage.h"
+#include "TextUtilities.h"
 #include <DxUi/Failure.h>
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <mutex>
 #include <new>
-#include <unordered_map>
 #include <utility>
 #include <wil/resource.h>
 
@@ -20,23 +22,9 @@ bool ValidLimits(FilesLimits limits) noexcept
 {
     return limits.maximumDepth <= 8 && limits.maximumEntries > 0 && limits.maximumEntries <= 5000;
 }
-bool EqualOrdinal(std::wstring_view left, std::wstring_view right) noexcept
-{
-    return left.size() == right.size() &&
-           (left.empty() || CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(), static_cast<int>(right.size()), TRUE) == CSTR_EQUAL);
-}
 bool Digit(wchar_t value) noexcept
 {
     return value >= L'0' && value <= L'9';
-}
-bool ContainsOrdinal(std::wstring_view text, std::wstring_view part) noexcept
-{
-    if (part.size() > text.size())
-        return false;
-    for (std::size_t offset = 0; offset <= text.size() - part.size(); ++offset)
-        if (EqualOrdinal(text.substr(offset, part.size()), part))
-            return true;
-    return false;
 }
 wil::unique_handle OpenDirectory(const std::filesystem::path& path, bool watch = false) noexcept
 {
@@ -88,6 +76,7 @@ struct Scan
     FilesSnapshot snapshot;
     FilesLimits limits;
     std::stop_token stop;
+    std::vector<std::byte> dirBuffer = std::vector<std::byte>(16u * 1024u);
     void Error(const std::filesystem::path& path, DWORD error)
     {
         const HRESULT result = HRESULT_FROM_WIN32(error);
@@ -138,14 +127,13 @@ struct Scan
         if (parent == NoFilesParent)
             snapshot.rootCaseSensitivity = DirectoryCaseSensitivity(directory.get());
         std::vector<FilesEntry> children;
-        std::vector<std::byte> buffer(16u * 1024u);
         bool first    = true;
         bool complete = false;
         while (! complete && ! Cancelled())
         {
             const auto informationClass = first ? FileIdBothDirectoryRestartInfo : FileIdBothDirectoryInfo;
             first                       = false;
-            if (! GetFileInformationByHandleEx(directory.get(), informationClass, buffer.data(), static_cast<DWORD>(buffer.size())))
+            if (! GetFileInformationByHandleEx(directory.get(), informationClass, dirBuffer.data(), static_cast<DWORD>(dirBuffer.size())))
             {
                 const DWORD error = GetLastError();
                 if (error != ERROR_NO_MORE_FILES)
@@ -157,7 +145,7 @@ struct Scan
             {
                 if (Cancelled())
                     return;
-                const auto* entry = reinterpret_cast<const FILE_ID_BOTH_DIR_INFO*>(buffer.data() + offset);
+                const auto* entry = reinterpret_cast<const FILE_ID_BOTH_DIR_INFO*>(dirBuffer.data() + offset);
                 const std::wstring_view name(entry->FileName, entry->FileNameLength / sizeof(wchar_t));
                 if (name != L"." && name != L"..")
                 {
@@ -171,7 +159,7 @@ struct Scan
                     const DWORD flags           = entry->FileAttributes;
                     const bool folder           = (flags & FILE_ATTRIBUTE_DIRECTORY) != 0;
                     const bool surrogateReparse = (flags & FILE_ATTRIBUTE_REPARSE_POINT) != 0 && IsReparseTagNameSurrogate(entry->EaSize) != FALSE;
-                    if (! (flags & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)) && (folder || IsMarkdownFile(std::filesystem::path(name))))
+                    if (! (flags & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)) && (folder || IsMarkdownFileName(name)))
                         children.push_back({path / name, std::wstring(name), parent, folder ? 0u : 1u, depth, folder, surrogateReparse});
                 }
                 if (! entry->NextEntryOffset)
@@ -216,155 +204,57 @@ struct Scan
         }
     }
 };
-// Existing identity/RAII/reference traits intentionally delete these implicit operations.
-// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
-#pragma warning(push)
-#pragma warning(disable : 4625 4626)
-class DirectoryWatch final
+HRESULT OpenDirectoryWatch(DirectoryWatch& watch, const std::filesystem::path& path, bool imageFiles) noexcept
 {
-public:
+    watch.Close();
+    if (path.empty())
+        return S_OK;
     wil::unique_handle directory;
-    wil::unique_event event;
-    HRESULT status = S_OK;
-    bool pending{};
-    bool imageFiles{};
-    OVERLAPPED overlapped{};
-    alignas(DWORD) std::array<std::byte, 16u * 1024u> buffer{};
-    ~DirectoryWatch()
+    if (imageFiles)
     {
-        Close();
-    }
-    void Close() noexcept
-    {
-        if (pending)
+        const HRESULT openHr = OpenImageDirectoryForNotifications(path.native(), directory);
+        if (FAILED(openHr))
         {
-            (void)CancelIoEx(directory.get(), &overlapped);
-            DWORD bytes{};
-            // Only the worker waits for kernel ownership of its OVERLAPPED and
-            // buffer to end. UI Close never destroys or waits for this state.
-            (void)GetOverlappedResult(directory.get(), &overlapped, &bytes, TRUE);
-            pending = false;
-        }
-        directory.reset();
-        event.reset();
-    }
-    void Open(const std::filesystem::path& path, bool images = false) noexcept
-    {
-        Close();
-        status     = S_OK;
-        imageFiles = images;
-        if (path.empty())
-            return;
-        if (imageFiles)
-        {
-            status = OpenImageDirectoryForNotifications(path.native(), directory);
-            if (FAILED(status))
-                return;
-        }
-        else
-            directory = OpenDirectory(path, true);
-        if (! directory)
-        {
-            status = HRESULT_FROM_WIN32(GetLastError());
-            return;
-        }
-        FILE_ATTRIBUTE_TAG_INFO attributes{};
-        if (! GetFileInformationByHandleEx(directory.get(), FileAttributeTagInfo, &attributes, sizeof(attributes)))
-            status = HRESULT_FROM_WIN32(GetLastError());
-        else if (((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && IsReparseTagNameSurrogate(attributes.ReparseTag)) ||
-                 ! (attributes.FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-            status = HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
-        if (FAILED(status))
-        {
-            directory.reset();
-            return;
-        }
-        event.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
-        if (! event)
-        {
-            status = HRESULT_FROM_WIN32(GetLastError());
-            directory.reset();
-            return;
-        }
-        Arm();
-    }
-    void Arm() noexcept
-    {
-        if (! directory || ! event || pending)
-            return;
-        ResetEvent(event.get());
-        overlapped         = {};
-        overlapped.hEvent  = event.get();
-        const DWORD filter = imageFiles ? FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE
-                                        : FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES;
-        if (ReadDirectoryChangesW(directory.get(), buffer.data(), static_cast<DWORD>(buffer.size()), ! imageFiles, filter, nullptr, &overlapped, nullptr))
-            pending = true;
-        else
-        {
-            status = HRESULT_FROM_WIN32(GetLastError());
-            Close();
+            watch.SetFailedStatus(openHr);
+            return openHr;
         }
     }
-    bool Complete(std::span<const std::filesystem::path> observed = {}) noexcept
+    else
     {
-        DWORD bytes{};
-        bool changed = observed.empty();
-        if (! GetOverlappedResult(directory.get(), &overlapped, &bytes, FALSE))
-        {
-            const DWORD error = GetLastError();
-            // A zero/overflow notification means rescan the bounded model; its
-            // individual names are deliberately never trusted as a complete list.
-            if (error != ERROR_NOTIFY_ENUM_DIR)
-            {
-                status = HRESULT_FROM_WIN32(error);
-                Close();
-                return false;
-            }
-            changed = true;
-        }
-        if (! bytes)
-            changed = true; // Overflow loses names, so refresh the bounded set.
-        for (std::size_t offset{}; ! changed && offset < bytes;)
-        {
-            constexpr auto header = offsetof(FILE_NOTIFY_INFORMATION, FileName);
-            if (bytes - offset < header)
-            {
-                changed = true;
-                break;
-            }
-            const auto* entry = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(buffer.data() + offset);
-            if (entry->FileNameLength % sizeof(wchar_t) || entry->FileNameLength > bytes - offset - header)
-            {
-                changed = true;
-                break;
-            }
-            const std::wstring_view name(entry->FileName, entry->FileNameLength / sizeof(wchar_t));
-            changed = std::ranges::any_of(observed, [&](const auto& path) { return EqualOrdinal(path.native(), name); });
-            if (! entry->NextEntryOffset)
-                break;
-            if (entry->NextEntryOffset % alignof(DWORD) || entry->NextEntryOffset < header || entry->NextEntryOffset > bytes - offset)
-            {
-                changed = true;
-                break;
-            }
-            offset += entry->NextEntryOffset;
-        }
-        pending = false;
-        Arm();
-        return changed;
+        directory = OpenDirectory(path, true);
     }
-};
-#pragma warning(pop)
+    if (! directory)
+    {
+        const HRESULT hr = HRESULT_FROM_WIN32(GetLastError());
+        watch.SetFailedStatus(hr);
+        return hr;
+    }
+    if (FAILED(VerifyDiskHandle(directory.get(), true)))
+    {
+        const HRESULT hr = HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
+        watch.SetFailedStatus(hr);
+        return hr;
+    }
+    const DWORD filter = imageFiles ? FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE
+                                    : FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES;
+    return watch.AttachAndArm(std::move(directory), ! imageFiles, filter);
+}
 } // namespace
+
+bool IsMarkdownFileName(std::wstring_view name) noexcept
+{
+    const auto slash = name.find_last_of(L"\\/");
+    const auto leaf  = slash == std::wstring_view::npos ? name : name.substr(slash + 1u);
+    const auto at    = leaf.find_last_of(L'.');
+    if (at == std::wstring_view::npos)
+        return false;
+    const auto extension = leaf.substr(at);
+    return EqualOrdinalIgnoreCase(extension, L".md") || EqualOrdinalIgnoreCase(extension, L".markdown");
+}
 
 bool IsMarkdownFile(const std::filesystem::path& path) noexcept
 {
-    const auto& name = path.native();
-    const auto at    = name.find_last_of(L'.');
-    if (at == name.npos)
-        return false;
-    const auto extension = std::wstring_view(name).substr(at);
-    return EqualOrdinal(extension, L".md") || EqualOrdinal(extension, L".markdown");
+    return IsMarkdownFileName(path.native());
 }
 bool MatchesFilesPath(const FilesSnapshot& snapshot, const std::filesystem::path& left, const std::filesystem::path& right) noexcept
 {
@@ -373,7 +263,7 @@ bool MatchesFilesPath(const FilesSnapshot& snapshot, const std::filesystem::path
     if (snapshot.rootCaseSensitivity != FilesCaseSensitivity::Insensitive)
         return false;
     const auto a = DirectChildName(snapshot.root, left), b = DirectChildName(snapshot.root, right);
-    return a && b && EqualOrdinal(a.value(), b.value());
+    return a && b && EqualOrdinalIgnoreCase(a.value(), b.value());
 }
 bool FilesNaturalLess(std::wstring_view left, std::wstring_view right) noexcept
 {
@@ -430,7 +320,7 @@ std::vector<std::size_t> FilterMarkdownFiles(const FilesSnapshot& snapshot, std:
     for (std::size_t index = 0; index < snapshot.entries.size() && ! filter.empty(); ++index)
     {
         const auto& entry = snapshot.entries[index];
-        if (entry.directory || ! ContainsOrdinal(entry.name, filter))
+        if (entry.directory || ! ContainsOrdinalIgnoreCase(entry.name, filter))
             continue;
         keep[index] = true;
         auto parent = entry.parent;
@@ -540,18 +430,18 @@ struct FilesService::State
                     }
                 }
                 if (requested)
-                    watch.Open(current.root); // Arm before enumeration so changes cannot fall between scan and watch.
+                    (void)OpenDirectoryWatch(watch, current.root, false); // Arm before enumeration so changes cannot fall between scan and watch.
                 if (scan)
                 {
                     auto snapshot        = EnumerateMarkdownFiles(current.root, self->limits, stop);
                     snapshot.generation  = current.generation;
                     snapshot.revision    = current.revision;
-                    snapshot.watchStatus = watch.status;
-                    self->Publish(std::move(snapshot), watch.pending);
+                    snapshot.watchStatus = watch.Status();
+                    self->Publish(std::move(snapshot), watch.IsPending());
                     scan = false;
                 }
-                const HANDLE waits[]{self->wake.get(), watch.pending ? watch.event.get() : nullptr};
-                const DWORD ready = WaitForMultipleObjects(watch.pending ? 2u : 1u, waits, FALSE, INFINITE);
+                const HANDLE waits[]{self->wake.get(), watch.IsPending() ? watch.EventHandle() : nullptr};
+                const DWORD ready = WaitForMultipleObjects(watch.IsPending() ? 2u : 1u, waits, FALSE, INFINITE);
                 if (ready == WAIT_OBJECT_0)
                     continue;
                 if (ready == WAIT_FAILED)
@@ -561,8 +451,8 @@ struct FilesService::State
                 }
                 if (ready != WAIT_OBJECT_0 + 1)
                     continue;
-                watch.Complete();
-                if (watch.pending)
+                (void)watch.Complete();
+                if (watch.IsPending())
                 {
                     std::lock_guard lock(self->mutex);
                     if (self->phase == FilesPhase::Closed || self->phase == FilesPhase::Failed)
@@ -573,13 +463,13 @@ struct FilesService::State
                 const ULONGLONG deadline = GetTickCount64() + 250;
                 // One quiet-time wait after an actual change, capped at 250 ms
                 // under continuous writes. No periodic wakeup while the tree is idle.
-                while (watch.pending)
+                while (watch.IsPending())
                 {
                     const auto now = GetTickCount64();
                     if (now >= deadline)
                         break;
                     const DWORD quiet = static_cast<DWORD>(std::min<ULONGLONG>(75, deadline - now));
-                    const HANDLE coalesced[]{self->wake.get(), watch.event.get()};
+                    const HANDLE coalesced[]{self->wake.get(), watch.EventHandle()};
                     const DWORD next = WaitForMultipleObjects(2, coalesced, FALSE, quiet);
                     if (next == WAIT_FAILED)
                     {
@@ -588,7 +478,7 @@ struct FilesService::State
                     }
                     if (next == WAIT_OBJECT_0 || next == WAIT_TIMEOUT)
                         break;
-                    watch.Complete();
+                    (void)watch.Complete();
                 }
                 {
                     std::lock_guard lock(self->mutex);
@@ -601,7 +491,7 @@ struct FilesService::State
                         self->phase      = FilesPhase::Scanning;
                     }
                     else if (! self->pending)
-                        self->phase = watch.pending ? FilesPhase::Watching : FilesPhase::Idle;
+                        self->phase = watch.IsPending() ? FilesPhase::Watching : FilesPhase::Idle;
                 }
             }
         }
@@ -669,13 +559,13 @@ try
         return E_UNEXPECTED;
     if (! root.empty() && (! root.is_absolute() || root.native().find(L'\0') != std::wstring::npos))
         return E_INVALIDARG;
-    root = root.lexically_normal();
+    root = NormalizeRootPath(root);
     std::lock_guard lock(_state->mutex);
     if (_state->phase == FilesPhase::Closed)
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
     if (_state->phase == FilesPhase::Failed)
         return _state->status;
-    if (_state->latest.generation && root == _state->latest.root)
+    if (_state->latest.generation && EqualNormalizedRootPath(root, _state->latest.root))
         return S_FALSE;
     _state->cancellation.request_stop();
     _state->latest.root = std::move(root);
@@ -802,6 +692,7 @@ struct FileChangeService::State
     UINT message{};
     WPARAM cookie{};
     std::uint64_t generation{}, revision{};
+    std::atomic_bool hasResult{false};
     bool closing{}, requested{}, notificationPending{}, stopped{};
     HRESULT stopStatus = S_OK;
     void Fail(std::uint64_t current, HRESULT failure)
@@ -819,6 +710,7 @@ struct FileChangeService::State
         if (closing || current != generation)
             return;
         result = FileChangeNotice{generation, ++revision, status};
+        hasResult.store(true, std::memory_order_release);
         if (window && ! notificationPending)
             notificationPending = PostMessageW(window, message, cookie, 0) != FALSE;
     }
@@ -871,9 +763,9 @@ struct FileChangeService::State
                     HRESULT status = S_OK;
                     for (std::size_t i{}; i < directories.size(); ++i)
                     {
-                        watches[i].Open(directories[i], true);
-                        if (FAILED(watches[i].status))
-                            status = watches[i].status;
+                        const HRESULT watchHr = OpenDirectoryWatch(watches[i], directories[i], true);
+                        if (FAILED(watchHr))
+                            status = watchHr;
                     }
                     // Refresh once after arming. This closes the initial
                     // decode/notification setup gap without a polling timer.
@@ -885,9 +777,9 @@ struct FileChangeService::State
                 DWORD count = 1u;
                 waits[0]    = self->wake.get();
                 for (std::size_t i{}; i < directories.size(); ++i)
-                    if (watches[i].pending)
+                    if (watches[i].IsPending())
                     {
-                        waits[count]     = watches[i].event.get();
+                        waits[count]     = watches[i].EventHandle();
                         indexes[count++] = i;
                     }
                 const auto ready = WaitForMultipleObjects(count, waits.data(), FALSE, INFINITE);
@@ -901,10 +793,11 @@ struct FileChangeService::State
                 if (ready < WAIT_OBJECT_0 + 1u || ready >= WAIT_OBJECT_0 + count)
                     continue;
                 const auto index    = indexes[ready - WAIT_OBJECT_0];
-                bool changed        = watches[index].Complete(names[index]);
-                HRESULT status      = watches[index].status;
+                const auto poll     = watches[index].Complete(names[index]);
+                bool changed        = (poll == DirectoryWatch::PollStatus::Matched || poll == DirectoryWatch::PollStatus::Overflow);
+                HRESULT status      = watches[index].Status();
                 const auto deadline = GetTickCount64() + 250u;
-                while (watches[index].pending)
+                while (watches[index].IsPending())
                 {
                     // At most 250 ms of coalescing under a continuous writer;
                     // an idle directory never wakes the worker periodically.
@@ -922,11 +815,12 @@ struct FileChangeService::State
                     }
                     if (next < WAIT_OBJECT_0 + 1u || next >= WAIT_OBJECT_0 + count)
                         break;
-                    const auto more = indexes[next - WAIT_OBJECT_0];
-                    changed         = watches[more].Complete(names[more]) || changed;
-                    if (FAILED(watches[more].status))
-                        status = watches[more].status;
-                    if (! watches[more].pending)
+                    const auto more     = indexes[next - WAIT_OBJECT_0];
+                    const auto morePoll = watches[more].Complete(names[more]);
+                    changed             = (morePoll == DirectoryWatch::PollStatus::Matched || morePoll == DirectoryWatch::PollStatus::Overflow) || changed;
+                    if (FAILED(watches[more].Status()))
+                        status = watches[more].Status();
+                    if (! watches[more].IsPending())
                         break;
                 }
                 if (changed || FAILED(status))
@@ -1014,12 +908,17 @@ try
     ++_state->generation;
     _state->requested = true;
     _state->result.reset();
+    _state->hasResult.store(false, std::memory_order_release);
     SetEvent(_state->wake.get());
     return S_OK;
 }
 catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
+}
+bool FileChangeService::HasResult() const noexcept
+{
+    return _state && _state->hasResult.load(std::memory_order_acquire);
 }
 std::optional<FileChangeNotice> FileChangeService::TakeResult()
 {
@@ -1029,6 +928,7 @@ std::optional<FileChangeNotice> FileChangeService::TakeResult()
     _state->notificationPending = false;
     auto result                 = _state->result;
     _state->result.reset();
+    _state->hasResult.store(false, std::memory_order_release);
     if (result && result->generation != _state->generation)
         return {};
     return result;
@@ -1042,6 +942,7 @@ void FileChangeService::Close() noexcept
         _state->closing = true;
         _state->window  = nullptr;
         _state->result.reset();
+        _state->hasResult.store(false, std::memory_order_release);
         SetEvent(_state->wake.get());
     }
     _state.reset();
@@ -1049,17 +950,6 @@ void FileChangeService::Close() noexcept
 
 namespace
 {
-bool IsUnsafeDisplayCodePoint(std::uint32_t cp) noexcept
-{
-    if (cp < 0x20u || cp == 0x7Fu || (cp >= 0x80u && cp <= 0x9Fu))
-        return true;
-    if ((cp >= 0x200Bu && cp <= 0x200Fu) || (cp >= 0x202Au && cp <= 0x202Eu) || (cp >= 0x2066u && cp <= 0x2069u) || cp == 0xFEFFu)
-        return true;
-    if (cp >= 0xE0000u && cp <= 0xE007Fu)
-        return true;
-    return false;
-}
-
 std::wstring NormalizeSlashesForDisplay(std::wstring_view text)
 {
     std::wstring result(text);
@@ -1072,7 +962,7 @@ std::wstring NormalizeSlashesForDisplay(std::wstring_view text)
 std::optional<std::wstring> RelativePathWithinRoot(const std::filesystem::path& filePath, const std::filesystem::path& root)
 {
     const auto normFile = filePath.lexically_normal();
-    const auto normRoot = root.lexically_normal();
+    const auto normRoot = NormalizeRootPath(root);
     const auto &fileStr = normFile.native(), &rootStr = normRoot.native();
     if (fileStr.empty() || rootStr.empty() || fileStr.size() <= rootStr.size())
         return std::nullopt;
@@ -1094,6 +984,18 @@ std::optional<std::wstring> RelativePathWithinRoot(const std::filesystem::path& 
 }
 } // namespace
 
+bool IsUnsafeDisplayCodePoint(std::uint32_t cp) noexcept
+{
+    if (cp < 0x20u || cp == 0x7Fu || (cp >= 0x80u && cp <= 0x9Fu))
+        return true;
+    if (cp == 0x061Cu || cp == 0x180Eu || (cp >= 0x200Bu && cp <= 0x200Fu) || (cp >= 0x202Au && cp <= 0x202Eu) || (cp >= 0x2060u && cp <= 0x2069u) ||
+        cp == 0xFEFFu)
+        return true;
+    if (cp >= 0xE0000u && cp <= 0xE007Fu)
+        return true;
+    return false;
+}
+
 std::wstring SanitizeUiText(std::wstring_view text, std::size_t maximumLength)
 {
     std::wstring out;
@@ -1107,8 +1009,10 @@ std::wstring SanitizeUiText(std::wstring_view text, std::size_t maximumLength)
             {
                 const std::uint32_t cp =
                     0x10000u + (((static_cast<std::uint32_t>(unit) - 0xD800u) << 10) | (static_cast<std::uint32_t>(text[i + 1u]) - 0xDC00u));
-                if (! IsUnsafeDisplayCodePoint(cp) && out.size() + 2u <= maximumLength)
+                if (! IsUnsafeDisplayCodePoint(cp))
                 {
+                    if (out.size() + 2u > maximumLength)
+                        break;
                     out.push_back(unit);
                     out.push_back(text[i + 1u]);
                 }
@@ -1132,32 +1036,32 @@ std::wstring SanitizeUiText(std::wstring_view text, std::size_t maximumLength)
 
 std::vector<std::wstring> DisambiguateFolderLabels(std::span<const std::filesystem::path> roots)
 {
+    std::vector<std::filesystem::path> normalizedRoots;
+    normalizedRoots.reserve(roots.size());
+    std::vector<std::wstring> rawLeaves;
+    rawLeaves.reserve(roots.size());
     std::vector<std::wstring> baseNames;
     baseNames.reserve(roots.size());
-    std::unordered_map<std::wstring, std::size_t> leafCounts;
     for (const auto& root : roots)
     {
-        auto leaf = root.filename().native();
+        auto norm = NormalizeRootPath(root);
+        auto leaf = norm.filename().native();
         if (leaf.empty())
-            leaf = root.native();
-        std::wstring key = leaf;
-        CharLowerBuffW(key.data(), static_cast<DWORD>(key.size()));
-        ++leafCounts[key];
+            leaf = norm.native();
+        normalizedRoots.push_back(std::move(norm));
         baseNames.push_back(SanitizeUiText(leaf, 128u));
+        rawLeaves.push_back(std::move(leaf));
     }
 
     std::vector<std::wstring> labels;
     labels.reserve(roots.size());
     for (std::size_t i = 0; i < roots.size(); ++i)
     {
-        auto leaf = roots[i].filename().native();
-        if (leaf.empty())
-            leaf = roots[i].native();
-        std::wstring key = leaf;
-        CharLowerBuffW(key.data(), static_cast<DWORD>(key.size()));
-        if (leafCounts[key] > 1u)
+        const std::size_t matches = static_cast<std::size_t>(
+            std::ranges::count_if(rawLeaves, [&](std::wstring_view candidate) { return EqualOrdinalIgnoreCase(candidate, rawLeaves[i]); }));
+        if (matches > 1u)
         {
-            const auto parentLeaf = SanitizeUiText(roots[i].parent_path().filename().native(), 96u);
+            const auto parentLeaf = SanitizeUiText(normalizedRoots[i].parent_path().filename().native(), 96u);
             if (! parentLeaf.empty())
             {
                 labels.push_back(baseNames[i] + L" (" + parentLeaf + L")");
@@ -1198,7 +1102,7 @@ WorkspaceDisplayLocation ResolveWorkspaceDisplayLocation(const std::filesystem::
         return result;
     }
 
-    result.fullPath = filePath.lexically_normal().native();
+    result.fullPath = SanitizeUiText(filePath.lexically_normal().native(), 1024u);
     result.fileName = SanitizeUiText(filePath.filename().native(), 255u);
     if (result.fileName.empty())
         result.fileName = std::wstring(untitledName);
@@ -1211,7 +1115,7 @@ WorkspaceDisplayLocation ResolveWorkspaceDisplayLocation(const std::filesystem::
     {
         if (auto rel = RelativePathWithinRoot(filePath, roots[i]))
         {
-            const std::size_t rootLen = roots[i].lexically_normal().native().size();
+            const std::size_t rootLen = NormalizeRootPath(roots[i]).native().size();
             if (rootLen > bestRootLength)
             {
                 bestRootLength = rootLen;
@@ -1224,7 +1128,7 @@ WorkspaceDisplayLocation ResolveWorkspaceDisplayLocation(const std::filesystem::
     {
         result.rooted       = true;
         result.sectionLabel = labels[*bestIndex];
-        result.relativePath = std::move(bestRelative);
+        result.relativePath = SanitizeUiText(bestRelative, 512u);
     }
     else
     {
@@ -1269,22 +1173,39 @@ try
     if (roots.size() > MaximumFilesRoots)
         return HRESULT_FROM_WIN32(ERROR_TOO_MANY_NAMES);
 
-    std::vector<std::unique_ptr<WorkerEntry>> next;
-    next.reserve(roots.size());
+    struct StagedSlot
+    {
+        bool fromExisting{};
+        std::size_t index{};
+    };
+    std::vector<std::filesystem::path> seenRoots;
+    seenRoots.reserve(roots.size());
+    std::vector<std::unique_ptr<WorkerEntry>> stagedNew;
+    std::vector<StagedSlot> plan;
+    plan.reserve(roots.size());
+
     for (const auto& rawRoot : roots)
     {
         if (rawRoot.empty() || ! rawRoot.is_absolute())
             continue;
-        const auto norm = rawRoot.lexically_normal();
-        const bool dup  = std::ranges::any_of(
-            next, [&](const std::unique_ptr<WorkerEntry>& existing) { return existing && EqualOrdinal(existing->root.native(), norm.native()); });
-        if (dup)
+        const auto norm = NormalizeRootPath(rawRoot);
+        if (std::ranges::any_of(seenRoots, [&](const std::filesystem::path& existing) { return EqualNormalizedRootPath(existing, norm); }))
             continue;
-        auto existingIt = std::ranges::find_if(
-            _entries, [&](const std::unique_ptr<WorkerEntry>& entry) { return entry && EqualOrdinal(entry->root.native(), norm.native()); });
-        if (existingIt != _entries.end() && (*existingIt)->service && (*existingIt)->service->IsActive())
+        seenRoots.push_back(norm);
+
+        std::optional<std::size_t> reuseIndex;
+        for (std::size_t i = 0u; i < _entries.size(); ++i)
         {
-            next.push_back(std::move(*existingIt));
+            const auto& entry = _entries[i];
+            if (entry && EqualNormalizedRootPath(entry->root, norm) && entry->service && entry->service->IsActive())
+            {
+                reuseIndex = i;
+                break;
+            }
+        }
+        if (reuseIndex)
+        {
+            plan.push_back({true, *reuseIndex});
             continue;
         }
         auto svc             = std::make_unique<FilesService>();
@@ -1297,7 +1218,18 @@ try
         auto entry     = std::make_unique<WorkerEntry>();
         entry->root    = norm;
         entry->service = std::move(svc);
-        next.push_back(std::move(entry));
+        plan.push_back({false, stagedNew.size()});
+        stagedNew.push_back(std::move(entry));
+    }
+
+    std::vector<std::unique_ptr<WorkerEntry>> next;
+    next.reserve(plan.size());
+    for (const auto& slot : plan)
+    {
+        if (slot.fromExisting)
+            next.push_back(std::move(_entries[slot.index]));
+        else
+            next.push_back(std::move(stagedNew[slot.index]));
     }
     for (auto& oldEntry : _entries)
         if (oldEntry && oldEntry->service)
@@ -1312,10 +1244,10 @@ catch (const std::bad_alloc&)
 
 HRESULT MultiFolderFilesService::Refresh(const std::filesystem::path& root) noexcept
 {
-    const auto norm = root.lexically_normal();
+    const auto norm = NormalizeRootPath(root);
     for (auto& entry : _entries)
     {
-        if (entry && EqualOrdinal(entry->root.native(), norm.native()) && entry->service)
+        if (entry && EqualNormalizedRootPath(entry->root, norm) && entry->service)
             return entry->service->Refresh();
     }
     return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);

@@ -18,6 +18,10 @@ namespace RedTilde
 // remains a borrowed notification binding and is cleared before destruction.
 class BitmapPasteWriter final
 {
+#if defined(ENABLE_TESTS)
+    friend class DesignRefreshProbe;
+#endif
+
 public:
     enum class Phase : std::uint8_t
     {
@@ -96,10 +100,12 @@ private:
     std::shared_ptr<State> _state;
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context) noexcept
     {
+        ProcessWorkLease lease = std::move(static_cast<Job*>(context)->lease);
+        if (instance)
+            (void)CallbackMayRunLong(instance);
         try
         {
-            ProcessWorkLease lease = std::move(static_cast<Job*>(context)->lease);
-            (void)CallbackMayRunLong(instance);
+            const DxUi::Failure::Scope failureScope;
             std::unique_ptr<Job> job(static_cast<Job*>(context));
             const auto owner   = job->state;
             auto result        = std::move(job->result);
@@ -128,8 +134,9 @@ private:
                 else
                 {
                     const auto initialized = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+                    const bool comReady    = SUCCEEDED(initialized) || initialized == RPC_E_CHANGED_MODE;
                     const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(initialized));
-                    result.status = FAILED(initialized) ? initialized : CreateBitmapAsset(owner->directory, job->dib, job->v5, result.asset);
+                    result.status = ! comReady ? initialized : CreateBitmapAsset(owner->directory, job->dib, job->v5, result.asset);
                 }
             }
             // Release the borrowed-input copy and codec apartment before advertising

@@ -1,20 +1,16 @@
 #pragma once
+#include "TextUtilities.h"
 #include <DxUi/Failure.h>
 #include <algorithm>
 #include <atomic>
-#include <cctype>
 #include <cstddef>
 #include <cstdint>
-#include <cwctype>
-#include <map>
 #include <mutex>
-#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-#include <windows.h>
 
 namespace RedTilde
 {
@@ -34,10 +30,17 @@ struct SpellCheckOptions
     bool operator==(const SpellCheckOptions&) const noexcept = default;
 };
 
+enum class SpellIssueKind : std::uint8_t
+{
+    Misspelled,
+    RepeatedWord
+};
+
 struct SpellErrorSpan
 {
     std::size_t start{};
     std::size_t length{};
+    SpellIssueKind kind{SpellIssueKind::Misspelled};
     bool operator==(const SpellErrorSpan&) const noexcept = default;
 };
 
@@ -144,66 +147,14 @@ public:
                                 std::vector<std::wstring>& outSuggestions) noexcept                                               = 0;
 };
 
+#if defined(ENABLE_TESTS)
 namespace Detail
 {
-[[nodiscard]] inline bool IsWordJoinerChar(wchar_t ch) noexcept
-{
-    return ch == L'\'' || ch == L'\x2019' || ch == L'-';
-}
-
 [[nodiscard]] inline bool IsTokenLetterOrDigit(wchar_t ch) noexcept
 {
     if (IS_HIGH_SURROGATE(ch) || IS_LOW_SURROGATE(ch))
         return true;
-    WORD type{};
-    if (! GetStringTypeW(CT_CTYPE1, &ch, 1, &type))
-        return false;
-    return (type & (C1_ALPHA | C1_DIGIT)) != 0u;
-}
-
-[[nodiscard]] inline std::wstring FoldAsciiLower(std::wstring_view text)
-{
-    std::wstring folded;
-    folded.reserve(text.size());
-    for (const wchar_t ch : text)
-    {
-        if (ch >= L'A' && ch <= L'Z')
-            folded.push_back(static_cast<wchar_t>(ch - L'A' + L'a'));
-        else
-            folded.push_back(ch);
-    }
-    return folded;
-}
-
-[[nodiscard]] inline bool IsUppercaseAcronymFake(std::wstring_view word) noexcept
-{
-    bool hasUpper     = false;
-    std::size_t cased = 0u;
-    for (const wchar_t ch : word)
-    {
-        WORD type{};
-        if (! GetStringTypeW(CT_CTYPE1, &ch, 1, &type))
-            continue;
-        if (type & C1_LOWER)
-            return false;
-        if (type & C1_UPPER)
-        {
-            hasUpper = true;
-            ++cased;
-        }
-    }
-    return hasUpper && cased >= 2u;
-}
-
-[[nodiscard]] inline bool ContainsDigitFake(std::wstring_view word) noexcept
-{
-    for (const wchar_t ch : word)
-    {
-        WORD type{};
-        if (GetStringTypeW(CT_CTYPE1, &ch, 1, &type) && (type & C1_DIGIT) != 0u)
-            return true;
-    }
-    return false;
+    return IsCharAlphaOrDigit(ch);
 }
 
 [[nodiscard]] inline std::size_t LevenshteinBounded(std::wstring_view a, std::wstring_view b)
@@ -249,7 +200,7 @@ public:
     void SetLanguageAvailability(std::wstring_view languageTag, ProviderAvailability availability, std::wstring diagnosticMessage = {})
     {
         std::lock_guard lock(_mutex);
-        auto& entry        = _languages[Detail::FoldAsciiLower(languageTag)];
+        auto& entry        = _languages[FoldAsciiLower(languageTag)];
         entry.availability = availability;
         entry.diagnostic   = std::move(diagnosticMessage);
     }
@@ -257,27 +208,35 @@ public:
     void AddKnownWords(std::wstring_view languageTag, std::initializer_list<std::wstring_view> words)
     {
         std::lock_guard lock(_mutex);
-        auto& entry = _languages[Detail::FoldAsciiLower(languageTag)];
+        auto& entry = _languages[FoldAsciiLower(languageTag)];
         for (const auto word : words)
         {
             entry.knownExact.emplace(word);
-            entry.knownLower.emplace(Detail::FoldAsciiLower(word));
+            entry.knownLower.emplace(FoldAsciiLower(word));
         }
     }
 
     void AddKnownWord(std::wstring_view languageTag, std::wstring_view word)
     {
         std::lock_guard lock(_mutex);
-        auto& entry = _languages[Detail::FoldAsciiLower(languageTag)];
+        auto& entry = _languages[FoldAsciiLower(languageTag)];
         entry.knownExact.emplace(word);
-        entry.knownLower.emplace(Detail::FoldAsciiLower(word));
+        entry.knownLower.emplace(FoldAsciiLower(word));
     }
 
     void SetSuggestions(std::wstring_view languageTag, std::wstring_view word, std::vector<std::wstring> suggestions)
     {
         std::lock_guard lock(_mutex);
-        auto& entry                                     = _languages[Detail::FoldAsciiLower(languageTag)];
-        entry.suggestions[Detail::FoldAsciiLower(word)] = std::move(suggestions);
+        auto& entry                                = _languages[FoldAsciiLower(languageTag)];
+        entry.exactSuggestions[std::wstring(word)] = suggestions;
+        entry.suggestions[FoldAsciiLower(word)]    = std::move(suggestions);
+    }
+
+    void SetForcedSegmentSpans(std::wstring_view languageTag, std::wstring_view segment, std::vector<SpellErrorSpan> spans)
+    {
+        std::lock_guard lock(_mutex);
+        auto& entry                              = _languages[FoldAsciiLower(languageTag)];
+        entry.forcedSpans[std::wstring(segment)] = std::move(spans);
     }
 
     void SetArtificialDelayMs(DWORD delayMs) noexcept
@@ -306,16 +265,12 @@ public:
     {
         DxUi::Failure::FailAllocation();
     }
-    catch (...)
-    {
-        return E_FAIL;
-    }
 
     ProviderAvailability CheckAvailability(std::wstring_view languageTag, ProviderDiagnostic* outDiag = nullptr) noexcept override
     try
     {
         std::lock_guard lock(_mutex);
-        const auto it = _languages.find(Detail::FoldAsciiLower(languageTag));
+        const auto it = _languages.find(FoldAsciiLower(languageTag));
         if (it == _languages.end())
         {
             if (outDiag)
@@ -336,10 +291,6 @@ public:
     {
         DxUi::Failure::FailAllocation();
     }
-    catch (...)
-    {
-        return ProviderAvailability::Unavailable;
-    }
 
     HRESULT CheckSegment(std::wstring_view languageTag,
                          std::wstring_view segment,
@@ -353,11 +304,16 @@ public:
             Sleep(delay);
 
         std::lock_guard lock(_mutex);
-        const auto it = _languages.find(Detail::FoldAsciiLower(languageTag));
+        const auto it = _languages.find(FoldAsciiLower(languageTag));
         if (it == _languages.end() || it->second.availability != ProviderAvailability::Ready)
             return S_OK;
 
-        const auto& lang      = it->second;
+        const auto& lang = it->second;
+        if (const auto forcedIt = lang.forcedSpans.find(std::wstring(segment)); forcedIt != lang.forcedSpans.end())
+        {
+            outErrors = forcedIt->second;
+            return S_OK;
+        }
         const std::size_t len = segment.size();
         std::size_t i         = 0u;
         while (i < len)
@@ -376,7 +332,7 @@ public:
                     ++i;
                     continue;
                 }
-                if (Detail::IsWordJoinerChar(segment[i]) && i + 1u < len && Detail::IsTokenLetterOrDigit(segment[i + 1u]))
+                if (IsWordJoinerChar(segment[i]) && i + 1u < len && Detail::IsTokenLetterOrDigit(segment[i + 1u]))
                 {
                     ++i;
                     continue;
@@ -388,12 +344,12 @@ public:
                 continue;
 
             const std::wstring_view token = segment.substr(start, wordLen);
-            if (options.ignoreUppercase && Detail::IsUppercaseAcronymFake(token))
+            if (options.ignoreUppercase && IsScriptAwareAllUppercase(token))
                 continue;
-            if (options.ignoreWordsWithDigits && Detail::ContainsDigitFake(token))
+            if (options.ignoreWordsWithDigits && ContainsAsciiOrUnicodeDigit(token))
                 continue;
 
-            if (lang.knownExact.contains(std::wstring(token)) || lang.knownLower.contains(Detail::FoldAsciiLower(token)))
+            if (lang.knownExact.contains(std::wstring(token)) || lang.knownLower.contains(FoldAsciiLower(token)))
                 continue;
 
             outErrors.push_back(SpellErrorSpan{start, wordLen});
@@ -403,10 +359,6 @@ public:
     catch (const std::bad_alloc&)
     {
         DxUi::Failure::FailAllocation();
-    }
-    catch (...)
-    {
-        return E_FAIL;
     }
 
     HRESULT SuggestWord(std::wstring_view languageTag,
@@ -421,19 +373,31 @@ public:
             return S_OK;
 
         std::lock_guard lock(_mutex);
-        const auto it = _languages.find(Detail::FoldAsciiLower(languageTag));
+        const auto it = _languages.find(FoldAsciiLower(languageTag));
         if (it == _languages.end() || it->second.availability != ProviderAvailability::Ready)
             return S_OK;
 
-        const auto& lang       = it->second;
-        const std::wstring key = Detail::FoldAsciiLower(word);
-        if (const auto customIt = lang.suggestions.find(key); customIt != lang.suggestions.end())
+        const auto& lang = it->second;
+        if (const auto exactIt = lang.exactSuggestions.find(std::wstring(word)); exactIt != lang.exactSuggestions.end())
         {
-            for (const auto& candidate : customIt->second)
+            for (const auto& candidate : exactIt->second)
             {
                 outSuggestions.push_back(SanitizeSpellUiText(candidate, 64u));
                 if (outSuggestions.size() >= maxSuggestions)
                     return S_OK;
+            }
+        }
+        const std::wstring key = FoldAsciiLower(word);
+        if (outSuggestions.empty())
+        {
+            if (const auto customIt = lang.suggestions.find(key); customIt != lang.suggestions.end())
+            {
+                for (const auto& candidate : customIt->second)
+                {
+                    outSuggestions.push_back(SanitizeSpellUiText(candidate, 64u));
+                    if (outSuggestions.size() >= maxSuggestions)
+                        return S_OK;
+                }
             }
         }
 
@@ -445,7 +409,7 @@ public:
         std::vector<ScoredCandidate> scored;
         for (const auto& known : lang.knownExact)
         {
-            const std::size_t dist = Detail::LevenshteinBounded(key, Detail::FoldAsciiLower(known));
+            const std::size_t dist = Detail::LevenshteinBounded(key, FoldAsciiLower(known));
             if (dist > 0u && dist <= 3u)
                 scored.push_back({dist, known});
         }
@@ -472,10 +436,6 @@ public:
     {
         DxUi::Failure::FailAllocation();
     }
-    catch (...)
-    {
-        return E_FAIL;
-    }
 
 private:
     struct LanguageData
@@ -484,7 +444,9 @@ private:
         std::wstring diagnostic;
         std::set<std::wstring> knownExact;
         std::set<std::wstring> knownLower;
+        std::unordered_map<std::wstring, std::vector<std::wstring>> exactSuggestions;
         std::unordered_map<std::wstring, std::vector<std::wstring>> suggestions;
+        std::unordered_map<std::wstring, std::vector<SpellErrorSpan>> forcedSpans;
     };
 
     mutable std::mutex _mutex;
@@ -494,4 +456,5 @@ private:
     std::atomic<std::uint64_t> _suggestCalls{0u};
     std::atomic<DWORD> _artificialDelayMs{0u};
 };
+#endif // defined(ENABLE_TESTS)
 } // namespace RedTilde

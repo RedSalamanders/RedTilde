@@ -30,7 +30,10 @@ Application lifecycle, file transactions, overlays, caches, and background worke
   `DrainingForClose`, `SessionEnding`, and `Destroyed`, transitioned via `TransitionLifecycle(LifecyclePhase)` and checked
   through `CanAcceptCommand()`, `IsUiAttached()`, and `AreShutdownWorkersSettled()` (`!preferenceWriter.Busy() &&
   recovery.Finished() && !bitmapWriter.Busy() && spellService.Finished() && !fileOps.Busy() && !github.Busy()`).
-  `DispatchUiMessage()` rechecks `AreShutdownWorkersSettled()` so settlement waits for all background services without spurious `PreferencesReady` churn.
+  `FileOpsService::Stop()` and `GitHubService::Stop()` preserve `_state->window` until `Close()` and post final completion
+  so `AreShutdownWorkersSettled()` never stalls (`ClosingAfterSave` restores window visibility cleanly if a close-time save fails
+  and resets `_saveConfirmSession` on abort). `DispatchUiMessage()` rechecks `AreShutdownWorkersSettled()` so settlement waits
+  for all background services without spurious `PreferencesReady` churn.
 - **File transactions & modal prompts**: `ActiveFileTransaction` (`std::variant<std::monostate, StartupOpenTx,
   PickerOpenTx, FilesPaneOpenTx, HeldOpenTx, SaveTx, ConflictReloadTx>`) binds each in-flight open, held open, save,
   or conflict reload to its exact source snapshot and approvals so failure or close resets atomically to
@@ -40,14 +43,21 @@ Application lifecycle, file transactions, overlays, caches, and background worke
 - **Exclusive overlays & deferred placement**: `OverlayKind` (`None`, `FloatingSelectionTools`, `FindBar`,
   `SettingsDrawer`, `BlockDraftModal`, `RecoveryModal`, `SaveConfirmModal`, `RenameFileModal`, `FileConflictModal`,
   `OpenGitHubModal`) governed by `SetActiveOverlay(OverlayKind)` enforces mutual exclusion across all floating surfaces
-  alongside `Surface::Kind::ModalBackdrop` and `std::optional<BlockDraftSession>`. Deferred selection-tools and
+  alongside `Surface::Kind::ModalBackdrop` and `std::optional<BlockDraftSession>`, cleans up stale modal sessions
+  (`_saveConfirmSession`, `_renameSession`, `_fileConflictSession`, `_pendingPasteQueue`, `_pendingDeviceFlow`, and
+  `GitHubDevicePollTimerId`) on overlay exit, and pairs with `HasActiveModalUi()` / `ActiveModalPanel()` for modal Tab/Ctrl+Tab,
+  shortcut, drop, and backdrop wheel trapping. Deferred selection-tools and
   draft geometry resolution post `PostPreparePlacement` (`ReconcilePostPreparePlacement()`) out of `WM_PAINT` so painting
   never mutates control visibility or triggers re-layout.
-- **On-demand GitHub transport & credential storage**: `GitHubService` (`IGitHubTransport` + redirect-disabled TLS
-  `WinHttpGitHubTransport`, `ICredentialStore` backed by Windows Credential Manager target `RedTilde/GitHub/api.github.com`)
-  issues zero network calls at startup or automatically for `gh` CLI; all OAuth Device Flow (`timer`-polled), PAT,
-  explicit `gh auth token` opt-in, repository tree queries, and raw Markdown blob fetches happen solely on explicit user
-  action (`Settings → Accounts` or `Ctrl+Shift+G` Open GitHub modal).
+- **On-demand GitHub transport & credential storage**: `GitHubService` (`IGitHubTransport` + redirect-disabled async TLS `1.2`/`1.3`
+  `WINHTTP_FLAG_ASYNC` `WinHttpGitHubTransport` with CRLF/CTL header rejection and `abortEvent` cancellation, plus `ICredentialStore`
+  backed by Windows Credential Manager target `RedTilde/GitHub/api.github.com` and `ScrubbedWideSecret` RAII zeroing)
+  launches its worker only on demand, issues zero network calls at startup or automatically for `gh` CLI, deletes stored
+  credentials only on HTTP `401`, validates branch names and raw blob traversal (`IsValidGitHubBranchName` / `IsValidGitHubRelativePath`),
+  gates/hides OAuth Device Flow while `DefaultGitHubDeviceClientId` is empty (enforcing RFC 8628 `+5 s` `slow_down`, `expiresInSeconds`,
+  and `flowId` filtering when configured), and runs PAT, off-UI hardened `gh auth token` opt-in (system/program-files search,
+  `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`, `NUL` stderr, bounded concurrent pipe drain), repository tree queries, and raw Markdown
+  blob fetches solely on explicit user action (`Settings → Accounts` or `Ctrl+Shift+G` Open GitHub modal).
 - **Workspace session, Find, outline & reentrant publications**: `DocumentSessionMetadata` and `DerivedDocumentCaches`
   bundle per-document metadata and derived caches so `SwitchWorkspaceDocument()` swaps metadata atomically alongside
   `ExchangeDocumentState()` before reentrant UI callbacks. `OutlinePreviewBaseline` preserves committed outline collapse
@@ -70,8 +80,10 @@ Application lifecycle, file transactions, overlays, caches, and background worke
   - `FilesService` (`FilesPhase`): `Idle`, `Scanning`, `Watching`, `CoalescingWatch`, `Failed`, `Closed`, enabling
     clean re-initialization when switching away from a failed root.
   - `SettingsWriter::State::WorkerPhase`: `Idle`, `Active`, `Closed`.
-  - `SettingsWatcher`: single `ProcessWorkLease`-held worker using OVERLAPPED `ReadDirectoryChangesW` paired with a
-    manual-reset `_stopEvent`, `250 ms` burst coalescing, and non-writing live reload on the UI thread ([settings contract](Core_Settings.md)).
+  - `SettingsWatcher`: single `ProcessWorkItem<State>` worker using `Common/DirectoryWatch.h` OVERLAPPED `ReadDirectoryChangesW` paired with a
+    manual-reset `_stopEvent`, `250 ms` burst coalescing, and non-blocking `Close()` + non-writing live reload on the UI thread ([settings contract](Core_Settings.md)).
+  - `FileOpsService`: `Idle`, `Working`, `Stopping`, `Closed` (with `Stop()` retaining `_state->window` until `Close()`).
+  - `GitHubService`: `Idle`, `Working`, `Stopping`, `Closed` (demand-driven worker, WinHTTP session reuse, `Stop()` retaining `_state->window` until `Close()`).
   - `RichImageLoader::State::WorkerPhase`: `Idle`, `Active`, `Closing`, `Stopped`.
   - `Application::ExternalLinkState::Phase`: `Idle`, `LaunchingSta`, `CompletedPendingDrain`, `Closed`.
   - `EditDiagnostics::SelectionPhase`: `Disarmed`, `Armed`, `InInvocation`, `InComponent`, `Invalid`.
@@ -100,6 +112,14 @@ Application lifecycle, file transactions, overlays, caches, and background worke
 
 ### Shared infrastructure headers and command entry points
 
+- **Shared `Common/` utilities & `Application` split**: `Common/TextUtilities.h` (ordinal/case-insensitive string helpers and
+  BCP-47/character classification), `Common/JsonHelpers.h` (`yyjson` RAII and `YYJSON_READ_ERROR_MEMORY_ALLOCATION` fatal
+  mapping), `Common/PathSecurity.h` (root normalization, DOS/Win32 name checks, ancestor-and-self reparse checks, and disk handle
+  verification), `Common/DirectoryWatch.h` (shared OVERLAPPED `ReadDirectoryChangesW` loop), and `Common/RemoteImageImports.h`
+  (`EnsureWinHttpImports()`) serve shared callers without duplicated helpers. `RedTilde/Application` is partitioned across
+  `Application.cpp` (window/lifecycle/commands), `Application.Chrome.cpp`, `Application.Navigation.cpp`, `Application.FileIo.cpp`,
+  `Application.WorkspaceOps.cpp`, `Application.SplitView.cpp`, `Application.Spelling.cpp`, `Application.Printing.cpp`,
+  `Application.Harness.cpp`, and `Application.CaptureScenarios.cpp`.
 - **Versioning (`Common/Version.h`)**: Single source of truth for `REDTILDE_VERSION_MAJOR`, `REDTILDE_VERSION_MINOR`,
   `REDTILDE_BUILD_NUMBER`, and `REDTILDE_PRODUCT_VERSION` used by resources, About UI, `--version`, and `build.ps1` /
   `package.ps1` validation.
@@ -283,13 +303,17 @@ establish a baseline; library receipts do not establish application non-regressi
 
 ## Printing
 
-The app owns the preview window, the output filename dialog and one outstanding print session. The worker owns its
-COM apartment, an independent DxUi embedded host, paper-width layout, Direct2D page lists and Windows print
+The app owns the preview window, the output filename dialog and one outstanding print session (confirming in-flight
+cancellation via `TaskDialogIndirect` when closing during active submission). The worker owns its
+COM apartment, an independent DxUi embedded host, paper-width layout, Direct2D page lists (with `Pages` strictly
+single-threaded on Thread A, streaming per-page `ID2D1CommandList` objects to Thread B and reusing WARP/editor/decoded-image
+state across paper/printer changes via `Pages::SetPaper()`, enforcing soft non-transitive `Band::keepWithNext`), and Windows print
 package target. Keep the prepared document and approved image pixels through preview and submission.
 Rasterize a single bounded preview sheet from the same command list sent to the printer when selected.
 Transfer its pixel bytes and geometry to the UI. The worker also enumerates installed queues immediately so the UI
-populates and enables queue selection up front, and runs Win32 driver configuration queries on an isolated,
-bounded helper thread without holding a `ProcessWorkLease` when calling the OS spooler. Wait against both the
+populates and enables queue selection up front, and runs Win32 driver configuration queries (`RunPrinterConfigProbe`) and
+spooler submissions (`RunSpoolerSubmit`) on isolated, bounded helper threads without holding a `ProcessWorkLease` or
+`DxUi::Failure::Scope` across blocking OS spooler/WinSpool/COM calls (`InvokeNative`). Wait against both the
 helper completion and incoming UI requests (`RequestPrinter`/`Cancel`) up to the preview fallback timeout so slow
 or offline WSD/IPP drivers promote a browsable Letter fallback, keep page navigation and Printer switching responsive,
 and never block preview close or application shutdown; late or superseded printer configurations are discarded by
@@ -306,7 +330,8 @@ Job state contains an immutable document snapshot and owned inputs. Failure comp
 stage, relevant page and selected destination back to the UI owner. A failed submission is never retried
 automatically.
 
-For a file port or Print to file, collect the chosen filename through the UI owner, spool into an owned sibling staging stream,
+For a file port or Print to file, collect the chosen filename through the UI owner (`FileOutput` acquires a `ProcessWorkLease`
+and drains cancellation cleanly), spool into an owned sibling staging stream,
 and publish that file after successful submission. A cancelled choice, failed job or changed destination
 leaves an earlier file in place. Publication rechecks the destination entry and metadata immediately before its
 atomic replacement. Driver-managed destinations follow their own spool and delivery rules.

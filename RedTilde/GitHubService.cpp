@@ -1,7 +1,9 @@
 #include "GitHubService.h"
 #include "Common/ProcessWork.h"
+#include "Common/Resources.h"
 #include "Common/Settings.h"
 #include "Common/Storage.h"
+#include "res/Resource.h"
 #include <DxUi/Failure.h>
 #include <DxUi/RichDocument.h>
 #include <algorithm>
@@ -10,34 +12,12 @@
 #include <format>
 #include <mutex>
 #include <wil/resource.h>
+#include <winhttp.h>
 
 namespace RedTilde
 {
 namespace
 {
-// Public OAuth App client ID registered for RedTilde desktop Device Flow (no client secret required by RFC 8628).
-constexpr std::string_view DefaultDeviceClientId = "Ov23liRedTildeDesktopPublic";
-
-std::string EncodeUrlPathSegments(std::wstring_view utf16Path)
-{
-    std::string utf8;
-    if (DxUi::RichText::TryEncodeUtf8(utf16Path, utf8) != DxUi::RichText::SourceResult::Success)
-        return {};
-    std::string encoded;
-    encoded.reserve(utf8.size());
-    for (const char ch : utf8)
-    {
-        const auto c = static_cast<unsigned char>(ch);
-        const bool unreserved =
-            (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~' || c == '/';
-        if (unreserved)
-            encoded.push_back(static_cast<char>(c));
-        else
-            encoded += std::format("%{:02X}", static_cast<unsigned>(c));
-    }
-    return encoded;
-}
-
 std::wstring ToWideAscii(std::string_view text)
 {
     std::wstring out;
@@ -46,7 +26,69 @@ std::wstring ToWideAscii(std::string_view text)
         out.push_back(static_cast<wchar_t>(static_cast<unsigned char>(c)));
     return out;
 }
+
+void ScrubResultSecrets(GitHubResult& result) noexcept
+{
+    if (result.devicePoll)
+        ScrubWideString(result.devicePoll->accessToken);
+}
+
+[[nodiscard]] GitHubErrorCode ErrorCodeFromTransportHr(HRESULT hr) noexcept
+{
+    if (hr == HRESULT_FROM_WIN32(ERROR_CANCELLED))
+        return GitHubErrorCode::Cancelled;
+    if (hr == HRESULT_FROM_WIN32(ERROR_TIMEOUT) || hr == HRESULT_FROM_WIN32(ERROR_WINHTTP_TIMEOUT))
+        return GitHubErrorCode::Timeout;
+    if (hr == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
+        return GitHubErrorCode::FileTooLarge;
+    return GitHubErrorCode::TransportFailed;
+}
 } // namespace
+
+std::wstring FormatLocalizedGitHubError(GitHubErrorCode errorCode, HRESULT transportStatus, unsigned httpStatusCode, std::wstring_view serverMessage)
+{
+    switch (errorCode)
+    {
+        case GitHubErrorCode::EmptyUrl: return LoadStringResource(nullptr, IDS_GITHUB_ERR_EMPTY_URL);
+        case GitHubErrorCode::UrlTooLongOrInvalidEncoding: return LoadStringResource(nullptr, IDS_GITHUB_ERR_URL_ENCODING);
+        case GitHubErrorCode::UrlUnsafeCharacters: return LoadStringResource(nullptr, IDS_GITHUB_ERR_URL_CHARS);
+        case GitHubErrorCode::HttpsRequired: return LoadStringResource(nullptr, IDS_GITHUB_ERR_HTTPS_REQUIRED);
+        case GitHubErrorCode::HostNotGitHub: return LoadStringResource(nullptr, IDS_GITHUB_ERR_HOST_NOT_GITHUB);
+        case GitHubErrorCode::UnsupportedScheme: return LoadStringResource(nullptr, IDS_GITHUB_ERR_SCHEME);
+        case GitHubErrorCode::DotPathSegment: return LoadStringResource(nullptr, IDS_GITHUB_ERR_DOT_SEGMENT);
+        case GitHubErrorCode::MissingOwnerOrRepo: return LoadStringResource(nullptr, IDS_GITHUB_ERR_MISSING_OWNER_REPO);
+        case GitHubErrorCode::InvalidOwnerOrRepo: return LoadStringResource(nullptr, IDS_GITHUB_ERR_INVALID_OWNER_REPO);
+        case GitHubErrorCode::InvalidBranch: return LoadStringResource(nullptr, IDS_GITHUB_ERR_INVALID_BRANCH);
+        case GitHubErrorCode::InvalidFilePath: return LoadStringResource(nullptr, IDS_GITHUB_ERR_INVALID_FILE_PATH);
+        case GitHubErrorCode::UnsupportedUrlPath: return LoadStringResource(nullptr, IDS_GITHUB_ERR_UNSUPPORTED_PATH);
+        case GitHubErrorCode::RateLimited: return LoadStringResource(nullptr, IDS_GITHUB_ERR_RATE_LIMITED);
+        case GitHubErrorCode::Unauthorized: return LoadStringResource(nullptr, IDS_GITHUB_ERR_UNAUTHORIZED);
+        case GitHubErrorCode::NotFound: return LoadStringResource(nullptr, IDS_GITHUB_ERR_NOT_FOUND);
+        case GitHubErrorCode::GhCliUnavailable: return LoadStringResource(nullptr, IDS_GITHUB_ERR_GH_CLI_UNAVAILABLE);
+        case GitHubErrorCode::DeviceFlowNotConfigured: return LoadStringResource(nullptr, IDS_GITHUB_ERR_DEVICE_UNAVAILABLE);
+        case GitHubErrorCode::DeviceAccessDenied: return LoadStringResource(nullptr, IDS_GITHUB_ERR_DEVICE_DENIED);
+        case GitHubErrorCode::DeviceExpired: return LoadStringResource(nullptr, IDS_GITHUB_ERR_DEVICE_EXPIRED);
+        case GitHubErrorCode::InvalidResponse: return LoadStringResource(nullptr, IDS_GITHUB_ERR_INVALID_RESPONSE);
+        case GitHubErrorCode::FileTooLarge: return LoadStringResource(nullptr, IDS_GITHUB_ERR_FILE_TOO_LARGE);
+        case GitHubErrorCode::FileNotUtf8: return LoadStringResource(nullptr, IDS_GITHUB_ERR_FILE_NOT_UTF8);
+        case GitHubErrorCode::Cancelled: return LoadStringResource(nullptr, IDS_GITHUB_ERR_CANCELLED);
+        case GitHubErrorCode::Timeout: return LoadStringResource(nullptr, IDS_GITHUB_ERR_TIMEOUT);
+        case GitHubErrorCode::ServerMessage:
+            if (! serverMessage.empty())
+                return std::wstring(serverMessage);
+            break;
+        case GitHubErrorCode::HttpStatus: return FormatStringResource(nullptr, IDS_GITHUB_ERR_HTTP_STATUS, httpStatusCode);
+        case GitHubErrorCode::TransportFailed:
+        case GitHubErrorCode::None: break;
+    }
+    if (! serverMessage.empty())
+        return std::wstring(serverMessage);
+    if (FAILED(transportStatus))
+        return ErrorText(transportStatus);
+    if (httpStatusCode != 0u)
+        return FormatStringResource(nullptr, IDS_GITHUB_ERR_HTTP_STATUS, httpStatusCode);
+    return LoadStringResource(nullptr, IDS_GITHUB_ERR_INVALID_RESPONSE);
+}
 
 #pragma warning(push)
 #pragma warning(disable : 4625 4626 5026 5027)
@@ -61,26 +103,44 @@ struct GitHubService::State
     };
 
     std::mutex mutex;
-    wil::unique_event wake;
     wil::unique_event abortEvent;
     std::atomic_bool cancelled{false};
     HWND window{};
     UINT message{};
     std::shared_ptr<IGitHubTransport> transport;
     std::shared_ptr<ICredentialStore> credentials;
+    std::string deviceClientId;
+    std::function<HRESULT(std::wstring&, const std::atomic_bool*, HANDLE)> ghCliImporter;
     std::deque<GitHubRequest> queue;
     std::deque<GitHubResult> completed;
     WorkerPhase phase{WorkerPhase::Idle};
+    bool workerRunning{};
+    bool credStoreChecked{};
     std::wstring activeToken;
     std::wstring activeLogin;
+
+    ~State() noexcept
+    {
+        ScrubWideString(activeToken);
+        for (auto& req : queue)
+            req.tokenOrDeviceCode.Clear();
+        for (auto& res : completed)
+            ScrubResultSecrets(res);
+    }
 
     void FinishStoppedLocked() noexcept
     {
         ScrubWideString(activeToken);
-        phase = WorkerPhase::Stopped;
+        for (auto& req : queue)
+            req.tokenOrDeviceCode.Clear();
+        queue.clear();
+        for (auto& res : completed)
+            ScrubResultSecrets(res);
+        workerRunning = false;
+        phase         = WorkerPhase::Stopped;
     }
 
-    static HRESULT DecodeMarkdownPayload(std::string_view bytes, std::wstring& outText, bool& outBom) noexcept
+    static HRESULT DecodeMarkdownPayload(std::string_view bytes, std::wstring& outText, bool& outBom)
     {
         outBom = bytes.size() >= 3u && static_cast<unsigned char>(bytes[0]) == 0xEFu && static_cast<unsigned char>(bytes[1]) == 0xBBu &&
                  static_cast<unsigned char>(bytes[2]) == 0xBFu;
@@ -102,49 +162,110 @@ struct GitHubService::State
     {
         res.kind      = req.kind;
         res.requestId = req.requestId;
+        res.flowId    = req.flowId;
         std::shared_ptr<IGitHubTransport> transport;
         std::shared_ptr<ICredentialStore> credStore;
+        std::string clientId;
+        std::function<HRESULT(std::wstring&, const std::atomic_bool*, HANDLE)> importer;
         std::wstring token;
         std::wstring login;
+        bool checkedCreds{};
         {
             std::lock_guard lock(self->mutex);
             transport = self->transport;
             credStore = self->credentials;
-            token     = self->activeToken;
-            login     = self->activeLogin;
+            clientId  = self->deviceClientId;
+            importer  = self->ghCliImporter;
+            token.assign(self->activeToken);
+            login        = self->activeLogin;
+            checkedCreds = self->credStoreChecked;
         }
         const auto scrubToken = wil::scope_exit([&]() noexcept { ScrubWideString(token); });
         if (! transport || ! credStore)
         {
-            res.status = E_UNEXPECTED;
+            res.status       = E_UNEXPECTED;
+            res.errorCode    = GitHubErrorCode::TransportFailed;
+            res.errorMessage = FormatLocalizedGitHubError(res.errorCode, res.status);
             return;
         }
+
+        const auto setFailureFromResponse = [&](const GitHubHttpResponse& resp, HRESULT hr)
+        {
+            res.httpStatusCode = resp.httpStatusCode;
+            res.errorCode      = resp.errorCode != GitHubErrorCode::None ? resp.errorCode : ClassifyGitHubHttpError(resp);
+            if (res.errorCode == GitHubErrorCode::None)
+                res.errorCode = ErrorCodeFromTransportHr(hr);
+            res.errorMessage =
+                FormatLocalizedGitHubError(res.errorCode, FAILED(resp.transportStatus) ? resp.transportStatus : hr, resp.httpStatusCode, resp.errorMessage);
+            res.status = hr;
+        };
+
+        const auto invalidateSavedAuthIf401 = [&](unsigned httpStatus, std::wstring_view usedToken)
+        {
+            if (httpStatus != 401u || usedToken.empty())
+                return;
+            (void)credStore->Delete(GitHubCredentialTarget);
+            res.authInvalidated = true;
+            res.signedIn        = false;
+            std::lock_guard lock(self->mutex);
+            ScrubWideString(self->activeToken);
+            self->activeLogin.clear();
+            self->credStoreChecked = true;
+        };
+
+        const auto ensureTokenFromCredStore = [&]()
+        {
+            if (! token.empty() || checkedCreds)
+                return;
+            StoredCredential stored;
+            const auto scrubStored = wil::scope_exit([&]() noexcept { ScrubWideString(stored.secret); });
+            const HRESULT cr       = credStore->Read(GitHubCredentialTarget, stored);
+            std::lock_guard lock(self->mutex);
+            self->credStoreChecked = true;
+            if (SUCCEEDED(cr) && ! stored.secret.empty())
+            {
+                token.assign(stored.secret);
+                ScrubWideString(self->activeToken);
+                self->activeToken.assign(stored.secret);
+                self->activeLogin = stored.username;
+                login             = stored.username;
+            }
+        };
 
         const auto fetchUserAndRepos = [&](std::wstring_view candidateToken) -> HRESULT
         {
             GitHubHttpRequest userReq;
-            userReq.path        = L"/user";
-            userReq.bearerToken = std::wstring(candidateToken);
+            userReq.path = L"/user";
+            userReq.bearerToken.assign(candidateToken);
+            const auto scrubUserToken = wil::scope_exit([&]() noexcept { ScrubWideString(userReq.bearerToken); });
             GitHubHttpResponse userResp;
             const HRESULT uHr = transport->SendRequest(userReq, &self->cancelled, self->abortEvent.get(), userResp);
             if (FAILED(uHr))
-                return res.status = uHr;
+            {
+                setFailureFromResponse(userResp, uHr);
+                return res.status;
+            }
             if (userResp.httpStatusCode < 200u || userResp.httpStatusCode >= 300u)
             {
-                res.errorMessage  = FormatGitHubErrorMessage(userResp);
-                return res.status = HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
+                setFailureFromResponse(userResp, HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED));
+                return res.status;
             }
             std::wstring parsedLogin;
             const HRESULT lpHr = ParseGitHubUserLoginJson(userResp.body, parsedLogin);
             if (FAILED(lpHr))
+            {
+                res.errorCode     = GitHubErrorCode::InvalidResponse;
+                res.errorMessage  = FormatLocalizedGitHubError(res.errorCode, lpHr);
                 return res.status = lpHr;
+            }
 
             std::vector<GitHubRepoSummary> repos;
             for (unsigned page = 1u; page <= 5u && repos.size() < MaximumGitHubUserRepos; ++page)
             {
                 GitHubHttpRequest repoReq;
-                repoReq.path        = std::format(L"/user/repos?sort=pushed&per_page=100&page={}", page);
-                repoReq.bearerToken = std::wstring(candidateToken);
+                repoReq.path = std::format(L"/user/repos?sort=pushed&per_page=100&page={}", page);
+                repoReq.bearerToken.assign(candidateToken);
+                const auto scrubRepoToken = wil::scope_exit([&]() noexcept { ScrubWideString(repoReq.bearerToken); });
                 GitHubHttpResponse repoResp;
                 const HRESULT rHr = transport->SendRequest(repoReq, &self->cancelled, self->abortEvent.get(), repoResp);
                 if (FAILED(rHr) || repoResp.httpStatusCode < 200u || repoResp.httpStatusCode >= 300u)
@@ -157,12 +278,15 @@ struct GitHubService::State
 
             {
                 std::lock_guard lock(self->mutex);
-                self->activeToken = std::wstring(candidateToken);
-                self->activeLogin = parsedLogin;
+                ScrubWideString(self->activeToken);
+                self->activeToken.assign(candidateToken);
+                self->activeLogin      = parsedLogin;
+                self->credStoreChecked = true;
             }
-            res.signedIn     = true;
-            res.accountLogin = std::move(parsedLogin);
-            res.userRepos    = std::move(repos);
+            res.httpStatusCode = userResp.httpStatusCode;
+            res.signedIn       = true;
+            res.accountLogin   = std::move(parsedLogin);
+            res.userRepos      = std::move(repos);
             return S_OK;
         };
 
@@ -171,71 +295,97 @@ struct GitHubService::State
             case GitHubRequest::Kind::LoadSavedAccount:
             {
                 StoredCredential stored;
-                const HRESULT cr       = credStore->Read(GitHubCredentialTarget, stored);
                 const auto scrubStored = wil::scope_exit([&]() noexcept { ScrubWideString(stored.secret); });
+                const HRESULT cr       = credStore->Read(GitHubCredentialTarget, stored);
+                {
+                    std::lock_guard lock(self->mutex);
+                    self->credStoreChecked = true;
+                }
                 if (FAILED(cr) || stored.secret.empty())
                 {
                     res.signedIn = false;
                     res.status   = S_OK;
                     return;
                 }
-                if (FAILED(fetchUserAndRepos(stored.secret)) && ! res.errorMessage.empty())
+                if (FAILED(fetchUserAndRepos(stored.secret)))
                 {
-                    // Stale/revoked credential falls back cleanly to signed-out status without destroying user edits.
                     res.signedIn = false;
-                    (void)credStore->Delete(GitHubCredentialTarget);
-                    std::lock_guard lock(self->mutex);
-                    ScrubWideString(self->activeToken);
-                    self->activeLogin.clear();
+                    invalidateSavedAuthIf401(res.httpStatusCode, stored.secret);
                 }
                 return;
             }
             case GitHubRequest::Kind::SignInWithPat:
             {
-                if (req.tokenOrDeviceCode.empty())
+                if (req.tokenOrDeviceCode.Empty())
                 {
-                    res.status = E_INVALIDARG;
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::Unauthorized;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
                     return;
                 }
-                if (SUCCEEDED(fetchUserAndRepos(req.tokenOrDeviceCode)))
-                    res.status = credStore->Write(GitHubCredentialTarget, res.accountLogin, req.tokenOrDeviceCode);
+                if (SUCCEEDED(fetchUserAndRepos(req.tokenOrDeviceCode.View())))
+                {
+                    res.status = credStore->Write(GitHubCredentialTarget, res.accountLogin, req.tokenOrDeviceCode.View());
+                    if (FAILED(res.status))
+                    {
+                        res.errorCode    = GitHubErrorCode::TransportFailed;
+                        res.errorMessage = FormatLocalizedGitHubError(res.errorCode, res.status);
+                    }
+                }
                 return;
             }
             case GitHubRequest::Kind::ImportGhCli:
             {
                 std::wstring cliToken;
                 const auto scrubCli = wil::scope_exit([&]() noexcept { ScrubWideString(cliToken); });
-                const HRESULT cliHr = TryImportGhCliToken(cliToken);
+                const HRESULT cliHr = importer ? importer(cliToken, &self->cancelled, self->abortEvent.get())
+                                               : TryImportGhCliToken(cliToken, &self->cancelled, self->abortEvent.get());
                 if (FAILED(cliHr))
                 {
                     res.status       = cliHr;
-                    res.errorMessage = L"GitHub CLI ('gh auth token') is unavailable or not signed in.";
+                    res.errorCode    = (cliHr == HRESULT_FROM_WIN32(ERROR_CANCELLED)) ? GitHubErrorCode::Cancelled
+                                       : (cliHr == HRESULT_FROM_WIN32(ERROR_TIMEOUT)) ? GitHubErrorCode::Timeout
+                                                                                      : GitHubErrorCode::GhCliUnavailable;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode, cliHr);
                     return;
                 }
                 if (SUCCEEDED(fetchUserAndRepos(cliToken)))
+                {
                     res.status = credStore->Write(GitHubCredentialTarget, res.accountLogin, cliToken);
+                    if (FAILED(res.status))
+                    {
+                        res.errorCode    = GitHubErrorCode::TransportFailed;
+                        res.errorMessage = FormatLocalizedGitHubError(res.errorCode, res.status);
+                    }
+                }
                 return;
             }
             case GitHubRequest::Kind::StartDeviceFlow:
             {
+                if (clientId.empty())
+                {
+                    res.status       = HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+                    res.errorCode    = GitHubErrorCode::DeviceFlowNotConfigured;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                    return;
+                }
                 GitHubHttpRequest dcReq;
                 dcReq.host         = L"github.com";
                 dcReq.method       = L"POST";
                 dcReq.path         = L"/login/device/code";
                 dcReq.acceptHeader = L"application/json";
                 dcReq.contentType  = "application/x-www-form-urlencoded";
-                dcReq.body         = std::format("client_id={}&scope=repo%20read%3Auser", DefaultDeviceClientId);
+                dcReq.body         = std::format("client_id={}&scope=repo%20read%3Auser", clientId);
                 GitHubHttpResponse dcResp;
                 const HRESULT hr = transport->SendRequest(dcReq, &self->cancelled, self->abortEvent.get(), dcResp);
                 if (FAILED(hr))
                 {
-                    res.status = hr;
+                    setFailureFromResponse(dcResp, hr);
                     return;
                 }
                 if (dcResp.httpStatusCode < 200u || dcResp.httpStatusCode >= 300u)
                 {
-                    res.status       = E_FAIL;
-                    res.errorMessage = FormatGitHubErrorMessage(dcResp);
+                    setFailureFromResponse(dcResp, E_FAIL);
                     return;
                 }
                 GitHubDeviceCodeInfo info;
@@ -243,149 +393,269 @@ struct GitHubService::State
                 res.status        = pHr;
                 if (SUCCEEDED(pHr))
                     res.deviceCode = std::move(info);
+                else
+                {
+                    res.errorCode    = GitHubErrorCode::InvalidResponse;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode, pHr);
+                }
                 return;
             }
             case GitHubRequest::Kind::PollDeviceFlow:
             {
-                std::string dcUtf8;
-                if (DxUi::RichText::TryEncodeUtf8(req.tokenOrDeviceCode, dcUtf8) != DxUi::RichText::SourceResult::Success)
+                if (clientId.empty())
                 {
-                    res.status = E_INVALIDARG;
+                    res.status       = HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+                    res.errorCode    = GitHubErrorCode::DeviceFlowNotConfigured;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                    return;
+                }
+                std::string encodedDc = PercentEncodeQueryComponent(req.tokenOrDeviceCode.View());
+                const auto scrubDc    = wil::scope_exit([&]() noexcept { ScrubString(encodedDc); });
+                if (encodedDc.empty())
+                {
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::InvalidResponse;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
                     return;
                 }
                 GitHubHttpRequest pReq;
-                pReq.host         = L"github.com";
-                pReq.method       = L"POST";
-                pReq.path         = L"/login/oauth/access_token";
-                pReq.acceptHeader = L"application/json";
-                pReq.contentType  = "application/x-www-form-urlencoded";
-                pReq.body = std::format("client_id={}&device_code={}&grant_type=urn:ietf:params:oauth:grant-type:device_code", DefaultDeviceClientId, dcUtf8);
+                pReq.host            = L"github.com";
+                pReq.method          = L"POST";
+                pReq.path            = L"/login/oauth/access_token";
+                pReq.acceptHeader    = L"application/json";
+                pReq.contentType     = "application/x-www-form-urlencoded";
+                pReq.body            = std::format("client_id={}&device_code={}&grant_type=urn:ietf:params:oauth:grant-type:device_code", clientId, encodedDc);
+                const auto scrubBody = wil::scope_exit([&]() noexcept { ScrubString(pReq.body); });
                 GitHubHttpResponse pResp;
-                const HRESULT hr = transport->SendRequest(pReq, &self->cancelled, self->abortEvent.get(), pResp);
+                const auto scrubRespBody = wil::scope_exit([&]() noexcept { ScrubString(pResp.body); });
+                const HRESULT hr         = transport->SendRequest(pReq, &self->cancelled, self->abortEvent.get(), pResp);
                 if (FAILED(hr))
                 {
-                    res.status = hr;
+                    setFailureFromResponse(pResp, hr);
                     return;
                 }
                 GitHubDevicePollResult poll;
-                const HRESULT decHr = ParseGitHubDevicePollJson(pResp.body, poll);
+                const auto scrubPollToken = wil::scope_exit([&]() noexcept { ScrubWideString(poll.accessToken); });
+                const HRESULT decHr       = ParseGitHubDevicePollJson(pResp.body, poll);
                 if (FAILED(decHr))
                 {
-                    res.status = decHr;
+                    if (pResp.httpStatusCode >= 400u)
+                        setFailureFromResponse(pResp, decHr);
+                    else
+                    {
+                        res.status       = decHr;
+                        res.errorCode    = GitHubErrorCode::InvalidResponse;
+                        res.errorMessage = FormatLocalizedGitHubError(res.errorCode, decHr);
+                    }
                     return;
                 }
                 if (poll.state == GitHubDevicePollResult::State::Authorized && ! poll.accessToken.empty())
                 {
-                    if (SUCCEEDED(fetchUserAndRepos(poll.accessToken)))
+                    const HRESULT authHr = fetchUserAndRepos(poll.accessToken);
+                    if (SUCCEEDED(authHr))
+                    {
                         res.status = credStore->Write(GitHubCredentialTarget, res.accountLogin, poll.accessToken);
+                        if (FAILED(res.status))
+                        {
+                            res.errorCode    = GitHubErrorCode::TransportFailed;
+                            res.errorMessage = FormatLocalizedGitHubError(res.errorCode, res.status);
+                        }
+                    }
                     ScrubWideString(poll.accessToken);
+                }
+                else if (poll.state == GitHubDevicePollResult::State::AccessDenied)
+                {
+                    res.errorCode    = GitHubErrorCode::DeviceAccessDenied;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                }
+                else if (poll.state == GitHubDevicePollResult::State::Expired)
+                {
+                    res.errorCode    = GitHubErrorCode::DeviceExpired;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                }
+                else if (poll.state == GitHubDevicePollResult::State::Error)
+                {
+                    res.errorCode    = poll.errorMessage.empty() ? GitHubErrorCode::InvalidResponse : GitHubErrorCode::ServerMessage;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode, S_OK, pResp.httpStatusCode, poll.errorMessage);
                 }
                 res.devicePoll = std::move(poll);
                 return;
             }
             case GitHubRequest::Kind::RefreshUserRepos:
             {
+                ensureTokenFromCredStore();
                 if (token.empty())
                 {
                     res.signedIn = false;
                     res.status   = S_OK;
                     return;
                 }
-                (void)fetchUserAndRepos(token);
+                if (FAILED(fetchUserAndRepos(token)))
+                {
+                    res.signedIn = false;
+                    invalidateSavedAuthIf401(res.httpStatusCode, token);
+                }
                 return;
             }
             case GitHubRequest::Kind::FetchRepoTree:
             {
-                res.openAfterTree    = req.openAfterTree;
+                res.fileOwner        = req.owner;
+                res.fileRepo         = req.repo;
+                res.fileBranch       = req.branch;
                 res.fileRelativePath = req.filePath;
                 if (! IsValidGitHubTokenSegment(req.owner, 128u) || ! IsValidGitHubTokenSegment(req.repo, 128u))
                 {
-                    res.status = E_INVALIDARG;
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::InvalidOwnerOrRepo;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
                     return;
                 }
+                if (! req.branch.empty() && ! IsValidGitHubBranchName(req.branch))
+                {
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::InvalidBranch;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                    return;
+                }
+                ensureTokenFromCredStore();
+
                 std::wstring branch = req.branch;
                 if (branch.empty())
                 {
                     GitHubHttpRequest infoReq;
-                    infoReq.path        = std::format(L"/repos/{}/{}", req.owner, req.repo);
-                    infoReq.bearerToken = token;
+                    infoReq.path = std::format(L"/repos/{}/{}", req.owner, req.repo);
+                    infoReq.bearerToken.assign(token);
+                    const auto scrubInfoToken = wil::scope_exit([&]() noexcept { ScrubWideString(infoReq.bearerToken); });
                     GitHubHttpResponse infoResp;
                     const HRESULT iHr = transport->SendRequest(infoReq, &self->cancelled, self->abortEvent.get(), infoResp);
                     if (FAILED(iHr))
                     {
-                        res.status = iHr;
+                        setFailureFromResponse(infoResp, iHr);
                         return;
                     }
                     if (infoResp.httpStatusCode < 200u || infoResp.httpStatusCode >= 300u)
                     {
-                        res.status       = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-                        res.errorMessage = FormatGitHubErrorMessage(infoResp);
+                        invalidateSavedAuthIf401(infoResp.httpStatusCode, token);
+                        setFailureFromResponse(infoResp, HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND));
                         return;
                     }
                     if (FAILED(ParseGitHubDefaultBranchJson(infoResp.body, branch)))
                         branch = L"main";
+                    res.fileBranch = branch;
                 }
-                std::string branchUtf8 = EncodeUrlPathSegments(branch);
-                if (branchUtf8.empty())
+                if (! IsValidGitHubBranchName(branch))
                 {
-                    res.status = E_INVALIDARG;
+                    res.status       = HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+                    res.errorCode    = GitHubErrorCode::InvalidBranch;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                    return;
+                }
+                const std::string branchEncoded = PercentEncodeUrlPathSegments(branch);
+                if (branchEncoded.empty())
+                {
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::InvalidBranch;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
                     return;
                 }
                 GitHubHttpRequest treeReq;
-                treeReq.path        = std::format(L"/repos/{}/{}/git/trees/{}?recursive=1", req.owner, req.repo, ToWideAscii(branchUtf8));
-                treeReq.bearerToken = token;
+                treeReq.path = std::format(L"/repos/{}/{}/git/trees/{}?recursive=1", req.owner, req.repo, ToWideAscii(branchEncoded));
+                treeReq.bearerToken.assign(token);
+                const auto scrubTreeToken = wil::scope_exit([&]() noexcept { ScrubWideString(treeReq.bearerToken); });
                 GitHubHttpResponse treeResp;
                 const HRESULT tHr = transport->SendRequest(treeReq, &self->cancelled, self->abortEvent.get(), treeResp);
                 if (FAILED(tHr))
                 {
-                    res.status = tHr;
+                    setFailureFromResponse(treeResp, tHr);
                     return;
                 }
                 if (treeResp.httpStatusCode < 200u || treeResp.httpStatusCode >= 300u)
                 {
-                    res.status       = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-                    res.errorMessage = FormatGitHubErrorMessage(treeResp);
+                    invalidateSavedAuthIf401(treeResp.httpStatusCode, token);
+                    setFailureFromResponse(treeResp, HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND));
                     return;
                 }
                 GitHubTreeSnapshot treeSnap;
                 res.status = ParseGitHubTreeJson(treeResp.body, req.owner, req.repo, branch, treeSnap);
-                res.tree   = std::move(treeSnap);
+                if (SUCCEEDED(res.status))
+                {
+                    res.tree = std::move(treeSnap);
+                }
+                else
+                {
+                    res.errorCode    = GitHubErrorCode::InvalidResponse;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode, res.status);
+                }
                 return;
             }
             case GitHubRequest::Kind::FetchRawFile:
             {
-                res.fileOwner                 = req.owner;
-                res.fileRepo                  = req.repo;
-                res.fileBranch                = req.branch;
-                res.fileRelativePath          = req.filePath;
-                res.fileSha                   = req.sha;
-                res.fileHtmlUrl               = req.htmlUrl;
-                const std::string encodedPath = EncodeUrlPathSegments(req.filePath);
-                const std::string encodedRef  = EncodeUrlPathSegments(req.branch.empty() ? L"main" : req.branch);
+                res.fileOwner        = req.owner;
+                res.fileRepo         = req.repo;
+                res.fileBranch       = req.branch;
+                res.fileRelativePath = req.filePath;
+                res.fileSha          = req.sha;
+                res.fileHtmlUrl      = req.htmlUrl;
+                if (! IsValidGitHubTokenSegment(req.owner, 128u) || ! IsValidGitHubTokenSegment(req.repo, 128u))
+                {
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::InvalidOwnerOrRepo;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                    return;
+                }
+                const std::wstring_view effectiveBranch = req.branch.empty() ? std::wstring_view(L"main") : std::wstring_view(req.branch);
+                if (! IsValidGitHubBranchName(effectiveBranch))
+                {
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::InvalidBranch;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                    return;
+                }
+                if (! IsValidGitHubRelativePath(req.filePath))
+                {
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::InvalidFilePath;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
+                    return;
+                }
+                ensureTokenFromCredStore();
+
+                const std::string encodedPath = PercentEncodeUrlPathSegments(req.filePath);
+                const std::string encodedRef  = PercentEncodeQueryComponent(effectiveBranch);
                 if (encodedPath.empty() || encodedRef.empty())
                 {
-                    res.status = E_INVALIDARG;
+                    res.status       = E_INVALIDARG;
+                    res.errorCode    = GitHubErrorCode::InvalidFilePath;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode);
                     return;
                 }
                 GitHubHttpRequest fileReq;
                 fileReq.path         = std::format(L"/repos/{}/{}/contents/{}?ref={}", req.owner, req.repo, ToWideAscii(encodedPath), ToWideAscii(encodedRef));
                 fileReq.acceptHeader = L"application/vnd.github.raw+json";
-                fileReq.bearerToken  = token;
+                fileReq.bearerToken.assign(token);
                 fileReq.maximumResponseBytes = DefaultDocumentBytes;
+                const auto scrubFileToken    = wil::scope_exit([&]() noexcept { ScrubWideString(fileReq.bearerToken); });
                 GitHubHttpResponse fileResp;
                 const HRESULT fHr = transport->SendRequest(fileReq, &self->cancelled, self->abortEvent.get(), fileResp);
                 if (FAILED(fHr))
                 {
-                    res.status = fHr;
+                    setFailureFromResponse(fileResp, fHr);
                     return;
                 }
                 if (fileResp.httpStatusCode < 200u || fileResp.httpStatusCode >= 300u)
                 {
-                    res.status       = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-                    res.errorMessage = FormatGitHubErrorMessage(fileResp);
+                    invalidateSavedAuthIf401(fileResp.httpStatusCode, token);
+                    setFailureFromResponse(fileResp, HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND));
                     return;
                 }
                 res.status = DecodeMarkdownPayload(fileResp.body, res.fileText, res.fileBom);
+                if (FAILED(res.status))
+                {
+                    res.errorCode    = (res.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))           ? GitHubErrorCode::FileTooLarge
+                                       : (res.status == HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION)) ? GitHubErrorCode::FileNotUtf8
+                                                                                                          : GitHubErrorCode::InvalidResponse;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode, res.status);
+                }
                 return;
             }
             case GitHubRequest::Kind::SignOut:
@@ -394,7 +664,13 @@ struct GitHubService::State
                 std::lock_guard lock(self->mutex);
                 ScrubWideString(self->activeToken);
                 self->activeLogin.clear();
-                res.signedIn = false;
+                self->credStoreChecked = true;
+                res.signedIn           = false;
+                if (FAILED(res.status))
+                {
+                    res.errorCode    = GitHubErrorCode::TransportFailed;
+                    res.errorMessage = FormatLocalizedGitHubError(res.errorCode, res.status);
+                }
                 return;
             }
         }
@@ -412,45 +688,66 @@ struct GitHubService::State
             for (;;)
             {
                 GitHubRequest req;
+                HWND shutdownWindow{};
+                UINT shutdownMessage{};
+                bool stoppingBeforeExec{};
                 {
                     std::lock_guard lock(self->mutex);
                     if (self->phase == WorkerPhase::Closing)
                     {
                         self->FinishStoppedLocked();
+                        shutdownWindow     = self->window;
+                        shutdownMessage    = self->message;
+                        stoppingBeforeExec = true;
+                    }
+                    else if (self->queue.empty())
+                    {
+                        self->phase         = WorkerPhase::Idle;
+                        self->workerRunning = false;
                         return;
                     }
-                    if (self->queue.empty())
+                    else
                     {
-                        self->phase = WorkerPhase::Idle;
-                        goto waitNext;
+                        req = std::move(self->queue.front());
+                        self->queue.pop_front();
+                        self->phase = WorkerPhase::Active;
                     }
-                    req = std::move(self->queue.front());
-                    self->queue.pop_front();
-                    self->phase = WorkerPhase::Active;
                 }
+                if (stoppingBeforeExec)
                 {
-                    GitHubResult result;
-                    Execute(self, req, result);
-                    std::lock_guard lock(self->mutex);
-                    if (self->phase == WorkerPhase::Closing)
-                    {
-                        self->FinishStoppedLocked();
-                        return;
-                    }
-                    self->completed.push_back(std::move(result));
-                    if (self->window)
-                        (void)PostMessageW(self->window, self->message, static_cast<WPARAM>(req.requestId), 0);
-                    continue;
-                }
-            waitNext:
-                const HANDLE waits[]{self->abortEvent.get(), self->wake.get()};
-                const DWORD ready = WaitForMultipleObjects(2u, waits, FALSE, INFINITE);
-                if (ready == WAIT_OBJECT_0 || ready == WAIT_FAILED)
-                {
-                    std::lock_guard lock(self->mutex);
-                    self->FinishStoppedLocked();
+                    if (shutdownWindow && shutdownMessage >= WM_APP)
+                        (void)PostMessageW(shutdownWindow, shutdownMessage, 0u, 0);
                     return;
                 }
+                const auto scrubReq = wil::scope_exit([&]() noexcept { req.tokenOrDeviceCode.Clear(); });
+
+                GitHubResult result;
+                Execute(self, req, result);
+
+                HWND notifyWindow{};
+                UINT notifyMessage{};
+                bool stopping{};
+                {
+                    std::lock_guard lock(self->mutex);
+                    if (self->phase == WorkerPhase::Closing)
+                    {
+                        ScrubResultSecrets(result);
+                        self->FinishStoppedLocked();
+                        notifyWindow  = self->window;
+                        notifyMessage = self->message;
+                        stopping      = true;
+                    }
+                    else
+                    {
+                        self->completed.push_back(std::move(result));
+                        notifyWindow  = self->window;
+                        notifyMessage = self->message;
+                    }
+                }
+                if (notifyWindow && notifyMessage >= WM_APP)
+                    (void)PostMessageW(notifyWindow, notifyMessage, stopping ? 0u : static_cast<WPARAM>(req.requestId), 0);
+                if (stopping)
+                    return;
             }
         }
         catch (const std::bad_alloc&)
@@ -473,27 +770,23 @@ GitHubService::~GitHubService()
 HRESULT GitHubService::Initialize(HWND window,
                                   UINT message,
                                   std::shared_ptr<IGitHubTransport> transport,
-                                  std::shared_ptr<ICredentialStore> credentials) noexcept
+                                  std::shared_ptr<ICredentialStore> credentials,
+                                  std::string deviceClientId,
+                                  std::function<HRESULT(std::wstring&, const std::atomic_bool*, HANDLE)> ghCliImporter) noexcept
 try
 {
     if ((window && message < WM_APP) || ! transport || ! credentials)
         return E_INVALIDARG;
     auto staged = std::make_shared<State>();
-    staged->wake.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
     staged->abortEvent.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
-    if (! staged->wake || ! staged->abortEvent)
+    if (! staged->abortEvent)
         return HRESULT_FROM_WIN32(GetLastError());
-    staged->window      = window;
-    staged->message     = message;
-    staged->transport   = std::move(transport);
-    staged->credentials = std::move(credentials);
-    auto ownership      = std::make_unique<ProcessWorkItem<State>>(staged);
-    const HRESULT hr    = ProcessWork::Acquire(ownership->lease);
-    if (FAILED(hr))
-        return hr;
-    if (! TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
-        return HRESULT_FROM_WIN32(GetLastError());
-    (void)ownership.release();
+    staged->window         = window;
+    staged->message        = message;
+    staged->transport      = std::move(transport);
+    staged->credentials    = std::move(credentials);
+    staged->deviceClientId = std::move(deviceClientId);
+    staged->ghCliImporter  = std::move(ghCliImporter);
     Close();
     _state = std::move(staged);
     return S_OK;
@@ -506,6 +799,7 @@ catch (const std::bad_alloc&)
 HRESULT GitHubService::Submit(GitHubRequest request) noexcept
 try
 {
+    const auto scrubRequest = wil::scope_exit([&]() noexcept { request.tokenOrDeviceCode.Clear(); });
     if (! _state)
         return E_UNEXPECTED;
     std::lock_guard lock(_state->mutex);
@@ -513,9 +807,32 @@ try
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
     if (_state->queue.size() >= 32u)
         return HRESULT_FROM_WIN32(ERROR_BUSY);
-    _state->phase = State::WorkerPhase::Active;
+
+    const bool needSpawn = ! _state->workerRunning;
     _state->queue.push_back(std::move(request));
-    (void)SetEvent(_state->wake.get());
+    _state->phase = State::WorkerPhase::Active;
+    if (needSpawn)
+    {
+        auto ownership   = std::make_unique<ProcessWorkItem<State>>(_state);
+        const HRESULT hr = ProcessWork::Acquire(ownership->lease);
+        if (FAILED(hr))
+        {
+            _state->queue.back().tokenOrDeviceCode.Clear();
+            _state->queue.pop_back();
+            _state->phase = _state->queue.empty() ? State::WorkerPhase::Idle : State::WorkerPhase::Active;
+            return hr;
+        }
+        if (! TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
+        {
+            const DWORD err = GetLastError();
+            _state->queue.back().tokenOrDeviceCode.Clear();
+            _state->queue.pop_back();
+            _state->phase = _state->queue.empty() ? State::WorkerPhase::Idle : State::WorkerPhase::Active;
+            return HRESULT_FROM_WIN32(err != ERROR_SUCCESS ? err : ERROR_GEN_FAILURE);
+        }
+        (void)ownership.release();
+        _state->workerRunning = true;
+    }
     return S_OK;
 }
 catch (const std::bad_alloc&)
@@ -535,12 +852,20 @@ std::optional<GitHubResult> GitHubService::TakeResult()
     return res;
 }
 
+bool GitHubService::DeviceFlowConfigured() const noexcept
+{
+    if (! _state)
+        return false;
+    std::lock_guard lock(_state->mutex);
+    return ! _state->deviceClientId.empty();
+}
+
 bool GitHubService::Busy() const noexcept
 {
     if (! _state)
         return false;
     std::lock_guard lock(_state->mutex);
-    return _state->phase == State::WorkerPhase::Active || ! _state->queue.empty();
+    return _state->phase == State::WorkerPhase::Active || _state->workerRunning || ! _state->queue.empty();
 }
 
 bool GitHubService::Finished() const noexcept
@@ -548,7 +873,7 @@ bool GitHubService::Finished() const noexcept
     if (! _state)
         return true;
     std::lock_guard lock(_state->mutex);
-    return _state->phase == State::WorkerPhase::Stopped || _state->phase == State::WorkerPhase::Idle;
+    return _state->phase == State::WorkerPhase::Stopped || (_state->phase == State::WorkerPhase::Idle && ! _state->workerRunning);
 }
 
 void GitHubService::Stop() noexcept
@@ -557,17 +882,25 @@ void GitHubService::Stop() noexcept
         return;
     std::lock_guard lock(_state->mutex);
     _state->cancelled.store(true, std::memory_order_release);
-    _state->phase  = State::WorkerPhase::Closing;
-    _state->window = nullptr;
+    for (auto& req : _state->queue)
+        req.tokenOrDeviceCode.Clear();
     _state->queue.clear();
+    for (auto& res : _state->completed)
+        ScrubResultSecrets(res);
     ScrubWideString(_state->activeToken);
+    if (_state->phase != State::WorkerPhase::Stopped)
+        _state->phase = _state->workerRunning ? State::WorkerPhase::Closing : State::WorkerPhase::Stopped;
     (void)SetEvent(_state->abortEvent.get());
-    (void)SetEvent(_state->wake.get());
 }
 
 void GitHubService::Close() noexcept
 {
     Stop();
+    if (_state)
+    {
+        std::lock_guard lock(_state->mutex);
+        _state->window = nullptr;
+    }
     _state.reset();
 }
 } // namespace RedTilde

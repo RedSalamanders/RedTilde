@@ -1,7 +1,7 @@
 # RedTilde specification authority and workflow
 
 Status: current normative repository policy
-Last reviewed: 2026-11-19
+Last reviewed: 2026-11-26
 
 ## Purpose
 

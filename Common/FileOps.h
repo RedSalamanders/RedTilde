@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -74,6 +75,7 @@ struct FileOperationOutcome
     std::filesystem::path destinationPath;
     bool collision{};
     bool reparseRejected{};
+    bool destinationIsDirectory{};
 };
 
 class IWorkspaceFileOps
@@ -89,7 +91,8 @@ public:
                                             DropEffectKind effect,
                                             bool replaceExisting,
                                             bool keepBothCopy,
-                                            FileOperationOutcome& outOutcome) noexcept                         = 0;
+                                            FileOperationOutcome& outOutcome,
+                                            const std::atomic_bool* cancel = nullptr) noexcept                 = 0;
 };
 
 class WindowsWorkspaceFileOps final : public IWorkspaceFileOps
@@ -104,9 +107,13 @@ public:
                                     DropEffectKind effect,
                                     bool replaceExisting,
                                     bool keepBothCopy,
-                                    FileOperationOutcome& outOutcome) noexcept override;
+                                    FileOperationOutcome& outOutcome,
+                                    const std::atomic_bool* cancel = nullptr) noexcept override;
 };
 
+[[nodiscard]] HRESULT ParseDropFilesBuffer(std::span<const std::byte> dropBytes,
+                                           std::optional<DWORD> preferredDropEffect,
+                                           FileClipboardPayload& outPayload) noexcept;
 [[nodiscard]] HRESULT WriteDropFilesToClipboard(HWND owner, const FileClipboardPayload& payload) noexcept;
 [[nodiscard]] HRESULT ReadDropFilesFromClipboard(HWND owner, FileClipboardPayload& outPayload) noexcept;
 [[nodiscard]] HRESULT WriteUnicodeTextToClipboard(HWND owner, std::wstring_view text) noexcept;
@@ -137,7 +144,9 @@ struct WorkspaceFileOpResult
     WorkspaceFileOpRequest::Kind kind{WorkspaceFileOpRequest::Kind::RevealExplorer};
     std::uint64_t requestId{};
     FileOperationOutcome outcome;
+    DropEffectKind dropEffect{DropEffectKind::Copy};
     bool requiresCollisionPrompt{};
+    bool destinationIsDirectory{};
 };
 
 // Event-driven ProcessWork-leased background worker for reveal, rename, copy, and move.

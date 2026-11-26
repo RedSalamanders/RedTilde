@@ -54,7 +54,7 @@ public:
         return app._spellingLanguageCombo;
     }
 
-    [[nodiscard]] static DxUi::ComboBox* StatusLanguageCombo(const Application& app) noexcept
+    [[nodiscard]] static StatusLanguageComboBox* StatusLanguageCombo(const Application& app) noexcept
     {
         return app._spellStatusCombo;
     }
@@ -156,7 +156,7 @@ public:
 
     static std::vector<DxUi::MenuFlyoutItem> BuildSpellActionItems(Application& app, std::size_t issueIndex)
     {
-        return app.BuildSpellActionMenuItems(issueIndex, app._editor->GetSelection());
+        return app.BuildSpellActionMenuItems(issueIndex, app.ActiveEditor()->GetSelection());
     }
 
     [[nodiscard]] static bool TypingSuppressed(const Application& app) noexcept
@@ -166,7 +166,7 @@ public:
 
     [[nodiscard]] static std::vector<DxUi::MenuFlyoutItem> BuildSpellMenuAtOffset(Application& app, std::size_t sourceOffset)
     {
-        app._editor->SetSelection({sourceOffset, sourceOffset});
+        app.ActiveEditor()->SetSelection({sourceOffset, sourceOffset});
         auto items = app.ContextMenuItems(false, false);
         app.PopulateSpellContextMenu(POINT{0, 0}, true, items);
         return items;
@@ -212,6 +212,112 @@ public:
     {
         if (app.Window())
             (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+    }
+
+    [[nodiscard]] static Editor* Active(const Application& app) noexcept
+    {
+        return app.ActiveEditor();
+    }
+
+    [[nodiscard]] static Editor* Mirror(const Application& app) noexcept
+    {
+        return app.MirrorEditor();
+    }
+
+    static void SwitchSplitPane(Application& app, SplitActivePane target)
+    {
+        app.SwitchSplitActivePane(target, false);
+    }
+
+    static void ResetAppWorkspace(Application& app)
+    {
+        app.ResetWorkspace();
+    }
+
+    static void CloseActiveDoc(Application& app)
+    {
+        app.CloseActiveDocument();
+    }
+
+    static void SetFilePickerForTest(Application& app, std::function<std::filesystem::path(bool)> picker)
+    {
+        app._options.filePickerForTest = std::move(picker);
+    }
+
+    [[nodiscard]] static bool CheckPending(const Application& app) noexcept
+    {
+        return app._spell.checkPending;
+    }
+
+    [[nodiscard]] static bool ImeSuppressionActive(const Application& app) noexcept
+    {
+        return app._spell.imeSuppressionActive;
+    }
+
+    static void SetImeCompositionForTest(Application& app, bool active) noexcept
+    {
+        app._spell.imeCompositionOverrideForTest = active;
+    }
+
+    [[nodiscard]] static std::wstring StatusLabelText(const Application& app)
+    {
+        return app._feedback ? std::wstring(app._feedback->GetText()) : std::wstring{};
+    }
+
+    [[nodiscard]] static DxUi::RichText::MarkdownRange SuppressCaretWordRange(const Application& app)
+    {
+        return app._spell.suppressedTypingWord.value_or(DxUi::RichText::MarkdownRange{});
+    }
+
+    static void SetAvailabilityOverride(Application& app, ProviderAvailability avail) noexcept
+    {
+        app._spell.effectiveAvailability = avail;
+    }
+
+    [[nodiscard]] static ProviderAvailability EffectiveAvailability(const Application& app) noexcept
+    {
+        return app._spell.effectiveAvailability;
+    }
+
+    [[nodiscard]] static DxUi::TextField* BlockDraftInput(const Application& app) noexcept
+    {
+        return app._blockDraftText;
+    }
+
+    static void SetSpellDebounceTimer(Application& app)
+    {
+        if (app.Window())
+            (void)SetTimer(app.Window(), Application::SpellDebounceTimerId, 10000u, nullptr);
+    }
+
+    static void OpenFileInWorkspace(Application& app, const std::filesystem::path& path)
+    {
+        app.OpenPath(path);
+    }
+
+    [[nodiscard]] static UINT_PTR DebounceTimerId() noexcept
+    {
+        return Application::SpellDebounceTimerId;
+    }
+
+    static void UpdateSuppressionFromCaret(Application& app)
+    {
+        app.UpdateSpellSuppressionFromCaret();
+    }
+
+    static void TriggerSelectionChanged(Application& app)
+    {
+        app.OnSpellSelectionChanged();
+    }
+
+    static void BumpLanguageConfigVersion(Application& app) noexcept
+    {
+        ++app._spell.languageConfigVersion;
+    }
+
+    [[nodiscard]] static bool HasPendingLeftClick(const Application& app) noexcept
+    {
+        return app._spell.pendingLeftClick.has_value();
     }
 };
 
@@ -323,6 +429,34 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
         // Only `writting` should be flagged in active Compose view (all English + French words in fake dictionary are known).
         const auto& issues = SpellingProbe::Issues(app);
         Require(issues.size() == 1u && issues[0].word == L"writting", "multi-language + exclusions yield only the real typo");
+
+        // P1-16: ignoreInternetAndPaths = false exposes URL/email/Windows/UNC paths in both extractors and live app checks.
+        const std::wstring mdNet = L"Visit https://example.invalid/writting_url or email writer@example.invalid or path C:\\Temp\\badfile\\note.md or "
+                                   L"\\\\\\\\server\\share\\uncbadfile.md or <https://autolink.invalid/autolinkbad>.\n";
+        app.SetDocument(mdNet);
+        app.Prepare(512);
+        const auto netSemantic = app.Document().GetSemanticDocument();
+        const auto netSyntax   = app.Document().GetMarkdownSyntax();
+        Require(netSemantic != nullptr && netSyntax != nullptr, "net semantic and syntax prepared");
+        Require(SpellingProbe::Issues(app).empty(), "URL/email/Windows/UNC paths are ignored when ignoreInternetAndPaths is true");
+
+        const auto semUnmasked = CombineChunkText(ExtractSemanticProse(*netSemantic, netSyntax.get(), mdNet, false));
+        Require(semUnmasked.find(L"writting_url") != std::wstring::npos && semUnmasked.find(L"uncbadfile") != std::wstring::npos &&
+                    semUnmasked.find(L"autolinkbad") != std::wstring::npos,
+                "ExtractSemanticProse(..., false) retains URL, UNC path, and autolink tokens");
+        const auto srcUnmasked = CombineChunkText(ExtractSourceProse(*netSyntax, mdNet, false));
+        Require(srcUnmasked.find(L"writting_url") != std::wstring::npos && srcUnmasked.find(L"uncbadfile") != std::wstring::npos &&
+                    srcUnmasked.find(L"autolinkbad") != std::wstring::npos,
+                "ExtractSourceProse(..., false) retains URL, UNC path, and autolink tokens");
+
+        app.Execute(Command::SpellIgnoreInternetPaths);
+        app.Prepare(512);
+        Require(! app.Preferences().spelling.ignoreInternetAndPaths && ! SpellingProbe::Issues(app).empty(),
+                "toggling SpellIgnoreInternetPaths off flags tokens inside URLs/paths");
+        app.Execute(Command::SpellIgnoreInternetPaths);
+        app.Prepare(512);
+        Require(app.Preferences().spelling.ignoreInternetAndPaths && SpellingProbe::Issues(app).empty(),
+                "toggling SpellIgnoreInternetPaths back on suppresses URL/path issues");
         Require(foreground.NeverAcquiredForeground(), "extraction test never acquires foreground");
     });
 
@@ -408,7 +542,7 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
             Require(retained == ansiBytes, "refused ANSI dictionary left untouched on disk");
         }
 
-        // 4. Junction / reparse point refused fail-closed.
+        // 4. Junction / reparse point refused fail-closed, preserving previously loaded valid dictionary.
         {
             const auto targetDir = dir / L"reparse-target";
             std::filesystem::create_directories(targetDir);
@@ -417,7 +551,25 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
             const auto linkDir = dir / L"reparse-link";
             Success(Testing::CreateFixtureJunction(dir, linkDir, targetDir), "create fixture junction");
             const auto removeJunction = wil::scope_exit([&] { (void)RemoveDirectoryW(linkDir.c_str()); });
-            // Point dictionary at symlink/junction edge if symlink creation permitted, or verify directory attribute guard.
+
+            CustomDictionary guardedDict;
+            Success(guardedDict.Load(wordDicPath), "preload valid dictionary before junction load attempt");
+            const std::size_t priorCount = guardedDict.WordCount();
+
+            Require(FAILED(guardedDict.Load(linkDir)), "CustomDictionary::Load refuses junction directory itself");
+            Require(FAILED(guardedDict.Load(linkDir / L"real.dic")), "CustomDictionary::Load refuses existing file behind junction");
+            Require(FAILED(guardedDict.Load(linkDir / L"missing.dic")), "CustomDictionary::Load refuses missing file behind junction");
+            Require(FAILED(guardedDict.Load(linkDir / L"nested" / L"missing.dic")), "CustomDictionary::Load refuses nested missing file behind junction");
+            Require(! std::filesystem::exists(targetDir / L"missing.dic") && ! std::filesystem::exists(targetDir / L"nested"),
+                    "junction refusal never creates files or directories through junction");
+            Require(SUCCEEDED(guardedDict.LoadStatus()) && guardedDict.Path() == wordDicPath && guardedDict.WordCount() == priorCount &&
+                        guardedDict.IsAccepted(L"redtilde") && guardedDict.IsAccepted(L"MyCustomTerm"),
+                    "failed Load to different path preserves previously loaded dictionary state and LoadStatus");
+
+            HRESULT restoreDiskHr = S_OK;
+            Success(guardedDict.AddWord(L"AfterJunctionFail", &restoreDiskHr), "prior dictionary remains writable after failed switch");
+            Success(restoreDiskHr, "disk persistence still succeeds on preserved valid dictionary");
+
             std::error_code ec;
             const auto symFile = dir / L"sym.dic";
             std::filesystem::create_symlink(realFile, symFile, ec);
@@ -433,7 +585,127 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
             }
         }
 
-        // 5. Read-only failure retains session word + Ignore Once vs Ignore All + word length cap.
+        // 4b. Forward-slash same-file reload failure updates LoadStatus() and embedded-NUL path returns E_INVALIDARG.
+        {
+            const auto slashPath = dir / L"slash-same.dic";
+            Success(WriteBytesAtomic(slashPath, "Alpha\n"), "seed valid dictionary for mixed-slash reload test");
+            CustomDictionary slashDict;
+            Success(slashDict.Load(slashPath), "load valid dictionary with backslashes");
+            Require(SUCCEEDED(slashDict.LoadStatus()), "initial backslash LoadStatus is S_OK");
+
+            Success(WriteBytesAtomic(slashPath, "bad\xE9\n"), "corrupt same dictionary file on disk");
+            std::wstring fwdStr = slashPath.native();
+            std::ranges::replace(fwdStr, L'\\', L'/');
+            const HRESULT reloadHr = slashDict.Load(std::filesystem::path(fwdStr));
+            Require(reloadHr == HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION) && FAILED(slashDict.LoadStatus()) && slashDict.LoadStatus() == reloadHr,
+                    "forward-slash reload of corrupted same file updates LoadStatus to FAILED");
+
+            const std::filesystem::path nulDictPath(slashPath.native() + std::wstring(L"\0evil", 5u));
+            Require(slashDict.Load(nulDictPath) == E_INVALIDARG, "CustomDictionary::Load rejects embedded-NUL path with E_INVALIDARG");
+        }
+
+        // 5. >64 KiB UTF-8 round-trip, >4 MiB cap refusal, ERROR_PATH_NOT_FOUND fresh AddWord, &_stamp conflict, BOM-less UTF-16LE vs UTF-8, NFC,
+        // AcceptedLookupScope.
+        {
+            const auto largePath = dir / L"large-utf8.dic";
+            std::string largeBytes;
+            largeBytes.reserve(130000u);
+            for (int idx = 0; idx < 8200; ++idx)
+                largeBytes += "LargeWord" + std::to_string(idx) + "\n";
+            Require(largeBytes.size() > 65536u && largeBytes.size() < CustomDictionary::MaximumFileBytes, "large UTF-8 fixture exceeds 64 KiB");
+            Success(WriteBytesAtomic(largePath, largeBytes, nullptr, nullptr, false, nullptr, false, nullptr, CustomDictionary::MaximumFileBytes),
+                    "seed >64 KiB UTF-8 dictionary");
+
+            CustomDictionary largeDict;
+            Success(largeDict.Load(largePath), "load >64 KiB UTF-8 dictionary");
+            Require(largeDict.Encoding() == DictionaryEncoding::Utf8 && largeDict.WordCount() == 8200u && largeDict.IsAccepted(L"LargeWord8199"),
+                    ">64 KiB UTF-8 dictionary decoded and indexed");
+            HRESULT largeDiskHr = S_OK;
+            Success(largeDict.AddWord(L"LargeWordExtra", &largeDiskHr), "AddWord on >64 KiB UTF-8 dictionary");
+            Success(largeDiskHr, "persist >64 KiB UTF-8 dictionary without 64 KiB codec cap");
+
+            CustomDictionary largeReloaded;
+            Success(largeReloaded.Load(largePath), "reload >64 KiB UTF-8 dictionary");
+            Require(largeReloaded.WordCount() == 8201u && largeReloaded.IsAccepted(L"LargeWordExtra"), ">64 KiB UTF-8 round-trip preserved all words");
+
+            const auto oversizedPath = dir / L"oversized.dic";
+            const std::string oversized(CustomDictionary::MaximumFileBytes + 1u, 'a');
+            Success(WriteBytesAtomic(oversizedPath, oversized, nullptr, nullptr, false, nullptr, false, nullptr, CustomDictionary::MaximumFileBytes + 16u),
+                    "seed >4 MiB dictionary fixture");
+            CustomDictionary tooBigDict;
+            Require(tooBigDict.Load(oversizedPath) == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE), "dictionary exceeding 4 MiB is refused");
+
+            // ERROR_PATH_NOT_FOUND on missing parent directory yields fresh S_OK dictionary, and AddWord creates dirs and persists.
+            const auto freshNested = dir / L"missing-sub" / L"sub2" / L"custom-dictionary.txt";
+            CustomDictionary freshDict;
+            Success(freshDict.Load(freshNested), "Load on non-existent parent path succeeds as fresh empty dictionary");
+            Require(SUCCEEDED(freshDict.LoadStatus()) && freshDict.WordCount() == 0u, "fresh empty dictionary starts with S_OK LoadStatus");
+            HRESULT freshDiskHr = S_OK;
+            Success(freshDict.AddWord(L"FreshSubdirWord", &freshDiskHr), "AddWord on fresh nested dictionary");
+            Success(freshDiskHr, "AddWord creates missing parent directories safely and persists");
+
+            // Concurrent external creation on previously empty path triggers ERROR_REVISION_MISMATCH via unconditional &_stamp.
+            const auto racePath = dir / L"concurrent-create.dic";
+            CustomDictionary raceDict;
+            Success(raceDict.Load(racePath), "load missing dictionary path before concurrent write");
+            Success(WriteBytesAtomic(racePath, "External\n"), "external writer creates dictionary concurrently");
+            HRESULT raceDiskHr = S_OK;
+            Success(raceDict.AddWord(L"LocalRaceWord", &raceDiskHr), "AddWord retains word in memory on concurrent create conflict");
+            Require(raceDiskHr == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH),
+                    "unconditional &_stamp rejects overwriting concurrently created dictionary file");
+            std::string diskRaceBytes;
+            Success(ReadBytes(racePath, diskRaceBytes), "read externally created file after refusal");
+            Require(diskRaceBytes == "External\n", "externally created dictionary file preserved intact");
+
+            // Strict UTF-8 vs BOM-less UTF-16LE (Cyrillic + U+0100 + U+4E00) and expanding NFC normalization.
+            const auto leNoBomTest = [&](std::wstring_view content, const wchar_t* lookup, const wchar_t* fileName)
+            {
+                const auto p = dir / fileName;
+                std::string leBytes;
+                for (const wchar_t ch : content)
+                {
+                    leBytes.push_back(static_cast<char>(static_cast<unsigned>(ch) & 0xFFu));
+                    leBytes.push_back(static_cast<char>((static_cast<unsigned>(ch) >> 8u) & 0xFFu));
+                }
+                Success(WriteBytesAtomic(p, leBytes), "seed BOM-less UTF-16LE dictionary");
+                CustomDictionary d;
+                Success(d.Load(p), "load BOM-less UTF-16LE dictionary");
+                Require(d.Encoding() == DictionaryEncoding::Utf16LeNoBom && d.IsAccepted(lookup),
+                        "BOM-less UTF-16LE detected and indexed across scripts/U+xx00");
+            };
+            leNoBomTest(L"\x041F\x0440\x0438\x0432\x0435\x0442\n", L"\x043F\x0440\x0438\x0432\x0435\x0442", L"le-cyrillic.dic");
+            leNoBomTest(L"\x0100\n", L"\x0101", L"le-u0100.dic");
+            leNoBomTest(L"\x4E00\n", L"\x4E00", L"le-cjk.dic");
+
+            const auto utf8NonLatin = dir / L"utf8-cyrillic.dic";
+            Success(WriteBytesAtomic(utf8NonLatin, "\xD0\x9F\xD1\x80\xD0\xB8\xD0\xB2\xD0\xB5\xD1\x82\n\xC4\x80\n"), "seed UTF-8 non-Latin dictionary");
+            CustomDictionary utf8Dict;
+            Success(utf8Dict.Load(utf8NonLatin), "load strict UTF-8 non-Latin dictionary");
+            Require(utf8Dict.Encoding() == DictionaryEncoding::Utf8 && utf8Dict.IsAccepted(L"\x043F\x0440\x0438\x0432\x0435\x0442") &&
+                        utf8Dict.IsAccepted(L"\x0101"),
+                    "strict UTF-8 tried before BOM-less UTF-16LE heuristic");
+
+            std::wstring nfcExpanded;
+            Require(TryNormalizeUnicodeNfc(L"\x0F73", nfcExpanded) && nfcExpanded.size() == 2u,
+                    "TryNormalizeUnicodeNfc handles expanding NFC normalization via buffer retry");
+            std::wstring normalizedKey;
+            Require(TryNormalizeDictionaryKey(L"Cafe\x0301", normalizedKey), "TryNormalizeDictionaryKey succeeds on combining mark");
+
+            // AcceptedLookupScope batch lookup.
+            utf8Dict.IgnoreAll(L"BatchIgnoreAll");
+            utf8Dict.IgnoreOnce(7u, L"BatchOnce", 55u);
+            {
+                const CustomDictionary::AcceptedLookupScope scope(utf8Dict);
+                Require(scope.IsAcceptedNormalized(L"\x0101", 7u, 10u), "AcceptedLookupScope accepts custom word");
+                Require(scope.IsAcceptedNormalized(L"batchignoreall", 7u, 10u), "AcceptedLookupScope accepts IgnoreAll word");
+                Require(! scope.IsAcceptedNormalized(L"batchignoreall", 7u, 10u, true),
+                        "ignoreOnceOnly skips customWords and ignoredAll for repeated-word checks");
+                Require(scope.IsAcceptedNormalized(L"batchonce", 7u, 55u, true) && ! scope.IsAcceptedNormalized(L"batchonce", 7u, 99u, true),
+                        "AcceptedLookupScope checks workspace-scoped IgnoreOnce");
+            }
+        }
+
+        // 6. Read-only failure retains session word + Ignore Once vs Ignore All + word length cap.
         {
             const auto roPath = dir / L"readonly.txt";
             Success(WriteBytesAtomic(roPath, "InitialWord\n"), "seed writable then read-only dictionary");
@@ -567,6 +839,67 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
         Require(SpellingProbe::TypingSuppressed(app) && app.Document().GetDecorations().empty(),
                 "active typing suppresses squiggle on the word touching the caret");
 
+        // Boundary cases for UpdateSpellSuppressionFromCaret: len == 0, caret == 0, caret == len, >128-char word, non-collapsed selection, Split+Source
+        // _mirror.
+        app.SetDocument(L"");
+        SpellingProbe::UpdateSuppressionFromCaret(app);
+        Require(! SpellingProbe::TypingSuppressed(app), "empty document clears typing suppression");
+
+        app.SetDocument(L"writting next");
+        app.Document().SetSelection({0u, 0u});
+        SpellingProbe::UpdateSuppressionFromCaret(app);
+        Require(SpellingProbe::TypingSuppressed(app) && SpellingProbe::SuppressCaretWordRange(app) == DxUi::RichText::MarkdownRange{0u, 8u},
+                "caret == 0 suppresses leading word");
+
+        app.SetDocument(L" next");
+        app.Document().SetSelection({0u, 0u});
+        SpellingProbe::UpdateSuppressionFromCaret(app);
+        Require(! SpellingProbe::TypingSuppressed(app), "caret == 0 on whitespace does not suppress");
+
+        app.SetDocument(L"Valid writting");
+        app.Document().SetSelection({14u, 14u});
+        SpellingProbe::UpdateSuppressionFromCaret(app);
+        Require(SpellingProbe::TypingSuppressed(app) && SpellingProbe::SuppressCaretWordRange(app) == DxUi::RichText::MarkdownRange{6u, 14u},
+                "caret == len suppresses trailing word");
+
+        app.SetDocument(L"Valid ");
+        app.Document().SetSelection({6u, 6u});
+        SpellingProbe::UpdateSuppressionFromCaret(app);
+        Require(! SpellingProbe::TypingSuppressed(app), "caret == len after trailing space does not suppress");
+
+        const std::wstring longBad(200u, L'x');
+        app.SetDocument(longBad);
+        app.Document().SetSelection({100u, 100u});
+        SpellingProbe::UpdateSuppressionFromCaret(app);
+        Require(SpellingProbe::TypingSuppressed(app) && SpellingProbe::SuppressCaretWordRange(app) == DxUi::RichText::MarkdownRange{0u, 200u},
+                ">128-char word doubles window radius and captures entire word");
+
+        app.Document().SetSelection({10u, 20u});
+        SpellingProbe::TriggerSelectionChanged(app);
+        Require(! SpellingProbe::TypingSuppressed(app), "non-collapsed selection clears typing suppression");
+
+        // Split+Source (_mirror) typing suppression.
+        app.SetDocument(L"Valid writting next");
+        app.Prepare(512);
+        app.Execute(Command::Split);
+        app.Prepare(256);
+        SpellingProbe::SwitchSplitPane(app, SplitActivePane::Source);
+        app.Prepare(512);
+        auto* const splitMirror = SpellingProbe::Active(app);
+        Require(app.ActiveSplitPane() == SplitActivePane::Source && splitMirror != SpellingProbe::Mirror(app), "Split+Source switches ActiveEditor to _mirror");
+        Require(splitMirror->GetViewMode() == DxUi::RichText::ViewMode::Source, "Split+Source mirror is in Source view mode");
+        Require(SpellingProbe::Issues(app).size() == 1u, "Split+Source mirror resolves 1 spelling issue");
+        Require(splitMirror->GetDecorations().size() == 1u, "Split+Source mirror settles with squiggle before typing suppression");
+        const auto mirrorTypoPos = splitMirror->GetText().find(L"writting");
+        splitMirror->SetSelection({mirrorTypoPos + 4u, mirrorTypoPos + 4u});
+        SpellingProbe::ForceTypingChange(app);
+        Require(SpellingProbe::TypingSuppressed(app) && splitMirror->GetDecorations().empty(),
+                "Split+Source mirror typing suppression clears active word squiggle");
+        SpellingProbe::SwitchSplitPane(app, SplitActivePane::Compose);
+        app.Prepare(256);
+        app.Execute(Command::Compose);
+        app.Prepare(512);
+
         // Rapid second edit supersedes in-flight work; draining window close completes cleanly.
         app.Document().SetSelection({0u, 0u});
         (void)app.Document().ReplaceSelection(L"More ");
@@ -610,6 +943,47 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
         Require(status.find(L"no dictionary") != std::wstring::npos, "status bar truthfully reports no dictionary");
         Require(tip.find(L'\x202E') == std::wstring::npos && tip.find(L'\x200B') == std::wstring::npos && tip.find(L'\r') == std::wstring::npos,
                 "hostile bidi overrides, zero-width chars, and newlines are stripped from status tooltip");
+
+        // P1-19: ProviderAvailability::Unavailable propagates cleanly and clears squiggles, and SuggestionCache preserves word casing.
+        provider->SetLanguageAvailability(L"zz-UNAVAIL", ProviderAvailability::Unavailable, L"Service offline");
+        app.SetDocument(L"---\nlang: zz-UNAVAIL\n---\n\nSome writting here.\n");
+        app.Prepare(512);
+        Require(SpellingProbe::Issues(app).empty() && app.Document().GetDecorations().empty() &&
+                    SpellingProbe::EffectiveAvailability(app) == ProviderAvailability::Unavailable &&
+                    SpellingProbe::StatusText(app).find(L"unavailable") != std::wstring::npos,
+                "ProviderAvailability::Unavailable surfaces truthful unavailable status and zero squiggles");
+
+        provider->SetLanguageAvailability(L"en-US", ProviderAvailability::Ready);
+        provider->SetSuggestions(L"en-US", L"Writting", {L"Writing"});
+        provider->SetSuggestions(L"en-US", L"writting", {L"writing"});
+        std::vector<std::wstring> upperSug;
+        std::vector<std::wstring> lowerSug;
+        Success(SpellingProbe::Service(app).SuggestSyncBounded({L"en-US"}, L"Writting", 1u, 5u, upperSug, 500u), "suggest capitalized Writting");
+        Success(SpellingProbe::Service(app).SuggestSyncBounded({L"en-US"}, L"writting", 1u, 5u, lowerSug, 500u), "suggest lowercase writting");
+        Require(! upperSug.empty() && upperSug[0] == L"Writing" && ! lowerSug.empty() && lowerSug[0] == L"writing",
+                "SuggestionCache preserves original word casing between 'Writting' and 'writting'");
+
+        // Suggestion text sanitization strips hostile bidi overrides, zero-width chars, and newlines.
+        SpellingProbe::SetSpellLanguages(app, {L"en-US"});
+        provider->AddKnownWords(L"en-US", {L"Some", L"here"});
+        provider->SetSuggestions(L"en-US",
+                                 L"writting",
+                                 {L"\x202E"
+                                  L"writing\x200B\r\n",
+                                  L"bad\x202E"
+                                  L"word\x200B\r\nsafe"});
+        app.SetDocument(L"Some writting here.\n");
+        app.Prepare(512);
+        Require(SpellingProbe::Issues(app).size() == 1u, "live doc flags 'writting' for suggestion sanitization check");
+        const auto sugItems = SpellingProbe::BuildSpellMenuAtOffset(app, SpellingProbe::Issues(app)[0].sourceFragments.front().first);
+        Require(sugItems.size() >= 2u && sugItems[0].text == L"writing" && sugItems[1].text == L"badword safe",
+                "menu suggestion texts strip \\x202E, \\x200B, and collapse \\r\\n");
+        for (const auto& item : sugItems)
+        {
+            Require(item.text.find(L'\x202E') == std::wstring::npos && item.text.find(L'\x200B') == std::wstring::npos &&
+                        item.text.find(L'\r') == std::wstring::npos && item.text.find(L'\n') == std::wstring::npos,
+                    "sanitized menu items contain no hostile bidi/zero-width/newline characters");
+        }
     });
 
     test("Editor.SpellingWinSpellProviderReadOnlyProbe",
@@ -643,6 +1017,120 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
             std::vector<std::wstring> suggestions;
             Success(winProvider.SuggestWord(L"en-US", L"writting", 5u, suggestions), "WinSpellProvider SuggestWord");
             Require(! suggestions.empty(), "WinSpellProvider produces suggestions for 'writting'");
+
+            std::vector<std::wstring> partialSuggestions;
+            Success(winProvider.SuggestWord(L"en-US", L"teh foo", 5u, partialSuggestions), "WinSpellProvider SuggestWord partial replace guard");
+            Require(std::ranges::find(partialSuggestions, L"the") == partialSuggestions.end(),
+                    "CORRECTIVE_ACTION_REPLACE does not emit partial-span replacement 'the' for multi-word input");
+
+            std::vector<SpellErrorSpan> repeatErrors;
+            Success(winProvider.CheckSegment(L"en-US", L"the the today", opts, repeatErrors), "WinSpellProvider CheckSegment repeated word");
+            for (const auto& span : repeatErrors)
+                Require(span.kind == SpellIssueKind::RepeatedWord, "WinSpellProvider maps CORRECTIVE_ACTION_DELETE to RepeatedWord");
+        }
+
+        // Deterministic CORRECTIVE_ACTION_DELETE (RepeatedWord) menu, custom-dict non-exemption, and clean deletion + undo.
+        {
+            auto provider = std::make_shared<FakeSpellProvider>();
+            provider->SetLanguageAvailability(L"en-US", ProviderAvailability::Ready);
+            provider->AddKnownWords(L"en-US", {L"Keep", L"Alpha", L"the", L"today"});
+            provider->SetForcedSegmentSpans(L"en-US", L"Keep the the today.", {SpellErrorSpan{9u, 3u, SpellIssueKind::RepeatedWord}});
+
+            Application app(HiddenSpellingOptions(root / L"repeated-word-delete", provider));
+            Success(app.Initialize(), "initialize app for RepeatedWord test");
+            SpellingProbe::SetSpellLanguages(app, {L"en-US"});
+            Success(SpellingProbe::Dictionary(app).AddWord(L"the"), "add 'the' to custom dictionary to prove RepeatedWord is not exempted");
+            const std::wstring original = L"Keep the the today.\n";
+            app.SetDocument(original);
+            app.Prepare(512);
+
+            const auto& issues = SpellingProbe::Issues(app);
+            Require(issues.size() == 1u && issues[0].kind == SpellIssueKind::RepeatedWord && issues[0].word == L"the",
+                    "RepeatedWord issue survives custom dictionary and surfaces at second 'the'");
+
+            const auto items    = SpellingProbe::BuildSpellMenuAtOffset(app, issues[0].sourceFragments[0].first);
+            const bool hasDel   = std::ranges::any_of(items, [](const auto& item) { return item.commandId == 10097; });
+            const bool hasOnce  = std::ranges::any_of(items, [](const auto& item) { return item.commandId == 10098; });
+            const bool hasNoSug = std::ranges::any_of(items, [](const auto& item) { return item.commandId == 10099; });
+            const bool hasAll   = std::ranges::any_of(items, [](const auto& item) { return item.commandId == 10100; });
+            const bool hasAdd   = std::ranges::any_of(items, [](const auto& item) { return item.commandId == 10101; });
+            Require(hasDel && hasOnce && ! hasNoSug && ! hasAll && ! hasAdd, "RepeatedWord menu shows only Delete repeated word + Ignore Once");
+
+            const bool deleted = SpellingProbe::InvokeSpellMenuCommand(
+                app, 10097, SpellingProbe::SessionKey(app), app.Document().Snapshot(), app.Document().Revision(), app.Document().GetSelection());
+            Require(deleted && app.Document().GetText() == L"Keep the today.\n", "Delete repeated word cleanly removes repeated word and one adjacent space");
+            Require(app.Document().Undo() && app.Document().GetText() == original, "single undo restores repeated word cleanly");
+
+            // SpellDeleteRepeatedId boundary cases: start of line after CRLF, end of line before CRLF, EOF, preceding \t, surrogate neighbor,
+            // sourceFragments.size() > 1, and Split+Source _mirror.
+            const auto runRepeatCase = [&](const std::wstring& doc,
+                                           std::wstring_view semanticKey,
+                                           const std::vector<SpellErrorSpan>& spans,
+                                           std::wstring_view expectedAfter,
+                                           std::string_view msg,
+                                           std::size_t expectedFrags = 1u)
+            {
+                provider->SetForcedSegmentSpans(L"en-US", semanticKey, spans);
+                app.SetDocument(doc);
+                app.Prepare(512);
+                const auto& caseIssues = SpellingProbe::Issues(app);
+                Require(caseIssues.size() == 1u && caseIssues[0].kind == SpellIssueKind::RepeatedWord && caseIssues[0].sourceFragments.size() == expectedFrags,
+                        std::string(msg) + " [issues]");
+                const auto caseItems = SpellingProbe::BuildSpellMenuAtOffset(app, caseIssues[0].sourceFragments.front().first);
+                Require(std::ranges::any_of(caseItems, [](const auto& item) { return item.commandId == 10097; }), std::string(msg) + " [menu]");
+                auto* const ed = SpellingProbe::Active(app);
+                const bool ok =
+                    SpellingProbe::InvokeSpellMenuCommand(app, 10097, SpellingProbe::SessionKey(app), ed->Snapshot(), ed->Revision(), ed->GetSelection());
+                Require(ok && ed->GetText() == expectedAfter, std::string(msg) + " [apply]");
+                Require(ed->Undo() && ed->GetText() == doc, std::string(msg) + " [undo]");
+            };
+
+            runRepeatCase(L"Alpha\r\n\r\nthe\r\n\r\nthe today.\n",
+                          L"Alpha\uFFFCthe\uFFFCthe today.",
+                          {SpellErrorSpan{10u, 3u, SpellIssueKind::RepeatedWord}},
+                          L"Alpha\r\n\r\nthe\r\n\r\ntoday.\n",
+                          "Delete repeated word at start of line after CRLF deletes trailing space");
+            runRepeatCase(L"Keep the the\r\ntoday.\n",
+                          L"Keep the the today.",
+                          {SpellErrorSpan{9u, 3u, SpellIssueKind::RepeatedWord}},
+                          L"Keep the\r\ntoday.\n",
+                          "Delete repeated word before CRLF deletes preceding space without splitting CRLF");
+            runRepeatCase(L"the\r\nthe",
+                          L"the the",
+                          {SpellErrorSpan{4u, 3u, SpellIssueKind::RepeatedWord}},
+                          L"the\r\n",
+                          "Delete repeated word at start of line and EOF deletes word cleanly");
+            provider->SetForcedSegmentSpans(L"en-US", L"Keep the\tthe today.", {SpellErrorSpan{9u, 3u, SpellIssueKind::RepeatedWord}});
+            runRepeatCase(L"Keep the\tthe today.\n",
+                          L"Keep the the today.",
+                          {SpellErrorSpan{9u, 3u, SpellIssueKind::RepeatedWord}},
+                          L"Keep the today.\n",
+                          "Delete repeated word with preceding tab deletes tab and word");
+            runRepeatCase(L"the\xD83D\xDE00the today.\n",
+                          L"the\xD83D\xDE00the today.",
+                          {SpellErrorSpan{5u, 3u, SpellIssueKind::RepeatedWord}},
+                          L"the\xD83D\xDE00today.\n",
+                          "Delete repeated word adjacent to UTF-16 surrogate pair preserves surrogate intact");
+            runRepeatCase(L"Keep the **t**he today.\n",
+                          L"Keep the the today.",
+                          {SpellErrorSpan{9u, 3u, SpellIssueKind::RepeatedWord}},
+                          L"Keep the ****today.\n",
+                          "Delete repeated word spanning sourceFragments.size() > 1 deletes fragments and trailing space",
+                          2u);
+
+            app.Execute(Command::Split);
+            app.Prepare(256);
+            SpellingProbe::SwitchSplitPane(app, SplitActivePane::Source);
+            app.Prepare(256);
+            runRepeatCase(L"Keep the the today.\n",
+                          L"Keep the the today.",
+                          {SpellErrorSpan{9u, 3u, SpellIssueKind::RepeatedWord}},
+                          L"Keep the today.\n",
+                          "Delete repeated word works in Split+Source _mirror");
+            SpellingProbe::SwitchSplitPane(app, SplitActivePane::Compose);
+            app.Prepare(256);
+            app.Execute(Command::Compose);
+            app.Prepare(256);
         }
     });
 
@@ -747,6 +1235,81 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
         Require(enabledToggle->IsChecked() && app.Preferences().spelling.enabled && app.Document().GetDecorations().size() == 2u,
                 "selecting en-US in status bar re-enables checking and highlights both occurrences");
 
+        // Real StatusLanguageComboBox keyboard/CommitSelection updates PrepareVisualContent cache without Paint-time rebuilds.
+        const auto prepBefore         = statusCombo->PrepareVisualContentCount();
+        const auto paintRebuildBefore = statusCombo->PaintLayoutRebuildCount();
+        Require(statusCombo->OnKeyDown(app.Host(), VK_DOWN, 0u), "StatusLanguageComboBox OnKeyDown(VK_DOWN) commits next language item");
+        app.Prepare(256);
+        Require(statusCombo->PrepareVisualContentCount() > prepBefore && statusCombo->PaintLayoutRebuildCount() == paintRebuildBefore &&
+                    statusCombo->HasPreparedLayouts() && statusCombo->CachedText() == statusCombo->GetDisplayedText(),
+                "StatusLanguageComboBox OnKeyDown prepares text layout via PrepareVisualContent without Paint-time rebuild");
+
+        const auto prepOffBefore = statusCombo->PrepareVisualContentCount();
+        Require(statusCombo->OnKeyDown(app.Host(), VK_END, 0u) && ! app.Preferences().spelling.enabled, "StatusLanguageComboBox OnKeyDown(VK_END) selects Off");
+        app.Prepare(256);
+        Require(statusCombo->PrepareVisualContentCount() > prepOffBefore && statusCombo->PaintLayoutRebuildCount() == paintRebuildBefore &&
+                    statusCombo->HasPreparedLayouts() && statusCombo->CachedText() == statusCombo->GetDisplayedText(),
+                "StatusLanguageComboBox Off transition prepares text layout via PrepareVisualContent without Paint-time rebuild");
+
+        SpellingProbe::SelectStatusLanguageByValue(app, L"en-US");
+        app.Prepare(512);
+
+        // Pointer gating: MK_SHIFT, MK_CONTROL, open combo popup, BlockDraftModal, passive Split pane, and stale PendingLeftClickRequest.
+        SpellingProbe::ClearPendingSpellMenu(app);
+        SpellingProbe::LeftDown(app, wordPt, MK_SHIFT);
+        SpellingProbe::LeftUp(app, wordPt);
+        SpellingProbe::PumpMessages(app);
+        Require(! SpellingProbe::HasPendingSpellMenu(app), "MK_SHIFT left-click does not open spell menu");
+
+        SpellingProbe::LeftDown(app, wordPt, MK_CONTROL);
+        SpellingProbe::LeftUp(app, wordPt);
+        SpellingProbe::PumpMessages(app);
+        Require(! SpellingProbe::HasPendingSpellMenu(app), "MK_CONTROL left-click does not open spell menu");
+
+        Require(statusCombo->OnMouseDown(app.Host(), statusPt, false, 0u) && statusCombo->IsPopupOpen(),
+                "reopen status language combo popup for pointer gating test");
+        SpellingProbe::LeftDown(app, wordPt);
+        SpellingProbe::LeftUp(app, wordPt);
+        SpellingProbe::PumpMessages(app);
+        Require(! SpellingProbe::HasPendingSpellMenu(app), "open combo popup blocks editor left-click spell menu");
+        (void)statusCombo->OnKeyDown(app.Host(), VK_ESCAPE, 0u);
+        Require(! statusCombo->IsPopupOpen(), "Escape closes status language combo popup");
+
+        app.Execute(Command::LocalSource);
+        app.Prepare(64);
+        Require(app.HasBlockDraft(), "BlockDraftModal open for pointer gating check");
+        SpellingProbe::LeftDown(app, wordPt);
+        SpellingProbe::LeftUp(app, wordPt);
+        SpellingProbe::PumpMessages(app);
+        Require(! SpellingProbe::HasPendingSpellMenu(app), "BlockDraftModal blocks left-click spell menu");
+        app.Execute(Command::CloseDrawer);
+        app.Prepare(64);
+
+        app.Execute(Command::Split);
+        app.Prepare(512);
+        if (auto* const mirror = SpellingProbe::Mirror(app))
+        {
+            const auto mb = mirror->GetBounds();
+            const POINT passivePt{static_cast<LONG>((mb.left + mb.right) * 0.5f * scale), static_cast<LONG>((mb.top + mb.bottom) * 0.5f * scale)};
+            SpellingProbe::LeftDown(app, passivePt);
+            SpellingProbe::LeftUp(app, passivePt);
+            SpellingProbe::PumpMessages(app);
+            Require(! SpellingProbe::HasPendingSpellMenu(app), "clicking passive Split pane does not trigger spell menu");
+        }
+        app.Execute(Command::Compose);
+        app.Prepare(512);
+
+        // Stale PendingLeftClickRequest (e.g. languageConfigVersion bump before SpellMenuRequested dispatch) is rejected safely.
+        SpellingProbe::LeftDown(app, wordPt);
+        app.Document().SetSelection({firstFrag.first, firstFrag.first});
+        SpellingProbe::LeftUp(app, wordPt);
+        Require(SpellingProbe::HasPendingLeftClick(app), "PendingLeftClickRequest armed before message pump");
+        SpellingProbe::BumpLanguageConfigVersion(app);
+        SpellingProbe::PumpMessages(app);
+        Require(! SpellingProbe::HasPendingSpellMenu(app), "stale PendingLeftClickRequest after languageConfigVersion change is rejected");
+        SpellingProbe::TriggerImmediateCheck(app);
+        app.Prepare(512);
+
         // Drag and double-click must NOT trigger left-click spell menu.
         SpellingProbe::ClearPendingSpellMenu(app);
         SpellingProbe::LeftDown(app, wordPt);
@@ -792,6 +1355,174 @@ void RegisterSpellingTests(const std::filesystem::path& root, const std::functio
         Require(ignoredAll && app.Document().GetDecorations().empty(), "Ignore All hides all remaining occurrences in session");
         Require(! std::filesystem::exists(dataDir / L"custom-dictionary.txt"), "Ignore All never writes to disk");
         Require(foreground.NeverAcquiredForeground(), "left-click and ComboBox test never takes desktop focus");
+    });
+
+    test("Editor.SpellingDeferredChecksSplitBlockDraftAndIgnoreOnce",
+         [&]
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        auto provider = std::make_shared<FakeSpellProvider>();
+        provider->SetInstalledLanguages({L"en-US"});
+        provider->SetLanguageAvailability(L"en-US", ProviderAvailability::Ready);
+        provider->AddKnownWords(L"en-US", {L"Line", L"Clean", L"prose", L"here", L"and", L"end"});
+
+        const std::filesystem::path dataDir = root / L"deferred-split-ignoreonce";
+        Application app(HiddenSpellingOptions(dataDir, provider));
+        Success(app.Initialize(), "initialize app for deferred/split/BlockDraft/IgnoreOnce test");
+        SpellingProbe::SetSpellLanguages(app, {L"en-US"});
+
+        // 1. BlockDraftModal (F2) exit reschedules spell checks cleanly.
+        app.SetDocument(L"Clean prose writting.\n");
+        app.Prepare(512);
+        Require(SpellingProbe::Issues(app).size() == 1u && app.Document().GetDecorations().size() == 1u, "initial typo squiggled before BlockDraft");
+        app.Document().SetSelection({0u, 0u});
+        app.Execute(Command::LocalSource);
+        app.Prepare(64);
+        Require(app.HasBlockDraft() && app.Document().GetDecorations().empty(), "BlockDraftModal suppresses editor squiggles while open");
+        if (auto* draft = SpellingProbe::BlockDraftInput(app))
+            draft->SetText(L"Clean prose writting secondtypo.\n");
+        app.Execute(Command::ApplyBlock);
+        app.Prepare(512);
+        Require(! app.HasBlockDraft() && SpellingProbe::Issues(app).size() == 2u && app.Document().GetDecorations().size() == 2u,
+                "exiting BlockDraftModal reschedules spell check and highlights updated typos");
+
+        // 2. IME composition start/end reconciles and reschedules spell check on exit.
+        app.Host().SetFocusControl(&app.Document(), false);
+        SpellingProbe::SetImeCompositionForTest(app, true);
+        SpellingProbe::TriggerImmediateCheck(app);
+        Require(SpellingProbe::ImeSuppressionActive(app) && app.Document().GetDecorations().empty(),
+                "IME composition suppresses spell check and clears squiggles");
+        SpellingProbe::SetImeCompositionForTest(app, false);
+        app.Prepare(512);
+        SpellingProbe::ForceDebounceTimeout(app);
+        app.Prepare(512);
+        Require(! SpellingProbe::ImeSuppressionActive(app) && app.Document().GetDecorations().size() == 2u,
+                "exiting IME composition clears imeSuppressionActive and restores squiggles");
+
+        // 3. Split-view pane switching projects Source-mode squiggles on MirrorEditor and preserves anchored IgnoreOnce across Compose <-> Source.
+        const std::size_t firstAnchor = SpellingProbe::Issues(app)[0].sourceFragments.front().first;
+        app.Document().SetSelection({firstAnchor, firstAnchor});
+        const auto menuItems = SpellingProbe::BuildSpellMenuAtOffset(app, firstAnchor);
+        Require(! menuItems.empty(), "build menu before IgnoreOnce");
+        Require(SpellingProbe::InvokeSpellMenuCommand(
+                    app, 10098, SpellingProbe::SessionKey(app), app.Document().Snapshot(), app.Document().Revision(), app.Document().GetSelection()),
+                "IgnoreOnce succeeds in Compose mode");
+        Require(app.Document().GetDecorations().size() == 1u, "one typo remains after IgnoreOnce in Compose mode");
+
+        const auto* const priorActive = SpellingProbe::Active(app);
+        app.Execute(Command::Split);
+        app.Prepare(512);
+        SpellingProbe::SwitchSplitPane(app, SplitActivePane::Source);
+        app.Prepare(512);
+        Require(SpellingProbe::Active(app) != priorActive && SpellingProbe::Mirror(app) == priorActive &&
+                    SpellingProbe::Active(app)->GetViewMode() == DxUi::RichText::ViewMode::Source,
+                "SwitchSplitActivePane activates MirrorEditor in Source mode");
+        Require(SpellingProbe::Active(app)->GetDecorations().size() == 1u && SpellingProbe::Mirror(app)->GetDecorations().empty(),
+                "Source pane in Split view shows only non-ignored typo; anchored IgnoreOnce survives Compose->Source");
+
+        SpellingProbe::SwitchSplitPane(app, SplitActivePane::Compose);
+        app.Prepare(512);
+        app.Execute(Command::Compose);
+        app.Prepare(512);
+
+        // 4. CloseActiveDocument and ResetWorkspace clear _ignoredOnce across non-zero workspace keys, and Open after ResetWorkspace runs spell check.
+        const auto docFile = dataDir / L"opened.md";
+        std::filesystem::create_directories(dataDir);
+        Success(WriteBytesAtomic(docFile, "Clean writting prose.\n"), "seed file for Open after ResetWorkspace");
+        const auto word = SpellingProbe::Issues(app)[0].word;
+        const auto anch = SpellingProbe::Issues(app)[0].sourceFragments.front().first;
+        Require(SpellingProbe::Dictionary(app).IsAccepted(word, SpellingProbe::SessionKey(app), anch), "IgnoreOnce active before ResetWorkspace");
+
+        // Create a second workspace document (non-zero session key), IgnoreOnce on it, then CloseActiveDocument.
+        app.Document().SetSelection({0u, 0u});
+        (void)app.Document().ReplaceSelection(L"Line ");
+        SpellingProbe::OpenFileInWorkspace(app, docFile);
+        app.Prepare(512);
+        const unsigned secondKey = SpellingProbe::SessionKey(app);
+        Require(secondKey != 0u && ! SpellingProbe::Issues(app).empty(), "opened second workspace slot with non-zero session key");
+        const auto secondWord = SpellingProbe::Issues(app)[0].word;
+        const auto secondAnch = SpellingProbe::Issues(app)[0].sourceFragments.front().first;
+        const auto secondMenu = SpellingProbe::BuildSpellMenuAtOffset(app, secondAnch);
+        Require(! secondMenu.empty(), "build menu in non-zero workspace slot");
+        Require(
+            SpellingProbe::InvokeSpellMenuCommand(app, 10098, secondKey, app.Document().Snapshot(), app.Document().Revision(), app.Document().GetSelection()),
+            "IgnoreOnce succeeds in non-zero workspace slot");
+        Require(SpellingProbe::Dictionary(app).IsAccepted(secondWord, secondKey, secondAnch), "IgnoreOnce active in non-zero slot");
+        SpellingProbe::CloseActiveDoc(app);
+        app.Prepare(256);
+        Require(! SpellingProbe::Dictionary(app).IsAccepted(secondWord, secondKey, secondAnch),
+                "CloseActiveDocument clears _ignoredOnce for closed workspace key");
+
+        const unsigned priorKey = SpellingProbe::SessionKey(app);
+        SpellingProbe::ResetAppWorkspace(app);
+        Require(! SpellingProbe::Dictionary(app).IsAccepted(word, priorKey, anch), "ResetWorkspace clears _ignoredOnce for remaining workspace keys");
+
+        // Open via FilePicker after ResetWorkspace triggers spell check on newly opened document.
+        app.SetDocument(L"");
+        app.Prepare(128);
+        SpellingProbe::SetFilePickerForTest(app, [&](bool) { return docFile; });
+        app.Execute(Command::Open);
+        app.Prepare(512);
+        Require(SpellingProbe::Issues(app).size() == 1u && SpellingProbe::Issues(app)[0].word == L"writting",
+                "Open after ResetWorkspace completes spell check cleanly");
+
+        // 5.Viewport-first projection guarantees visible typos at bottom are squiggled even with >256 overscan typos above.
+        std::wstring manyDoc;
+        for (int i = 0; i < 300; ++i)
+        {
+            std::wstring tag = L"overtypo";
+            tag.push_back(static_cast<wchar_t>(L'a' + (i / 26) % 26));
+            tag.push_back(static_cast<wchar_t>(L'a' + i % 26));
+            manyDoc += L"Line " + tag + L".\n\n";
+        }
+        manyDoc += L"Line visibleendtypo here.\n";
+        app.SetDocument(manyDoc);
+        app.Prepare(512);
+        (void)app.Document().ScrollSourceRangeIntoView(app.Host(), manyDoc.size() - 25u, manyDoc.size(), true);
+        app.Prepare(64);
+        const std::size_t visTypoPos = manyDoc.find(L"visibleendtypo");
+        const auto decs              = app.Document().GetDecorations();
+        const bool hasVisibleSquiggle =
+            std::ranges::any_of(decs, [&](const auto& d) { return d.start <= visTypoPos && d.start + d.length >= visTypoPos + 14u; });
+        Require(decs.size() <= 256u && hasVisibleSquiggle, "viewport-first decoration projection highlights visible typo despite >256 overscan typos above");
+
+        // 6. SpellChooseCustomDictionary failure preserves previous valid dictionary and settings path.
+        const auto validDict = dataDir / L"good-dict.dic";
+        Success(WriteBytesAtomic(validDict, "SavedGoodWord\n"), "seed valid dictionary for Choose failure test");
+        SpellingProbe::SetFilePickerForTest(app, [&](bool) { return validDict; });
+        app.Execute(Command::SpellChooseCustomDictionary);
+        Require(app.Preferences().spelling.customDictionaryPath == validDict && SpellingProbe::Dictionary(app).IsAccepted(L"SavedGoodWord"),
+                "valid Choose custom dictionary updates path and loads words");
+
+        const auto badDict = dataDir / L"bad-ansi-dict.dic";
+        Success(WriteBytesAtomic(badDict, "caf\xE9\r\n"), "seed invalid ANSI dictionary");
+        SpellingProbe::SetFilePickerForTest(app, [&](bool) { return badDict; });
+        app.Execute(Command::SpellChooseCustomDictionary);
+        Require(app.Preferences().spelling.customDictionaryPath == validDict && SpellingProbe::Dictionary(app).IsAccepted(L"SavedGoodWord"),
+                "failed Choose custom dictionary preserves previous dictionary and settings path");
+
+        // 6b. Command::SpellResetCustomDictionary success & corrupt-default failure.
+        const auto defaultDictPath = dataDir / L"custom-dictionary.txt";
+        Success(WriteBytesAtomic(defaultDictPath, "DefaultResetWord\n"), "seed valid default custom dictionary");
+        app.Execute(Command::SpellResetCustomDictionary);
+        Require(app.Preferences().spelling.customDictionaryPath.empty() && SUCCEEDED(SpellingProbe::Dictionary(app).LoadStatus()) &&
+                    SpellingProbe::Dictionary(app).IsAccepted(L"DefaultResetWord") && ! SpellingProbe::Dictionary(app).IsAccepted(L"SavedGoodWord"),
+                "SpellResetCustomDictionary clears custom path and reloads default custom dictionary");
+
+        SpellingProbe::SetFilePickerForTest(app, [&](bool) { return validDict; });
+        app.Execute(Command::SpellChooseCustomDictionary);
+        Require(app.Preferences().spelling.customDictionaryPath == validDict, "reselect valid custom dictionary before corrupt-default reset check");
+        Success(WriteBytesAtomic(defaultDictPath, "bad\xE9\n"), "corrupt default custom dictionary on disk");
+        app.Execute(Command::SpellResetCustomDictionary);
+        Require(app.Preferences().spelling.customDictionaryPath.empty() && SUCCEEDED(SpellingProbe::Dictionary(app).LoadStatus()) &&
+                    SpellingProbe::Dictionary(app).IsAccepted(L"SavedGoodWord") && ! SpellingProbe::StatusLabelText(app).empty(),
+                "SpellResetCustomDictionary surfaces failure status when default custom dictionary is corrupt");
+
+        // 7. SpellDebounceTimerId killed unconditionally on WM_TIMER even after dirty state.
+        SpellingProbe::SetSpellDebounceTimer(app);
+        (void)SendMessageW(app.Window(), WM_TIMER, SpellingProbe::DebounceTimerId(), 0);
+        app.Prepare(64);
+        Require(foreground.NeverAcquiredForeground(), "deferred/split/BlockDraft/IgnoreOnce test never acquires foreground");
     });
 }
 } // namespace RedTilde

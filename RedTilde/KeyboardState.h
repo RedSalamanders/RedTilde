@@ -26,12 +26,15 @@ inline void UseSynthetic(bool active) noexcept
     Detail::g_synthetic.keys   = {};
 }
 
+inline void Write(const std::array<BYTE, 256>& keys) noexcept;
+
 class ScopedSynthetic final
 {
 public:
     ScopedSynthetic() noexcept : _previous(Detail::g_synthetic), _hasPreviousWin32(GetKeyboardState(_previousWin32.data()) != FALSE)
     {
         UseSynthetic(true);
+        Write({});
     }
     ~ScopedSynthetic()
     {

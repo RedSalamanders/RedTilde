@@ -583,7 +583,7 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
     Require ($mode -cin @('same-pin','sdk-adoption','reviewed-header-delta') -and $Comparison.dependencyComparisonMode -ceq $mode) 'Invalid dependency comparison mode.'
     foreach($dependency in @($base,$candidate)) {
         Require ($dependency.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $dependency.Identity.commit -cmatch '^[0-9a-f]{40}$' -and
-            ($dependency.Identity.apiRevision -is [int] -or $dependency.Identity.apiRevision -is [long]) -and $dependency.Identity.apiRevision -eq 4) 'Invalid dependency build metadata.'
+            ($dependency.Identity.apiRevision -is [int] -or $dependency.Identity.apiRevision -is [long]) -and ($dependency.Identity.apiRevision -eq 4 -or $dependency.Identity.apiRevision -eq 5)) 'Invalid dependency build metadata.'
     }
     Require ($base.Identity.platform -ceq $Study.baseline.build.platform -and $candidate.Identity.platform -ceq $Study.candidate.build.platform -and
         $Study.baseline.build.platform -ceq 'x64' -and $Study.candidate.build.platform -ceq 'x64') 'Dependency platform must match the measured x64 build.'
@@ -674,7 +674,7 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
         $Study.baseline.publicHeaders.packageSha256 -ceq $Study.candidate.publicHeaders.packageSha256 -and
         ($inventories.baseline.source -join "`n") -ceq ($inventories.candidate.source -join "`n") -and
         ($inventories.baseline.package -join "`n") -ceq ($inventories.candidate.package -join "`n") -and
-        $base.Identity.apiRevision -eq 4 -and $candidate.Identity.apiRevision -eq 4) 'Adoption public-header/API identity differs.'
+        $base.Identity.apiRevision -eq $candidate.Identity.apiRevision -and ($base.Identity.apiRevision -eq 4 -or $base.Identity.apiRevision -eq 5)) 'Adoption public-header/API identity differs.'
     Require ($base.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $candidate.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and
         $base.Identity.commit -cmatch '^[0-9a-f]{40}$' -and $candidate.Identity.commit -cmatch '^[0-9a-f]{40}$') 'Invalid adoption dependency metadata.'
     Require ((@($base.Keys|Sort-Object)|ConvertTo-Json -Compress) -ceq (@($candidate.Keys|Sort-Object)|ConvertTo-Json -Compress) -and

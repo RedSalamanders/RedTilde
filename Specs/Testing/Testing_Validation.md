@@ -285,7 +285,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 178 registered native cases into Storage (32), Settings (15), Recovery (22) and Editor (109), including `Tests/Application.Tests.Settings.{h,cpp}` for JSON5 syntax/schema merge, one-time legacy migration, `.invalid-*` backup, 16 MiB size cap, and `SettingsWatcher` coalesced non-writing live reload. Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. When all four native groups run together, `test.ps1` also verifies `InteractiveProbeRefusal` and `FailureReportRouting` (`--failure-report-self-test`: exit `3` with stderr diagnostics and no modal dialog in Debug / ASan Debug, exit `0` in test-enabled Release). Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 241 registered native cases into Storage (40), Settings (25), Recovery (24) and Editor (152), including `Tests/Application.Tests.Settings.{h,cpp}` for JSON5 syntax/schema merge, one-time legacy migration, `.invalid-*` backup, 16 MiB size cap, and `SettingsWatcher` coalesced non-writing live reload. Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. When all four native groups run together, `test.ps1` also verifies `InteractiveProbeRefusal` and `FailureReportRouting` (`--failure-report-self-test`: exit `3` with stderr diagnostics and no modal dialog in Debug / ASan Debug, exit `0` in test-enabled Release). Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 `Recovery.StartupScanCountsUnrelatedEntries` seeds 576 unrelated files, runs the actual recovery worker, and
 requires its synchronized examined-entry count to stay within 512 with a remaining-entry limit indication.
@@ -367,12 +367,15 @@ Reusable tooling/formatting evidence also binds the actual selected formatter pa
 
 ## Design refresh scenarios
 
-The hidden capture suite runs 40 PNG/sidecar pairs (`25` named scenes including `compose-light`, `compose-dark`,
+The hidden capture suite runs 53 PNG/sidecar pairs (`38` base scenarios including `compose-light`, `compose-dark`,
 `source`, `split`, `context-selection`, `local-source`, `settings`, `math`, `math-dark`, `mermaid`, `recovery`,
 `narrow`, `high-contrast`, `files`, `find`, `focus`, `equation`, `quote-scroll-light`, `quote-scroll-dark`,
-`diagram-label-light`, `diagram-label-dark`, `image-paste-light`, `image-paste-dark`, `image-consent-light`, and
-`image-consent-dark`, plus `narrow`, `reference-dark`, `markdown-style`, `caption-close-hover`, and
-`caption-maximize-hover` at 96/144/192 DPI). The harness additionally supports `compose-paper`, `split-dark`,
+`diagram-label-light`, `diagram-label-dark`, `image-paste-light`, `image-paste-dark`, `image-consent-light`,
+`image-consent-dark`, `panes-collapsed-rails-light`, `pane-hover-reveal-dark`, `split-source-active-light`,
+`split-unlinked-dark`, `spelling-light` / `spelling-dark` / `spelling-high-contrast` under `ENABLE_TESTS`,
+`save-confirm-dialog-light`, `files-multi-folder-and-github-light`, `files-context-menu-dark`,
+`open-github-autosuggest-light`, and `open-github-autosuggest-dark`, plus `narrow`, `reference-dark`,
+`markdown-style`, `caption-close-hover`, and `caption-maximize-hover` at 96/144/192 DPI). The harness additionally supports `compose-paper`, `split-dark`,
 `settings-about`, and `print-preview` (under `ENABLE_TESTS`) for documentation and preview inspection. Each sidecar records requested,
 native and host DPI, actual pixels/DIP, simulation state and invented fixture basename; the runner verifies PNG
 IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
@@ -520,10 +523,13 @@ Validation requirements covered by [Side panes and bidirectional split editing](
   `Editor.WorkspaceSaveConfirmSingleMultiAndChecklist`, `Editor.WorkspaceKeepAndExitResumeAndShutdown`,
   `Recovery.SessionResumeSnapshotRoundTripAndCleanup`, `Files.MultiFolderDisambiguationAndLocationResolver`,
   `Files.SafeRenamePasteCollisionAndReparseGuard`, `Editor.FilesMultiFolderSectionsAndContextMenuOps`, and
-  `Editor.WorkspaceGitHubUrlAutosuggestAuthAndOpen`, plus the five hidden 96-DPI Release scenarios `save-confirm-dialog-light`,
+  `Editor.WorkspaceGitHubUrlAutosuggestAuthAndOpen`, offline loopback WinHTTP/CredentialStore/`gh`-CLI/RFC-8628 suites in
+  `Tests/Application.Tests.GitHub.{h,cpp}`, expanded `Tests/Application.Tests.{MultiFolderFiles,SaveDialog,Settings,Spelling}.cpp`,
+  kernel-hive (`RegLoadAppKeyW`) installer tests in `Tests/Tooling.Tests.Installer.ps1`, complete scope mapping in
+  `Tests/test-scopes.json`, and the five hidden 96-DPI Release scenarios `save-confirm-dialog-light`,
   `files-multi-folder-and-github-light`, `files-context-menu-dark`, `open-github-autosuggest-light`, and
   `open-github-autosuggest-dark`): prove DxUi single/multi-document save prompts with relative paths, default
   `KeepAndResume` and non-blocking `WM_QUERYENDSESSION`/`WM_ENDSESSION` relaunch restoration, colliding-basename
   folder disambiguation (`"<leaf> (<parentLeaf>)"`), non-reparse/collision-safe rename/copy/move and workspace
-  path rebasing, mock-transport GitHub URL parsing/autosuggest/credential scrubbing/`gh` opt-in/read-through opening
+  path rebasing, mock/loopback-transport GitHub URL parsing/autosuggest/credential scrubbing/`gh` opt-in/RFC-8628 backoff & gating/read-through opening
   requiring `Save As…` with zero unsolicited startup network calls.

@@ -26,23 +26,48 @@ HRESULT DxUiFailureHost::Start() noexcept
         return E_UNEXPECTED;
     if (! CrashReportingPrepared())
         return E_UNEXPECTED;
+    auto cleanup = wil::scope_exit([this]() noexcept
+    {
+        if (_stop)
+            (void)SetEvent(_stop.get());
+        if (_writer)
+            (void)WaitForSingleObject(_writer.get(), INFINITE);
+        _writer.reset();
+        _done.reset();
+        _stop.reset();
+        _request.reset();
+    });
     _request.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
     if (! _request)
-        return HRESULT_FROM_WIN32(GetLastError());
+    {
+        const DWORD error = GetLastError();
+        return HRESULT_FROM_WIN32(error);
+    }
     _stop.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
     if (! _stop)
-        return HRESULT_FROM_WIN32(GetLastError());
+    {
+        const DWORD error = GetLastError();
+        return HRESULT_FROM_WIN32(error);
+    }
     _done.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
     if (! _done)
-        return HRESULT_FROM_WIN32(GetLastError());
+    {
+        const DWORD error = GetLastError();
+        return HRESULT_FROM_WIN32(error);
+    }
     _writer.reset(CreateThread(nullptr, 0u, Writer, this, 0u, nullptr));
     if (! _writer)
-        return HRESULT_FROM_WIN32(GetLastError());
+    {
+        const DWORD error = GetLastError();
+        return HRESULT_FROM_WIN32(error);
+    }
     // ProcessHooks registers this statically linked EXE. Independently linked DLLs need their own registration.
     const HRESULT installed = _hooks.Install(Report, this);
-    if (SUCCEEDED(installed))
-        _ownerThread = GetCurrentThreadId();
-    return installed;
+    if (FAILED(installed))
+        return installed;
+    _ownerThread = GetCurrentThreadId();
+    cleanup.release();
+    return S_OK;
 }
 
 HRESULT DxUiFailureHost::Report(void* context, const DxUi::Failure::Record& record) noexcept

@@ -1,6 +1,8 @@
 #include "Application.h"
 #include "PrintPreview.h"
+#if defined(ENABLE_TESTS)
 #include "Tests/Support/Support.Tests.FilesFixtures.h"
+#endif
 #include <algorithm>
 #include <chrono>
 #include <combaseapi.h>
@@ -157,6 +159,7 @@ void Application::PrepareDesignScenario()
         _settings.strikeCompletedTasks = true;
     if (scenario == L"spelling-light" || scenario == L"spelling-dark" || scenario == L"spelling-high-contrast")
     {
+#if defined(ENABLE_TESTS)
         auto provider = std::make_shared<FakeSpellProvider>();
         provider->SetInstalledLanguages({L"en-US", L"fr-FR"});
         provider->SetLanguageAvailability(L"en-US", ProviderAvailability::Ready);
@@ -170,9 +173,7 @@ void Application::PrepareDesignScenario()
         provider->SetSuggestions(L"en-US", L"documnet", {L"document"});
         provider->SetSuggestions(L"en-US", L"recieve", {L"receive"});
         provider->SetSuggestions(L"en-US", L"teh", {L"the"});
-#if defined(ENABLE_TESTS)
         _options.spellProviderForTest = provider;
-#endif
         _spellService.SetProviderForTest(provider);
         _settings.spelling.enabled   = true;
         _settings.spelling.languages = {L"en-US"};
@@ -197,6 +198,9 @@ void Application::PrepareDesignScenario()
         RequireCapture(_spell.issues.size() == 4u && _editor->GetDecorationStatus() == DxUi::RichTextDecorationStatus::Ready,
                        "Spelling capture scenario must settle four spelling squiggles");
         fixtureName = L"Spelling review";
+#else
+        RequireCapture(false, "The synthetic spelling capture requires a test-enabled build");
+#endif
     }
     if (scenario == L"save-confirm-dialog-light" || scenario == L"files-multi-folder-and-github-light" || scenario == L"files-context-menu-dark" ||
         scenario == L"open-github-autosuggest-light" || scenario == L"open-github-autosuggest-dark")
@@ -296,7 +300,6 @@ void Application::PrepareDesignScenario()
         {
             waitMultiFolders();
             RefreshFiles();
-            ShowOpenGitHubModal();
             _github.Close();
             _githubSignedInLogin = L"octocat";
             _githubUserRepoCache = {
@@ -324,7 +327,7 @@ void Application::PrepareDesignScenario()
                 {L"RedSalamanders", L"DxUi", L"RedSalamanders/DxUi", L"Shared DirectX UI library", L"main", L"https://github.com/RedSalamanders/DxUi", false},
                 {L"octocat", L"red-notes", L"octocat/red-notes", L"Private personal markdown vault", L"main", L"https://github.com/octocat/red-notes", true},
             };
-            RefreshGitHubAuthControls();
+            ShowOpenGitHubModal();
             _openGitHubUrlInput->SetTextAndNotify(L"Red");
             RequireCapture(_openGitHubPanel && _openGitHubPanel->IsVisible() && ! _githubSuggestModel.rows.empty(),
                            "OpenGitHubModal capture panel and filtered autosuggest list visible");
@@ -401,6 +404,7 @@ void Application::PrepareDesignScenario()
                                SetFileAttributesW((writing / L"System notes.md").c_str(), FILE_ATTRIBUTE_SYSTEM) != FALSE,
                            "Cannot mark excluded Files-pane capture entries");
         }
+#if defined(ENABLE_TESTS)
         const auto target = fixture / L"Reference target";
         CaptureWrite(target / L"Not followed.md", "# Reparse target\n\nThe Files tree must never visit this entry.\n");
         const auto link = (reference ? fixture : writing) / L"Linked notes";
@@ -411,7 +415,8 @@ void Application::PrepareDesignScenario()
             if (! RemoveDirectoryW(link.c_str()) && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
                 OutputDebugStringW(L"RedTilde capture could not remove its owned reparse fixture leaf.\n");
         });
-        auto source          = reference ? CurrentText() : WritingFixture();
+#endif
+        auto source = reference ? CurrentText() : WritingFixture();
         if (scenario == L"split-unlinked-dark")
             for (unsigned section = 1; section <= 14; ++section)
                 source += std::format(L"\n## Section {}\n\nWriting keeps its place across independent viewports when linked scroll is off.\n", section);
@@ -463,9 +468,11 @@ void Application::PrepareDesignScenario()
             _folderFiles.Close();
             frozenFilesModel = true;
         }
+#if defined(ENABLE_TESTS)
         RequireCapture(RemoveDirectoryW(link.c_str()) != FALSE, "Cannot retire the owned capture reparse leaf before evidence retention");
         reparseRemoved = true;
         removeOwnedLink.release();
+#endif
         const auto end = _editor->Snapshot().Length();
         _editor->SetSelection({end, end});
         RequireCapture(_editor->ReplaceSelection(reference ? L"\r\n" : L"\n"), "Cannot stage the synthetic Edited state");
@@ -652,7 +659,7 @@ void Application::PrepareDesignScenario()
         RequireCapture(_printPreview != nullptr && _printOperation != nullptr, "Print preview capture did not start the preview host");
         const auto deadline = GetTickCount64() + 15000u;
         unsigned turns{};
-        while (_printPreview && ! _printPreview->IsReady() && GetTickCount64() < deadline && turns++ < 3000u)
+        while (_printPreview && (! _printPreview->IsReady() || _printPreview->IsConfigurationPending()) && GetTickCount64() < deadline && turns++ < 3000u)
         {
             MSG message{};
             while (PeekMessageW(&message, _window.get(), 0, 0, PM_REMOVE))
@@ -668,10 +675,11 @@ void Application::PrepareDesignScenario()
                     DispatchMessageW(&message);
                 }
             }
-            if (_printPreview && ! _printPreview->IsReady())
+            if (_printPreview && (! _printPreview->IsReady() || _printPreview->IsConfigurationPending()))
                 (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
         }
-        RequireCapture(_printPreview && _printPreview->IsReady(), "Print preview capture did not settle a ready sheet");
+        RequireCapture(_printPreview && _printPreview->IsReady() && ! _printPreview->IsConfigurationPending(),
+                       "Print preview capture did not settle a ready sheet");
         if (_options.captureDpi)
         {
             RECT previewFrame{};

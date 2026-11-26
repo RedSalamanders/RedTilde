@@ -1,6 +1,7 @@
 #pragma once
 #include "ProcessWork.h"
 #include "Storage.h"
+#include "TextUtilities.h"
 #include <array>
 #include <atomic>
 #include <cstddef>
@@ -10,7 +11,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <vector>
 #include <wil/resource.h>
 #include <windows.h>
@@ -62,6 +62,7 @@ struct GitHubRepoRef
 inline constexpr std::size_t MaximumFilesRoots  = 16u;
 inline constexpr std::size_t MaximumGitHubRepos = 8u;
 [[nodiscard]] bool IsValidGitHubTokenSegment(std::wstring_view segment, std::size_t maximumLength) noexcept;
+[[nodiscard]] bool IsValidGitHubBranchName(std::wstring_view branch) noexcept;
 struct SpellingSettings
 {
     bool enabled = true;
@@ -75,7 +76,10 @@ struct SpellingSettings
     bool operator==(const SpellingSettings&) const = default;
 };
 inline constexpr std::size_t MaximumSpellingLanguages = 3u;
-[[nodiscard]] bool IsValidLanguageTag(std::wstring_view tag) noexcept;
+[[nodiscard]] inline bool IsValidLanguageTag(std::wstring_view tag) noexcept
+{
+    return tag == L"auto" || IsValidBcp47Tag(tag);
+}
 // Optional RichMarkdown syntax beyond the always-on GFM set, in drawer order.
 // Each persists under its own application-owned key, never a library enum value.
 enum class MarkdownSyntax
@@ -203,16 +207,7 @@ public:
     [[nodiscard]] bool Active() const noexcept;
 
 private:
-    void WatchThread(ProcessWorkLease lease) noexcept;
-    void PostChanged() noexcept;
-
-    std::filesystem::path _directory;
-    std::wstring _fileName;
-    HWND _window{};
-    UINT _message{};
-    wil::unique_event_nothrow _stopEvent;
-    wil::unique_event_nothrow _readyEvent;
-    std::jthread _thread;
-    std::atomic_bool _notificationPending{false};
+    struct State;
+    std::shared_ptr<State> _state;
 };
 } // namespace RedTilde

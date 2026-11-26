@@ -166,6 +166,269 @@
       "reason": "bounded anonymous image transport and editor policy adoption"
     },
     {
+      "pattern": "Common/BitmapAssets.*",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "bounded asset storage and bitmap paste persistence"
+    },
+    {
+      "pattern": "Common/CredentialStore.*",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "Windows Credential Manager store and secret scrubbing"
+    },
+    {
+      "pattern": "Common/CustomDictionary.*",
+      "scopes": [
+        "Settings",
+        "Editor"
+      ],
+      "reason": "custom dictionary encoding, atomic storage, and normalization"
+    },
+    {
+      "pattern": "Common/DirectoryWatch.h",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Preferences",
+        "Editor"
+      ],
+      "reason": "shared ReadDirectoryChangesW watcher for settings, files, and images"
+    },
+    {
+      "pattern": "Common/DxUiFailureHost.*",
+      "scopes": [
+        "*"
+      ],
+      "reason": "host-owned failure and worker admission lifetime"
+    },
+    {
+      "pattern": "Common/FileOps.*",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "workspace file rename, copy, paste, and path safety"
+    },
+    {
+      "pattern": "Common/GitHubClient.*",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "GitHub WinHTTP client, OAuth device flow, and gh CLI import"
+    },
+    {
+      "pattern": "Common/JsonHelpers.h",
+      "scopes": [
+        "Settings",
+        "Recovery",
+        "Preferences",
+        "RecoveryRestart",
+        "Editor"
+      ],
+      "reason": "shared yyjson parsing and allocation failure mapping"
+    },
+    {
+      "pattern": "Common/MonitorDiagnostics.*",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared RedMonitor diagnostics client"
+    },
+    {
+      "pattern": "Common/NativeCalls.h",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared checked native Win32/COM call helpers"
+    },
+    {
+      "pattern": "Common/PathSecurity.h",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Preferences",
+        "RecoveryRestart",
+        "Editor"
+      ],
+      "reason": "shared reparse, surrogate, disk-handle, and root-path security checks"
+    },
+    {
+      "pattern": "Common/ProcessWork.*",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared bounded worker lease and admission infrastructure"
+    },
+    {
+      "pattern": "Common/ProseExtractor.*",
+      "scopes": [
+        "Editor",
+        "Captures"
+      ],
+      "reason": "Markdown-aware spellcheck prose extraction"
+    },
+    {
+      "pattern": "Common/RemoteImageImports.h",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "shared WinHTTP/URL parsing import boundary"
+    },
+    {
+      "pattern": "Common/Resources.h",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared Win32 resource string IDs"
+    },
+    {
+      "pattern": "Common/SpellProvider.h",
+      "scopes": [
+        "Editor",
+        "Captures"
+      ],
+      "reason": "spell provider abstraction and status model"
+    },
+    {
+      "pattern": "Common/TextUtilities.h",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Preferences",
+        "RecoveryRestart",
+        "Editor",
+        "Captures"
+      ],
+      "reason": "shared ordinal string and character helpers"
+    },
+    {
+      "pattern": "Common/Version.h",
+      "scopes": [
+        "*"
+      ],
+      "reason": "product version constants checked across builds, packages, and specs"
+    },
+    {
+      "pattern": "Common/WinSpellProvider.*",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "Windows ISpellChecker read-only provider"
+    },
+    {
+      "pattern": "Tests/Application.Tests.FailureHost.*",
+      "scopes": [
+        "Settings",
+        "Crash"
+      ],
+      "reason": "failure-host probe and settings crash integration tests"
+    },
+    {
+      "pattern": "Tests/Application.Tests.FailureReports.h",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared test failure-report routing"
+    },
+    {
+      "pattern": "Tests/Application.Tests.GitHub.*",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "offline/loopback WinHTTP, CredentialStore, gh CLI, and RFC 8628 GitHub tests"
+    },
+    {
+      "pattern": "Tests/Application.Tests.HeapDiagnostic.h",
+      "scopes": [
+        "Editor",
+        "Performance",
+        "Tooling"
+      ],
+      "reason": "shared allocation and heap diagnostic helper"
+    },
+    {
+      "pattern": "Tests/Application.Tests.MultiFolderFiles.*",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "multi-folder workspace, FileOps, and GitHub Files pane tests"
+    },
+    {
+      "pattern": "Tests/Application.Tests.Printing.*",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "printing, pagination, and print preview tests"
+    },
+    {
+      "pattern": "Tests/Application.Tests.SaveDialog.*",
+      "scopes": [
+        "Settings",
+        "Recovery",
+        "Editor"
+      ],
+      "reason": "save confirmation, Keep & Exit, and hot-exit tests"
+    },
+    {
+      "pattern": "Tests/Application.Tests.Spelling.*",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "prose extraction, custom dictionary, and spellchecker UI tests"
+    },
+    {
+      "pattern": "Tests/Support/Support.Tests.BitmapAssets.h",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "shared bitmap asset test fixture helpers"
+    },
+    {
+      "pattern": "Tests/Support/Support.Tests.Foreground.h",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "shared foreground/window lease test helpers"
+    },
+    {
+      "pattern": "Tests/Support/Support.Tests.Images.h",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "shared image decoding test fixture helpers"
+    },
+    {
+      "pattern": "Tests/Support/Support.Tests.TextServices.h",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "shared text services test helpers"
+    },
+    {
+      "pattern": "Tests/Fixtures/ReviewedHeaderDeltaProfile*.json",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "performance evidence self-test fixture profiles"
+    },
+    {
+      "pattern": "capabilities.json",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "validated capability registry"
+    },
+    {
       "pattern": "Tests/Application.Tests.Close.*",
       "scopes": [
         "Recovery",

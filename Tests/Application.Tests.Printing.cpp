@@ -69,10 +69,12 @@ std::wstring MultipageSource()
 class PrintingProbe
 {
 public:
-    static void Wait(Application& app, bool preview = false)
+    static void Wait(Application& app, bool preview = false, bool waitForConfiguration = true)
     {
         const auto start = GetTickCount64();
-        while (app._printOperation && (! preview || ! app._printPreview || ! app._printPreview->IsReady()) && GetTickCount64() - start < 15000u)
+        while (app._printOperation &&
+               (! preview || ! app._printPreview || ! app._printPreview->IsReady() || (waitForConfiguration && app._printPreview->IsConfigurationPending())) &&
+               GetTickCount64() - start < 15000u)
         {
             MSG message{};
             if (PeekMessageW(&message, app.Window(), Application::PrintReady, Application::PrintReady, PM_REMOVE))
@@ -80,8 +82,12 @@ public:
             else
                 (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_POSTMESSAGE, 0);
         }
-        Require(preview ? (app._printOperation && app._printPreview && app._printPreview->IsReady()) : ! app._printOperation,
-                "print worker publishes the requested preview or terminal result");
+        const bool settled = preview ? (app._printOperation && app._printPreview && app._printPreview->IsReady() &&
+                                        (! waitForConfiguration || ! app._printPreview->IsConfigurationPending()))
+                                     : ! app._printOperation;
+        Require(settled,
+                preview && waitForConfiguration ? "print worker publishes the requested preview with !IsConfigurationPending()"
+                                                : "print worker publishes the requested preview or terminal result");
     }
 
     static void Submit(Application& app)
@@ -336,6 +342,40 @@ public:
         Wait(app);
         Require(submitted && submitted->printer == PdfPrinter && submitted->port == L"PORTPROMPT:" && std::ranges::equal(pages, std::array{1u}),
                 "one Print action submits the selected PDF queue and its prepared page");
+
+        // Consecutive headings must not transitively chain into one scaled-down page (P1-21).
+        std::wstring consecutiveHeadings;
+        for (unsigned heading = 1u; heading <= 40u; ++heading)
+            consecutiveHeadings += std::format(L"## Heading {}\n\n", heading);
+        Require(app.SetDocument(consecutiveHeadings), "seed 40 consecutive headings");
+        Open(app);
+        Require(app._printPreview->Page().count >= 2u && HasInk(app._printPreview->Page()),
+                "40 consecutive headings paginate across multiple pages without collapsing onto one scaled page");
+        Navigate(app, 2u);
+        Require(HasInk(app._printPreview->Page()), "second page of consecutive headings retains ink");
+        app.DismissPrintPreview();
+        Wait(app);
+
+        // Local file image stays decoded and renders across Pages::SetPaper reflow (PERF-04).
+        {
+            std::filesystem::create_directories(directory);
+            const auto imagePath = directory / L"local-print.bmp";
+            constexpr std::array<unsigned char, 58u> blackBmp{0x42, 0x4D, 58, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0, 40, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 24,
+                                                              0,    0,    0,  0, 0, 4, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            Require(SUCCEEDED(WriteBytesAtomic(imagePath, std::string_view(reinterpret_cast<const char*>(blackBmp.data()), blackBmp.size()))),
+                    "seed 1x1 black BMP beside print document");
+            Require(app.SetDocument(L"![Local](local-print.bmp)\n", directory / L"print-image.md"), "seed document with local image for paper-change reflow");
+            Open(app);
+            Require(app._printPreview->Page().paper == SmallPaper() && HasInk(app._printPreview->Page()), "initial preview renders local file image ink");
+            Require(Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION).OnKeyDown(app._printPreview->Host(), VK_DOWN, 0),
+                    "switch destination to trigger Pages::SetPaper");
+            Wait(app, true);
+            Require(app._printPreview->Page().paper == WidePaper() && HasInk(app._printPreview->Page()),
+                    "Pages::SetPaper preserves decoded local file images across paper change");
+            app.DismissPrintPreview();
+            Wait(app);
+        }
+
         Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "directed printing keeps the editor hidden");
     }
 
@@ -441,6 +481,10 @@ public:
         Open(app);
         Submit(app);
         Require(state->enteredPage.wait(10000u), "worker reaches a controlled blocked printer page");
+        app._feedback->SetText(L"");
+        app.Execute(Command::Print);
+        Require(app._feedback->GetText() == Resource(IDS_PRINTING) && ! app._printPreview && app._printOperation,
+                "duplicate Print while an active print job is spooling updates status without opening a second preview");
         app.Execute(Command::Close);
         Require(! app._printOperation && app.IsClosing(), "closing detaches the owned print job while the worker is blocked");
         state->releasePage.SetEvent();
@@ -669,17 +713,20 @@ public:
                 "printer dropdown is populated and enabled while the default slow printer is still checking");
         Require(! app._printPreview->IsReady() && ! app._printPreview->CanPrint(), "Print stays disabled before initial fallback renders");
 
-        Wait(app, true);
-        Require(app._printPreview->IsReady() && app._printPreview->Page().fallbackPaper && app._printPreview->Page().count >= 2u &&
-                    HasInk(app._printPreview->Page()) && ! app._printPreview->CanPrint() && printers1.IsEnabled() && hasStatusText(slowStatus),
+        Wait(app, true, false);
+        Require(app._printPreview->IsReady() && app._printPreview->IsConfigurationPending() && app._printPreview->Page().fallbackPaper &&
+                    app._printPreview->Page().count >= 2u && HasInk(app._printPreview->Page()) && ! app._printPreview->CanPrint() && printers1.IsEnabled() &&
+                    hasStatusText(slowStatus),
                 "slow printer timeout shows a navigable Letter fallback preview with Printer enabled and Print disabled");
         Require(Find<DxUi::Button>(app, IDS_PRINTNEXT).Invoke(app._printPreview->Host(), false), "advance page while slow printer is pending");
-        Wait(app, true);
-        Require(app._printPreview->Page().number == 2u && ! app._printPreview->CanPrint() && printers1.IsEnabled(),
+        Wait(app, true, false);
+        Require(app._printPreview->Page().number == 2u && app._printPreview->IsConfigurationPending() && ! app._printPreview->CanPrint() &&
+                    printers1.IsEnabled(),
                 "page navigation works while slow printer remains pending");
         Require(Find<DxUi::Button>(app, IDS_PRINTPREVIOUS).Invoke(app._printPreview->Host(), false), "return to page 1 while slow printer is pending");
-        Wait(app, true);
-        Require(app._printPreview->Page().number == 1u, "returning to page 1 completes cleanly during fallback");
+        Wait(app, true, false);
+        Require(app._printPreview->Page().number == 1u && app._printPreview->IsConfigurationPending() && ! app._printPreview->CanPrint(),
+                "returning to page 1 completes cleanly during fallback");
 
         // 3. Unblock slow printer -> late driver configuration promotes the preview and enables Print.
         slowState->releaseSlow.SetEvent();
@@ -733,6 +780,134 @@ public:
                 "closing preview detaches the UI and restores focus immediately without waiting on the slow printer");
         slowState->releaseSlow.SetEvent();
         Require(slowState->returnedSlow.wait(10000u), "blocked slow printer test probe releases cleanly before teardown");
+
+        // 6. Deterministic event-driven stress test: missing -> delayedPrinter (printerPending + page 2 Present while pending) -> release -> Wait(app, true) ->
+        // Submit(app).
+        {
+            struct DelayedState
+            {
+                DelayedState()                               = default;
+                DelayedState(const DelayedState&)            = delete;
+                DelayedState& operator=(const DelayedState&) = delete;
+                DelayedState(DelayedState&&)                 = delete;
+                DelayedState& operator=(DelayedState&&)      = delete;
+                wil::unique_event entered{wil::EventOptions::ManualReset};
+                wil::unique_event release{wil::EventOptions::ManualReset};
+                wil::unique_event returned{wil::EventOptions::ManualReset};
+                std::atomic_bool hold{};
+            };
+            auto delayedState                          = std::make_shared<DelayedState>();
+            constexpr std::wstring_view missing        = L"Redfern missing printer";
+            constexpr std::wstring_view delayedPrinter = L"Redfern delayed printer";
+            std::vector<unsigned> pages;
+            std::optional<Printing::Selection> submitted;
+
+            LaunchOptions delayedOptions;
+            delayedOptions.headless                     = true;
+            delayedOptions.forceWarp                    = true;
+            delayedOptions.dataDirectory                = directory / L"delayed-stress";
+            delayedOptions.printPrinterTimeoutMsForTest = 50u;
+            delayedOptions.printDestinationsForTest =
+                Printing::Destinations{{std::wstring(missing), std::wstring(delayedPrinter)}, std::wstring(delayedPrinter)};
+            delayedOptions.printPrinterForTest = [delayedState, missingName = std::wstring(missing), delayedName = std::wstring(delayedPrinter)](
+                                                     const std::wstring& name,
+                                                     const std::optional<Printing::PrinterSettings>& settings,
+                                                     Printing::PrinterConfiguration& configuration) -> HRESULT
+            {
+                if (name == missingName)
+                    return HRESULT_FROM_WIN32(ERROR_PRINTER_NOT_FOUND);
+                if (name == delayedName && delayedState->hold.load(std::memory_order_acquire))
+                {
+                    const auto signalReturn = wil::scope_exit([delayedState]() noexcept { delayedState->returned.SetEvent(); });
+                    delayedState->entered.SetEvent();
+                    if (! delayedState->release.wait(15000u))
+                        return HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+                }
+                return ConfigureFixture(name, settings, configuration);
+            };
+            delayedOptions.printSubmissionForTest = [&](const Printing::Selection& selection) { submitted = selection; };
+            delayedOptions.printPageForTest       = [&](unsigned page, ID2D1CommandList&)
+            {
+                pages.push_back(page);
+                return S_OK;
+            };
+
+            Application delayedApp(std::move(delayedOptions));
+            const auto cleanupDelayed = wil::scope_exit([delayedState]
+            {
+                delayedState->hold.store(false, std::memory_order_release);
+                delayedState->release.SetEvent();
+                if (delayedState->entered.wait(0u))
+                    (void)delayedState->returned.wait(10000u);
+            });
+            Require(SUCCEEDED(delayedApp.Initialize()), "initialize delayed-printer stress host");
+            Require(delayedApp.SetDocument(MultipageSource()), "seed multipage document for delayed-printer stress");
+
+            Open(delayedApp);
+            Require(! (delayedApp._printPreview->IsConfigurationPending() && delayedApp._printPreview->CanPrint()),
+                    "settled initial preview maintains !(IsConfigurationPending && CanPrint)");
+            auto& delayedPrinters = Find<DxUi::ComboBox>(delayedApp, IDS_PRINTDESTINATION);
+            Require(delayedPrinters.OnKeyDown(delayedApp._printPreview->Host(), VK_UP, 0), "switch from delayedPrinter to missing printer");
+            Wait(delayedApp, true);
+            Require(! delayedApp._printPreview->IsConfigurationPending() && ! delayedApp._printPreview->CanPrint() &&
+                        delayedApp._printPreview->Page().fallbackPaper,
+                    "missing printer settles with !IsConfigurationPending and fallback paper");
+
+            delayedState->hold.store(true, std::memory_order_release);
+            Require(delayedPrinters.OnKeyDown(delayedApp._printPreview->Host(), VK_DOWN, 0), "switch back from missing printer to delayedPrinter");
+            Require(delayedState->entered.wait(5000u), "delayedPrinter probe enters blocked state");
+            Wait(delayedApp, true, false);
+            Require(delayedApp._printPreview->IsReady() && delayedApp._printPreview->IsConfigurationPending() && ! delayedApp._printPreview->CanPrint() &&
+                        delayedApp._printPreview->Page().fallbackPaper &&
+                        ! (delayedApp._printPreview->IsConfigurationPending() && delayedApp._printPreview->CanPrint()),
+                    "delayedPrinter times out into browsable pending fallback without enabling Print");
+
+            Require(Find<DxUi::Button>(delayedApp, IDS_PRINTNEXT).Invoke(delayedApp._printPreview->Host(), false),
+                    "present page 2 while delayedPrinter configuration remains pending");
+            Wait(delayedApp, true, false);
+            Require(delayedApp._printPreview->Page().number == 2u && delayedApp._printPreview->IsReady() &&
+                        delayedApp._printPreview->IsConfigurationPending() && ! delayedApp._printPreview->CanPrint() &&
+                        ! (delayedApp._printPreview->IsConfigurationPending() && delayedApp._printPreview->CanPrint()),
+                    "Stage::Preview page 2 Present preserves IsConfigurationPending and keeps Print disabled");
+
+            delayedState->release.SetEvent();
+            Wait(delayedApp, true);
+            Require(delayedApp._printPreview->IsReady() && ! delayedApp._printPreview->IsConfigurationPending() && delayedApp._printPreview->CanPrint() &&
+                        ! delayedApp._printPreview->Page().fallbackPaper && delayedApp._printPreview->Page().paper == SmallPaper() &&
+                        delayedApp._printPreview->Page().number == 2u &&
+                        ! (delayedApp._printPreview->IsConfigurationPending() && delayedApp._printPreview->CanPrint()),
+                    "Wait(app, true) blocks until delayedPrinter finishes and settles SmallPaper on page 2");
+            Submit(delayedApp);
+            Wait(delayedApp);
+            Require(! pages.empty() && submitted && submitted->printer == delayedPrinter, "delayedPrinter submits cleanly after Wait(app, true)");
+
+            // Rapid Stage::Preview + release cycle verifying invariant across concurrent Present and ConfigurePrinter.
+            pages.clear();
+            submitted.reset();
+            delayedState->entered.ResetEvent();
+            delayedState->release.ResetEvent();
+            delayedState->returned.ResetEvent();
+            delayedState->hold.store(true, std::memory_order_release);
+            delayedApp.Execute(Command::Print);
+            Require(delayedState->entered.wait(5000u), "delayedPrinter enters blocked state on rapid cycle");
+            Wait(delayedApp, true, false);
+            Require(delayedApp._printPreview->IsReady() && delayedApp._printPreview->IsConfigurationPending() && ! delayedApp._printPreview->CanPrint(),
+                    "rapid cycle opens in pending fallback state");
+            Require(Find<DxUi::Button>(delayedApp, IDS_PRINTNEXT).Invoke(delayedApp._printPreview->Host(), false),
+                    "request page 2 concurrently with delayedPrinter release");
+            delayedState->release.SetEvent();
+            Wait(delayedApp, true);
+            Require(delayedApp._printPreview->IsReady() && ! delayedApp._printPreview->IsConfigurationPending() && delayedApp._printPreview->CanPrint() &&
+                        ! delayedApp._printPreview->Page().fallbackPaper && delayedApp._printPreview->Page().paper == SmallPaper() &&
+                        delayedApp._printPreview->Page().number == 2u &&
+                        ! (delayedApp._printPreview->IsConfigurationPending() && delayedApp._printPreview->CanPrint()),
+                    "rapid Stage::Preview + release cycle settles with Print enabled and invariant preserved");
+            Submit(delayedApp);
+            Wait(delayedApp);
+            Require(! pages.empty() && submitted && submitted->printer == delayedPrinter, "rapid cycle submits cleanly");
+            delayedState->hold.store(false, std::memory_order_release);
+            Require(delayedState->returned.wait(10000u), "delayedPrinter probe finishes cleanly before teardown");
+        }
         Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "slow-printer test preserves desktop");
     }
 

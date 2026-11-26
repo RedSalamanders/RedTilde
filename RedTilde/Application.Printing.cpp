@@ -3,6 +3,8 @@
 #include "Common/NativeCalls.h"
 #include "PrintPreview.h"
 #include "res/Resource.h"
+#include <array>
+#include <commctrl.h>
 #include <format>
 #include <shobjidl.h>
 #include <utility>
@@ -54,8 +56,47 @@ HRESULT PickPrintOutput(HWND owner, Printing::FileFormat format, std::wstring_vi
 
 void Application::Print()
 {
-    if (! CanAcceptCommand() || HasBlockDraft() || HasActiveModalPrompt() || _printPreview || _printOperation)
+    if (! CanAcceptCommand() || HasActiveModalUi() || _printPreview)
         return;
+    if (_printOperation)
+    {
+        Status(IDS_PRINTING);
+        if (! _options.headless && ! HasActiveModalPrompt())
+        {
+            const auto previousPrompt = std::exchange(_modalPrompt, ModalPromptKind::ErrorMessage);
+            const auto restore        = wil::scope_exit([&]() noexcept { _modalPrompt = previousPrompt; });
+            const auto title          = Resource(IDS_APP);
+            const auto instruction    = Resource(IDS_PRINTINPROGRESS_TITLE);
+            const auto body           = _printTitle.empty() ? Resource(IDS_UNTITLED) : SanitizeUiText(_printTitle, 256u);
+            const auto target         = _printPrinter.empty() ? Resource(IDS_PRINTDESTINATION) : SanitizeUiText(_printPrinter, 256u);
+            const auto content        = FormatStringResource(nullptr, IDS_PRINTINPROGRESS_HELP, body, target);
+            const auto cancelJob      = Resource(IDS_PRINTCANCELJOB);
+            const auto keepWaiting    = Resource(IDS_PRINTKEEPWAITING);
+            const std::array<TASKDIALOG_BUTTON, 2> buttons{
+                TASKDIALOG_BUTTON{IDS_PRINTCANCELJOB, cancelJob.c_str()},
+                TASKDIALOG_BUTTON{IDS_PRINTKEEPWAITING, keepWaiting.c_str()},
+            };
+            TASKDIALOGCONFIG config{};
+            config.cbSize             = sizeof(config);
+            config.hwndParent         = _window.get();
+            config.dwFlags            = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SIZE_TO_CONTENT;
+            config.pszWindowTitle     = title.c_str();
+            config.pszMainIcon        = TD_INFORMATION_ICON;
+            config.pszMainInstruction = instruction.c_str();
+            config.pszContent         = content.c_str();
+            config.cButtons           = static_cast<UINT>(buttons.size());
+            config.pButtons           = buttons.data();
+            config.nDefaultButton     = IDS_PRINTKEEPWAITING;
+            int pressed               = IDS_PRINTKEEPWAITING;
+            if (SUCCEEDED(DxUi::Failure::InvokeNative(&TaskDialogIndirect, &config, &pressed, nullptr, nullptr)) && pressed == IDS_PRINTCANCELJOB &&
+                _printOperation && IsUiAttached())
+            {
+                Printing::Stop(_printOperation);
+                Status(IDS_PRINTCANCELLED);
+            }
+        }
+        return;
+    }
 #if defined(ENABLE_TESTS)
     if (_options.headless && ! _options.printDestinationsForTest)
         return;
@@ -128,7 +169,7 @@ void Application::PreviewPrintDestination(std::optional<Printing::PrinterSetting
         _printPreview->SetConfiguration(nullptr, false);
     }
     const auto pageNumber = std::max(1u, _printPreview->Page().number);
-    _printPreview->BeginRendering(FormatStringResource(nullptr, IDS_PRINTPREVIEWCONNECTING, printer));
+    _printPreview->BeginRendering(FormatStringResource(nullptr, IDS_PRINTPREVIEWCONNECTING, SanitizeUiText(printer, 256u)));
     Printing::RequestPrinter(*_printOperation, pageNumber, std::move(printer), std::move(requested));
 }
 
@@ -211,7 +252,7 @@ void Application::PrintCompleted()
         if (notice->destinations)
             _printPreview->SetDestinations(std::move(notice->destinations.value()));
         if (! notice->printer.empty())
-            _printPreview->SetStatus(FormatStringResource(nullptr, IDS_PRINTPREVIEWCONNECTING, notice->printer));
+            _printPreview->SetStatus(FormatStringResource(nullptr, IDS_PRINTPREVIEWCONNECTING, SanitizeUiText(notice->printer, 256u)));
         return;
     }
     if (notice->kind == Printing::Notice::Kind::Preview)
@@ -231,7 +272,7 @@ void Application::PrintCompleted()
                 _printConfiguration.reset();
             _printPreview->SetConfiguration(_printConfiguration ? &_printConfiguration.value() : nullptr, samePrinter, notice->printerPending);
             if (notice->printerPending && ! notice->printer.empty())
-                status = FormatStringResource(nullptr, IDS_PRINTPREVIEWSLOW, notice->printer);
+                status = FormatStringResource(nullptr, IDS_PRINTPREVIEWSLOW, SanitizeUiText(notice->printer, 256u));
             else if (FAILED(notice->result) && ! notice->printer.empty())
             {
                 const auto summary = Resource(rendered.fallbackPaper ? IDS_PRINTPREVIEWDEFAULT : IDS_PRINTSETTINGSFAILED);
@@ -239,8 +280,10 @@ void Application::PrintCompleted()
                 status             = FormatStringResource(nullptr, IDS_PRINTERRORDETAIL, summary, error);
             }
         }
+        else
+            _printPreview->SetConfigurationPending(notice->printerPending);
         if (status.empty() && notice->printerPending && ! notice->printer.empty())
-            status = FormatStringResource(nullptr, IDS_PRINTPREVIEWSLOW, notice->printer);
+            status = FormatStringResource(nullptr, IDS_PRINTPREVIEWSLOW, SanitizeUiText(notice->printer, 256u));
         else if (status.empty() && rendered.fallbackPaper)
             status = Resource(IDS_PRINTPREVIEWDEFAULT);
         _printPreview->Present(std::move(rendered), std::move(status));
@@ -306,18 +349,15 @@ void Application::ReportPrintFailure(HRESULT result, Printing::Stage stage, std:
         case Stage::FinishJob: summary = Resource(IDS_PRINTFINISHFAILED); break;
         case Stage::SaveFile: summary = Resource(IDS_PRINTFILEFAILED); break;
     }
-    const auto messageSummary = printer.empty() ? summary : FormatStringResource(nullptr, IDS_PRINTDESTINATIONFAILED, summary, printer);
+    const auto messageSummary = printer.empty() ? summary : FormatStringResource(nullptr, IDS_PRINTDESTINATIONFAILED, summary, SanitizeUiText(printer, 256u));
     const auto error          = ErrorText(result);
     const auto message        = FormatStringResource(nullptr, IDS_PRINTERRORDETAIL, messageSummary, error);
     _feedback->SetText(messageSummary);
-    if (_printPreview)
-        _printPreview->SetStatus(messageSummary);
     if (! _options.headless && ! HasActiveModalPrompt())
     {
         _modalPrompt       = ModalPromptKind::ErrorMessage;
         const auto restore = wil::scope_exit([&]() noexcept { _modalPrompt = ModalPromptKind::None; });
-        const HWND owner   = _printPreview ? _printPreview->Window() : _window.get();
-        (void)DxUi::Failure::InvokeNative(&MessageBoxW, owner, message.c_str(), Resource(IDS_ERROR).c_str(), static_cast<UINT>(MB_OK | MB_ICONERROR));
+        (void)DxUi::Failure::InvokeNative(&MessageBoxW, _window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), static_cast<UINT>(MB_OK | MB_ICONERROR));
     }
 }
 

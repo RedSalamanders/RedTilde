@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -12,6 +13,18 @@
 
 namespace RedTilde
 {
+struct TransparentWStringHash
+{
+    using is_transparent = void;
+
+    [[nodiscard]] std::size_t operator()(std::wstring_view value) const noexcept
+    {
+        return std::hash<std::wstring_view>{}(value);
+    }
+};
+
+using TransparentWStringSet = std::unordered_set<std::wstring, TransparentWStringHash, std::equal_to<>>;
+
 enum class DictionaryEncoding : std::uint8_t
 {
     Utf8,
@@ -27,6 +40,9 @@ enum class DictionaryLineEnding : std::uint8_t
     CrLf
 };
 
+// Normalize text using Unicode Normalization Form C (NFC) with buffer-growth retries.
+[[nodiscard]] bool TryNormalizeUnicodeNfc(std::wstring_view text, std::wstring& outNfc) noexcept;
+
 // Normalize a single dictionary key using Unicode NFC + locale-invariant lowercase.
 // Rejects empty strings, whitespace, control characters, U+FFFD, invalid surrogates, and > 64 scalar chars.
 [[nodiscard]] bool TryNormalizeDictionaryKey(std::wstring_view word, std::wstring& outKey) noexcept;
@@ -41,6 +57,28 @@ public:
     static constexpr std::size_t MaximumWords      = 100000u;
     static constexpr std::size_t MaximumWordLength = 64u;
 
+    class AcceptedLookupScope final
+    {
+    public:
+        explicit AcceptedLookupScope(const CustomDictionary& dictionary) noexcept : _dictionary(dictionary), _lock(dictionary._mutex)
+        {
+        }
+        AcceptedLookupScope(const AcceptedLookupScope&)            = delete;
+        AcceptedLookupScope& operator=(const AcceptedLookupScope&) = delete;
+
+        [[nodiscard]] bool IsAcceptedNormalized(std::wstring_view normalizedKey,
+                                                unsigned workspaceKey                    = 0u,
+                                                std::optional<std::size_t> occurrenceKey = std::nullopt,
+                                                bool ignoreOnceOnly                      = false) const noexcept
+        {
+            return _dictionary.IsAcceptedNormalizedLocked(normalizedKey, workspaceKey, occurrenceKey, ignoreOnceOnly);
+        }
+
+    private:
+        const CustomDictionary& _dictionary;
+        std::unique_lock<std::mutex> _lock;
+    };
+
     CustomDictionary()                                   = default;
     CustomDictionary(const CustomDictionary&)            = delete;
     CustomDictionary& operator=(const CustomDictionary&) = delete;
@@ -52,13 +90,16 @@ public:
     void IgnoreAll(std::wstring_view rawWord) noexcept;
     void IgnoreOnce(unsigned workspaceKey, std::wstring_view rawWord, std::size_t occurrenceKey) noexcept;
     void ClearIgnoreOnceForWorkspace(unsigned workspaceKey) noexcept;
+    void ClearAllIgnoreOnce() noexcept;
 
     [[nodiscard]] bool IsAccepted(std::wstring_view rawWord,
                                   unsigned workspaceKey                    = 0u,
-                                  std::optional<std::size_t> occurrenceKey = std::nullopt) const noexcept;
+                                  std::optional<std::size_t> occurrenceKey = std::nullopt,
+                                  bool ignoreOnceOnly                      = false) const noexcept;
     [[nodiscard]] bool IsAcceptedNormalized(std::wstring_view normalizedKey,
                                             unsigned workspaceKey                    = 0u,
-                                            std::optional<std::size_t> occurrenceKey = std::nullopt) const noexcept;
+                                            std::optional<std::size_t> occurrenceKey = std::nullopt,
+                                            bool ignoreOnceOnly                      = false) const noexcept;
 
     [[nodiscard]] std::uint64_t Generation() const noexcept;
     [[nodiscard]] std::filesystem::path Path() const;
@@ -71,10 +112,10 @@ public:
     struct Snapshot
     {
         std::uint64_t generation{};
-        std::unordered_set<std::wstring> customWords;
-        std::unordered_set<std::wstring> ignoredAll;
+        TransparentWStringSet customWords;
+        TransparentWStringSet ignoredAll;
 
-        [[nodiscard]] bool ContainsNormalized(const std::wstring& normalizedKey) const noexcept
+        [[nodiscard]] bool ContainsNormalized(std::wstring_view normalizedKey) const noexcept
         {
             return customWords.contains(normalizedKey) || ignoredAll.contains(normalizedKey);
         }
@@ -89,6 +130,10 @@ private:
         std::wstring normalizedKey; // Empty for comments, blank lines, and non-word directives.
     };
 
+    [[nodiscard]] bool IsAcceptedNormalizedLocked(std::wstring_view normalizedKey,
+                                                  unsigned workspaceKey,
+                                                  std::optional<std::size_t> occurrenceKey,
+                                                  bool ignoreOnceOnly) const noexcept;
     [[nodiscard]] HRESULT PersistLocked() noexcept;
 
     mutable std::mutex _mutex;
@@ -99,8 +144,8 @@ private:
     HRESULT _loadStatus              = S_OK;
     std::uint64_t _generation        = 1u;
     std::vector<RawLine> _rawLines;
-    std::unordered_set<std::wstring> _normalizedWords;
-    std::unordered_set<std::wstring> _ignoredAll;
+    TransparentWStringSet _normalizedWords;
+    TransparentWStringSet _ignoredAll;
     struct IgnoreOnceEntry
     {
         unsigned workspaceKey{};

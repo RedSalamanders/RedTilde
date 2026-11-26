@@ -41,6 +41,7 @@ struct RecoverySnapshot
     bool wasActive{};
     std::optional<FileStamp> savedBaselineStamp;
     DocumentOriginInfo origin;
+    bool recovered{};
 };
 struct RecoveryCandidate
 {

@@ -27,6 +27,7 @@ public:
     [[nodiscard]] bool Collate() const noexcept;
     [[nodiscard]] bool PrintToFile() const noexcept;
     [[nodiscard]] bool IsReady() const noexcept;
+    [[nodiscard]] bool IsConfigurationPending() const noexcept;
     [[nodiscard]] bool CanPrint() const noexcept;
     [[nodiscard]] bool DispatchKeyboardMessage(const MSG& message);
 #if defined(ENABLE_TESTS)
@@ -38,6 +39,7 @@ public:
     void SetTheme(const DxUi::ThemePalette& theme) noexcept;
     void SetDestinations(Printing::Destinations destinations);
     void SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues, bool configurationPending = false);
+    void SetConfigurationPending(bool pending) noexcept;
     void BeginRendering(std::wstring_view status = {});
     void Present(Printing::PreviewPage page, std::wstring status);
     void SetStatus(std::wstring status);

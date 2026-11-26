@@ -1,6 +1,7 @@
 #pragma once
 #include <DxUi/DxUi.h>
 #include <functional>
+#include <optional>
 #include <vector>
 
 namespace RedTilde
@@ -21,6 +22,13 @@ public:
     void GetVisibleItem(std::size_t index, DxUi::TreeItemData& item) const override
     {
         item = rows.at(index);
+    }
+    [[nodiscard]] std::optional<std::size_t> FindVisibleItemById(std::uint64_t itemId) const noexcept override
+    {
+        for (std::size_t i = 0u; i < rows.size(); ++i)
+            if (rows[i].id == itemId)
+                return i;
+        return std::nullopt;
     }
     void OnTreeItemInvoked(std::uint64_t id) override
     {

@@ -4,6 +4,7 @@
 #include <ws2tcpip.h>
 // clang-format on
 #include "Application.Tests.RemoteImages.h"
+#include "Common/PathSecurity.h"
 #include "Common/RemoteImage.h"
 #include "Common/RemoteImageImports.h"
 #include "RedTilde/Application.h"
@@ -271,6 +272,13 @@ void RegisterRemoteImageTests(const std::filesystem::path& root, const std::func
         wil::unique_handle directory;
         Require(OpenImageDirectoryForNotifications(link.native(), directory) == E_ACCESSDENIED && ! directory,
                 "image notification setup also refuses a redirected directory");
+        bool reparseRejected = false;
+        Require(VerifyPathNoSurrogateReparse(link / L".." / target.filename() / image.filename(), {}, &reparseRejected) == E_ACCESSDENIED && reparseRejected,
+                "VerifyPathNoSurrogateReparse rejects junction followed by dot-dot before lexical collapse");
+        Require(VerifyPathNoSurrogateReparse(target / L".." / target.filename() / image.filename(), {}, &reparseRejected) == E_INVALIDARG && ! reparseRejected,
+                "VerifyPathNoSurrogateReparse rejects dot-dot components fail-closed");
+        Require(VerifyPathNoSurrogateReparse(image, {.expectDirectory = false}, &reparseRejected) == S_OK && ! reparseRejected,
+                "VerifyPathNoSurrogateReparse accepts direct non-reparse image path");
         const auto large = target / L"Oversized image.bmp";
         {
             wil::unique_handle file(CreateFileW(large.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));

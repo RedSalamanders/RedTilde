@@ -4,10 +4,10 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 `-Suite Captures` generates non-activating application renders; `-Suite Crash` runs an isolated child fault.
 `-Suite All` includes all three. ASan Core/All must detect an isolated intentional heap-use-after-free.
 
-Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
+Native cases are compiled from `Application.Tests.{Core,Close,DesignRefresh,Files,FailureHost,GitHub,MultiFolderFiles,Panes,Printing,RemoteImages,SaveDialog,Settings,Spelling,SplitEditing}.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
-The native catalog contains 178 cases across Storage (32), Settings (15), Recovery (22) and Editor (109).
+The native catalog contains 241 cases across Storage (40), Settings (25), Recovery (24) and Editor (152).
 Editor executes as content, workspace/chrome, media, performance and rendering children, each retaining
 the 90-second guard. Their exact disjoint union must match the reviewed catalog. The legacy whole-Editor
 and EditorBehavior scopes remain available. Partial reports flush the active case before execution and
@@ -105,8 +105,7 @@ See the [retention contract](../Specs/Testing/Testing_RunEvidence.md) for verifi
 
 ## Design refresh interaction and captures
 
-`test.ps1 -Suite Captures` generates 38 actual hidden renders: the normal presentation scenes plus Files,
-Find/Replace, Focus and exact equation source, with narrow and image-2 weekly-report 96/144/192-DPI variants. The
+`test.ps1 -Suites Captures` generates 53 actual hidden renders: 38 base presentation scenes (including Panes, Split, Spelling under `ENABLE_TESTS`, SaveConfirm, MultiFolder/GitHub, and OpenGitHub captures) plus `96`/`144`/`192`-DPI variants for `narrow`, `reference-dark`, `markdown-style`, `caption-close-hover`, and `caption-maximize-hover`. The
 reference-dark scene reads `Tests/Fixtures/reference-dark.md`, seeds the same twenty-file Reports tree
 and selects the same current section. At 96 DPI its actual viewport is exactly 1440x900 pixels. Every PNG has a scenario
 sidecar with requested and actual viewport/DPI, native window DPI, simulation state and invented fixture name.

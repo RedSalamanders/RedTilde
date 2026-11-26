@@ -1,8 +1,9 @@
 #include "CustomDictionary.h"
+#include "PathSecurity.h"
 #include <DxUi/Failure.h>
-#include <DxUi/RichDocument.h>
 #include <algorithm>
 #include <cwctype>
+#include <limits>
 #include <new>
 #include <string>
 #include <utility>
@@ -57,68 +58,147 @@ namespace
     return outCount > 0u;
 }
 
-[[nodiscard]] bool CheckPathNotReparsePoint(const std::filesystem::path& path, HRESULT& outError) noexcept
+[[nodiscard]] bool IsValidDictionaryUtf16(std::wstring_view text) noexcept
 {
-    outError = S_OK;
-    if (path.empty())
+    for (std::size_t i = 0u; i < text.size();)
     {
-        outError = E_INVALIDARG;
-        return false;
-    }
-    WIN32_FILE_ATTRIBUTE_DATA attrs{};
-    if (! GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attrs))
-    {
-        const DWORD err = GetLastError();
-        if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND)
-            return true;
-        outError = HRESULT_FROM_WIN32(err ? err : ERROR_ACCESS_DENIED);
-        return false;
-    }
-    if ((attrs.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0u || (attrs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0u)
-    {
-        outError = HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
-        return false;
-    }
-    const wil::unique_hfile handle(CreateFileW(path.c_str(),
-                                               FILE_READ_ATTRIBUTES,
-                                               FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                               nullptr,
-                                               OPEN_EXISTING,
-                                               FILE_FLAG_OPEN_REPARSE_POINT,
-                                               nullptr));
-    if (! handle)
-    {
-        const DWORD err = GetLastError();
-        if (err == ERROR_FILE_NOT_FOUND)
-            return true;
-        outError = HRESULT_FROM_WIN32(err ? err : ERROR_ACCESS_DENIED);
-        return false;
-    }
-    FILE_BASIC_INFO basic{};
-    if (GetFileInformationByHandleEx(handle.get(), FileBasicInfo, &basic, sizeof(basic)) &&
-        ((basic.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0u || (basic.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0u))
-    {
-        outError = HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
-        return false;
+        const wchar_t ch = text[i];
+        if (ch == L'\0')
+            return false;
+        if (IS_HIGH_SURROGATE(ch))
+        {
+            if (i + 1u >= text.size() || ! IS_LOW_SURROGATE(text[i + 1u]))
+                return false;
+            i += 2u;
+        }
+        else if (IS_LOW_SURROGATE(ch))
+        {
+            return false;
+        }
+        else
+        {
+            ++i;
+        }
     }
     return true;
 }
 
-[[nodiscard]] bool LooksLikeBomlessUtf16Le(std::string_view bytes) noexcept
+[[nodiscard]] HRESULT TryDecodeUtf8DictionaryBytes(std::string_view bytes, std::wstring& outText) noexcept
+try
 {
-    if (bytes.size() < 2u || (bytes.size() % 2u) != 0u)
-        return false;
-    std::size_t zeroOdd     = 0u;
-    std::size_t zeroEven    = 0u;
-    const std::size_t pairs = std::min<std::size_t>(bytes.size() / 2u, 256u);
-    for (std::size_t i = 0u; i < pairs; ++i)
+    outText.clear();
+    if (bytes.size() > CustomDictionary::MaximumFileBytes || bytes.size() > static_cast<std::size_t>((std::numeric_limits<int>::max)()))
+        return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
+    if (bytes.empty())
+        return S_OK;
+    if (bytes.find('\0') != std::string_view::npos)
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
+
+    const int units = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, bytes.data(), static_cast<int>(bytes.size()), nullptr, 0);
+    if (units <= 0)
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
+
+    std::wstring staged(static_cast<std::size_t>(units), L'\0');
+    const int written = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, bytes.data(), static_cast<int>(bytes.size()), staged.data(), units);
+    if (written != units || ! IsValidDictionaryUtf16(staged))
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
+
+    outText = std::move(staged);
+    return S_OK;
+}
+catch (const std::bad_alloc&)
+{
+    DxUi::Failure::FailAllocation();
+}
+
+[[nodiscard]] HRESULT TryEncodeUtf8DictionaryText(std::wstring_view text, bool withBom, std::string& outBytes) noexcept
+try
+{
+    outBytes.clear();
+    if (! IsValidDictionaryUtf16(text))
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
+    const std::size_t bomBytes = withBom ? 3u : 0u;
+    if (text.size() > CustomDictionary::MaximumFileBytes - bomBytes || text.size() > static_cast<std::size_t>((std::numeric_limits<int>::max)()))
+        return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
+
+    if (text.empty())
     {
-        if (bytes[2u * i] == '\0')
-            ++zeroEven;
-        if (bytes[2u * i + 1u] == '\0')
-            ++zeroOdd;
+        if (withBom)
+            outBytes.assign("\xEF\xBB\xBF", 3u);
+        return S_OK;
     }
-    return zeroOdd > pairs / 4u && zeroEven == 0u;
+
+    const int byteCount = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+    if (byteCount <= 0)
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
+    if (static_cast<std::size_t>(byteCount) + bomBytes > CustomDictionary::MaximumFileBytes)
+        return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
+
+    std::string staged(bomBytes + static_cast<std::size_t>(byteCount), '\0');
+    if (withBom)
+    {
+        staged[0] = static_cast<char>(0xEFu);
+        staged[1] = static_cast<char>(0xBBu);
+        staged[2] = static_cast<char>(0xBFu);
+    }
+    const int written =
+        WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), staged.data() + bomBytes, byteCount, nullptr, nullptr);
+    if (written != byteCount)
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
+
+    outBytes = std::move(staged);
+    return S_OK;
+}
+catch (const std::bad_alloc&)
+{
+    DxUi::Failure::FailAllocation();
+}
+
+[[nodiscard]] bool LooksLikeBomlessUtf16Le(std::string_view bytes, std::wstring& outText) noexcept
+try
+{
+    outText.clear();
+    if (bytes.size() < 2u || (bytes.size() % 2u) != 0u || bytes.size() > CustomDictionary::MaximumFileBytes)
+        return false;
+
+    const std::size_t unitCount = bytes.size() / 2u;
+    std::wstring candidate(unitCount, L'\0');
+    std::size_t oddZeros   = 0u;
+    std::size_t evenZeros  = 0u;
+    std::size_t leNewlines = 0u;
+    std::size_t beNewlines = 0u;
+
+    for (std::size_t i = 0u; i < unitCount; ++i)
+    {
+        const unsigned lo = static_cast<unsigned char>(bytes[2u * i]);
+        const unsigned hi = static_cast<unsigned char>(bytes[2u * i + 1u]);
+        const wchar_t ch  = static_cast<wchar_t>(lo | (hi << 8u));
+        if (ch == L'\0' || ch == 0xFEFFu || ch == 0xFFFEu || (ch < 0x20u && ch != L'\t' && ch != L'\r' && ch != L'\n') || (ch >= 0x7Fu && ch <= 0x9Fu))
+            return false;
+        if (hi == 0u && lo >= 0x09u)
+            ++oddZeros;
+        else if (lo == 0u && hi != 0u)
+            ++evenZeros;
+        if (ch == 0x000Au || ch == 0x000Du)
+            ++leNewlines;
+        else if (ch == 0x0A00u || ch == 0x0D00u)
+            ++beNewlines;
+        candidate[i] = ch;
+    }
+
+    if (! IsValidDictionaryUtf16(candidate))
+        return false;
+    if (oddZeros == 0u)
+        return false;
+    if (! (oddZeros > evenZeros || (oddZeros >= evenZeros && leNewlines > beNewlines)))
+        return false;
+
+    outText = std::move(candidate);
+    return true;
+}
+catch (const std::bad_alloc&)
+{
+    DxUi::Failure::FailAllocation();
 }
 
 [[nodiscard]] HRESULT DecodeDictionaryBytes(
@@ -129,6 +209,8 @@ try
     outEncoding        = DictionaryEncoding::Utf8;
     outLineEnding      = DictionaryLineEnding::Lf;
     outTrailingNewline = true;
+    if (bytes.size() > CustomDictionary::MaximumFileBytes)
+        return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     if (bytes.empty())
         return S_OK;
 
@@ -165,28 +247,33 @@ try
     {
         outEncoding = DictionaryEncoding::Utf8Bom;
         bytes.remove_prefix(3u);
-        if (DxUi::RichText::TryDecodeUtf8(bytes, outText) != DxUi::RichText::SourceResult::Success)
-            return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
-    }
-    else if (LooksLikeBomlessUtf16Le(bytes))
-    {
-        outEncoding = DictionaryEncoding::Utf16LeNoBom;
-        outText.resize(bytes.size() / 2u);
-        for (std::size_t i = 0u; i < outText.size(); ++i)
-        {
-            const unsigned lo = static_cast<unsigned char>(bytes[2u * i]);
-            const unsigned hi = static_cast<unsigned char>(bytes[2u * i + 1u]);
-            outText[i]        = static_cast<wchar_t>(lo | (hi << 8u));
-        }
+        const HRESULT utf8Hr = TryDecodeUtf8DictionaryBytes(bytes, outText);
+        if (FAILED(utf8Hr))
+            return utf8Hr;
     }
     else
     {
-        outEncoding = DictionaryEncoding::Utf8;
-        if (DxUi::RichText::TryDecodeUtf8(bytes, outText) != DxUi::RichText::SourceResult::Success)
+        // Try strict UTF-8 before falling back to BOM-less UTF-16LE.
+        const HRESULT utf8Hr = TryDecodeUtf8DictionaryBytes(bytes, outText);
+        if (SUCCEEDED(utf8Hr))
+        {
+            outEncoding = DictionaryEncoding::Utf8;
+        }
+        else if (utf8Hr == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
+        {
+            return utf8Hr;
+        }
+        else if (LooksLikeBomlessUtf16Le(bytes, outText))
+        {
+            outEncoding = DictionaryEncoding::Utf16LeNoBom;
+        }
+        else
+        {
             return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
+        }
     }
 
-    if (! DxUi::RichText::IsValidUtf16(outText))
+    if (! IsValidDictionaryUtf16(outText))
         return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
 
     if (outText.find(L"\r\n") != std::wstring::npos)
@@ -203,24 +290,20 @@ catch (const std::bad_alloc&)
 try
 {
     outBytes.clear();
+    if (! IsValidDictionaryUtf16(text))
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
     switch (encoding)
     {
-        case DictionaryEncoding::Utf8: return DxUi::RichText::TryEncodeUtf8(text, outBytes) == DxUi::RichText::SourceResult::Success ? S_OK : E_INVALIDARG;
-        case DictionaryEncoding::Utf8Bom:
-        {
-            std::string body;
-            if (DxUi::RichText::TryEncodeUtf8(text, body) != DxUi::RichText::SourceResult::Success)
-                return E_INVALIDARG;
-            outBytes.reserve(3u + body.size());
-            outBytes.append("\xEF\xBB\xBF", 3u);
-            outBytes.append(body);
-            return S_OK;
-        }
+        case DictionaryEncoding::Utf8: return TryEncodeUtf8DictionaryText(text, false, outBytes);
+        case DictionaryEncoding::Utf8Bom: return TryEncodeUtf8DictionaryText(text, true, outBytes);
         case DictionaryEncoding::Utf16LeBom:
         case DictionaryEncoding::Utf16LeNoBom:
         {
-            const bool bom = encoding == DictionaryEncoding::Utf16LeBom;
-            outBytes.reserve((bom ? 2u : 0u) + text.size() * 2u);
+            const bool bom             = encoding == DictionaryEncoding::Utf16LeBom;
+            const std::size_t bomBytes = bom ? 2u : 0u;
+            if (text.size() > (CustomDictionary::MaximumFileBytes - bomBytes) / 2u)
+                return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
+            outBytes.reserve(bomBytes + text.size() * 2u);
             if (bom)
             {
                 outBytes.push_back(static_cast<char>(0xFFu));
@@ -236,6 +319,8 @@ try
         }
         case DictionaryEncoding::Utf16BeBom:
         {
+            if (text.size() > (CustomDictionary::MaximumFileBytes - 2u) / 2u)
+                return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
             outBytes.reserve(2u + text.size() * 2u);
             outBytes.push_back(static_cast<char>(0xFEu));
             outBytes.push_back(static_cast<char>(0xFFu));
@@ -256,6 +341,39 @@ catch (const std::bad_alloc&)
 }
 } // namespace
 
+bool TryNormalizeUnicodeNfc(std::wstring_view text, std::wstring& outNfc) noexcept
+try
+{
+    outNfc.clear();
+    if (text.empty() || text.size() > static_cast<std::size_t>((std::numeric_limits<int>::max)()) || text.find(L'\0') != text.npos)
+        return false;
+
+    int nfcCapacity = NormalizeString(NormalizationC, text.data(), static_cast<int>(text.size()), nullptr, 0);
+    if (nfcCapacity <= 0)
+        return false;
+    for (int attempt = 0; attempt < 4; ++attempt)
+    {
+        if (nfcCapacity <= 0 || nfcCapacity > 4096)
+            return false;
+        std::wstring nfc(static_cast<std::size_t>(nfcCapacity), L'\0');
+        const int nfcWritten = NormalizeString(NormalizationC, text.data(), static_cast<int>(text.size()), nfc.data(), nfcCapacity);
+        if (nfcWritten > 0)
+        {
+            nfc.resize(static_cast<std::size_t>(nfcWritten));
+            outNfc = std::move(nfc);
+            return true;
+        }
+        if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+            return false;
+        nfcCapacity = nfcWritten < 0 ? (std::max)(-nfcWritten, nfcCapacity * 2) : (nfcCapacity * 2);
+    }
+    return false;
+}
+catch (const std::bad_alloc&)
+{
+    DxUi::Failure::FailAllocation();
+}
+
 bool TryNormalizeDictionaryKey(std::wstring_view word, std::wstring& outKey) noexcept
 try
 {
@@ -265,14 +383,9 @@ try
     if (! CountValidatedScalarChars(trimmed, scalarCount))
         return false;
 
-    const int nfcCapacity = NormalizeString(NormalizationC, trimmed.data(), static_cast<int>(trimmed.size()), nullptr, 0);
-    if (nfcCapacity <= 0)
+    std::wstring nfc;
+    if (! TryNormalizeUnicodeNfc(trimmed, nfc))
         return false;
-    std::wstring nfc(static_cast<std::size_t>(nfcCapacity), L'\0');
-    const int nfcWritten = NormalizeString(NormalizationC, trimmed.data(), static_cast<int>(trimmed.size()), nfc.data(), nfcCapacity);
-    if (nfcWritten <= 0)
-        return false;
-    nfc.resize(static_cast<std::size_t>(nfcWritten));
 
     const int lowerCapacity = LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_LOWERCASE, nfc.data(), static_cast<int>(nfc.size()), nullptr, 0, nullptr, nullptr, 0);
     if (lowerCapacity <= 0)
@@ -299,53 +412,55 @@ catch (const std::bad_alloc&)
 HRESULT CustomDictionary::Load(const std::filesystem::path& path) noexcept
 try
 {
-    std::lock_guard lock(_mutex);
-    _path  = path;
-    _stamp = {};
-    _rawLines.clear();
-    _normalizedWords.clear();
-    _encoding        = DictionaryEncoding::Utf8;
-    _lineEnding      = DictionaryLineEnding::Lf;
-    _trailingNewline = true;
-    _loadStatus      = S_OK;
+    if (path.empty() || ! path.is_absolute() || ! IsValidWin32PathString(path.native()))
+        return E_INVALIDARG;
 
-    HRESULT reparseHr = S_OK;
-    if (! CheckPathNotReparsePoint(path, reparseHr))
+    std::lock_guard lock(_mutex);
+    const auto handleFailure = [&](HRESULT err) noexcept -> HRESULT
     {
-        _loadStatus = reparseHr;
-        ++_generation;
-        return reparseHr;
-    }
+        // Preserve existing loaded dictionary & _loadStatus when switching to an invalid path.
+        const bool keepPrior = ! _path.empty() && SUCCEEDED(_loadStatus) && ! SameRootPath(_path, path);
+        if (! keepPrior)
+        {
+            _path       = path;
+            _loadStatus = err;
+            ++_generation;
+        }
+        return err;
+    };
 
     std::string bytes;
-    FileStamp stamp;
-    const HRESULT readHr = ReadBytes(path, bytes, &stamp, MaximumFileBytes);
-    if (readHr == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
+    FileStamp newStamp;
+    bool reparseRejected = false;
+    const HRESULT readHr = ReadBytesNoReparse(path, bytes, &newStamp, MaximumFileBytes, &reparseRejected);
+    if (reparseRejected)
+        return handleFailure(HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE));
+    if (readHr == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) || readHr == HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
     {
+        _path  = path;
+        _stamp = {};
+        _rawLines.clear();
+        _normalizedWords.clear();
+        _encoding        = DictionaryEncoding::Utf8;
+        _lineEnding      = DictionaryLineEnding::Lf;
+        _trailingNewline = true;
+        _loadStatus      = S_OK;
         ++_generation;
         return S_OK;
     }
     if (FAILED(readHr))
-    {
-        _loadStatus = readHr;
-        ++_generation;
-        return readHr;
-    }
+        return handleFailure(readHr);
 
     std::wstring text;
-    DictionaryEncoding encoding     = DictionaryEncoding::Utf8;
-    DictionaryLineEnding lineEnding = DictionaryLineEnding::Lf;
-    bool trailingNewline            = true;
-    const HRESULT decodeHr          = DecodeDictionaryBytes(bytes, text, encoding, lineEnding, trailingNewline);
+    DictionaryEncoding newEncoding     = DictionaryEncoding::Utf8;
+    DictionaryLineEnding newLineEnding = DictionaryLineEnding::Lf;
+    bool newTrailingNewline            = true;
+    const HRESULT decodeHr             = DecodeDictionaryBytes(bytes, text, newEncoding, newLineEnding, newTrailingNewline);
     if (FAILED(decodeHr))
-    {
-        _loadStatus = decodeHr;
-        ++_generation;
-        return decodeHr;
-    }
+        return handleFailure(decodeHr);
 
     std::vector<RawLine> parsedLines;
-    std::unordered_set<std::wstring> normalizedSet;
+    TransparentWStringSet normalizedSet;
     std::size_t cursor = 0u;
     while (cursor < text.size())
     {
@@ -363,11 +478,7 @@ try
             if (TryNormalizeDictionaryKey(trimmed, key))
             {
                 if (normalizedSet.size() >= MaximumWords && ! normalizedSet.contains(key))
-                {
-                    _loadStatus = HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
-                    ++_generation;
-                    return _loadStatus;
-                }
+                    return handleFailure(HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE));
                 normalizedSet.insert(key);
                 raw.normalizedKey = std::move(key);
             }
@@ -382,10 +493,11 @@ try
             cursor = lineEnd + 1u;
     }
 
-    _stamp           = stamp;
-    _encoding        = encoding;
-    _lineEnding      = lineEnding;
-    _trailingNewline = trailingNewline;
+    _path            = path;
+    _stamp           = newStamp;
+    _encoding        = newEncoding;
+    _lineEnding      = newLineEnding;
+    _trailingNewline = newTrailingNewline;
     _rawLines        = std::move(parsedLines);
     _normalizedWords = std::move(normalizedSet);
     _loadStatus      = S_OK;
@@ -400,14 +512,10 @@ catch (const std::bad_alloc&)
 HRESULT CustomDictionary::PersistLocked() noexcept
 try
 {
-    if (_path.empty())
+    if (_path.empty() || _path.parent_path().empty())
         return E_INVALIDARG;
     if (FAILED(_loadStatus))
         return _loadStatus;
-
-    HRESULT reparseHr = S_OK;
-    if (! CheckPathNotReparsePoint(_path, reparseHr))
-        return reparseHr;
 
     const std::wstring_view eol = _lineEnding == DictionaryLineEnding::CrLf ? L"\r\n" : L"\n";
     std::wstring output;
@@ -426,13 +534,14 @@ try
     if (encoded.size() > MaximumFileBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
 
-    std::error_code dirError;
-    if (! _path.parent_path().empty())
-        std::filesystem::create_directories(_path.parent_path(), dirError);
+    wil::unique_handle pinnedParent;
+    bool parentReparse  = false;
+    const HRESULT dirHr = EnsurePinnedDiskDirectory(_path.parent_path(), pinnedParent, &parentReparse);
+    if (FAILED(dirHr))
+        return parentReparse ? HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE) : dirHr;
 
     FileStamp saved;
-    const FileStamp* expected = _stamp.exists ? &_stamp : nullptr;
-    const HRESULT writeHr     = WriteBytesAtomic(_path, encoded, expected, &saved, false, nullptr, true, nullptr, MaximumFileBytes);
+    const HRESULT writeHr = WriteBytesAtomic(_path, encoded, &_stamp, &saved, false, nullptr, true, nullptr, MaximumFileBytes, true);
     if (SUCCEEDED(writeHr))
         _stamp = saved;
     return writeHr;
@@ -545,34 +654,54 @@ void CustomDictionary::ClearIgnoreOnceForWorkspace(unsigned workspaceKey) noexce
         ++_generation;
 }
 
-bool CustomDictionary::IsAccepted(std::wstring_view rawWord, unsigned workspaceKey, std::optional<std::size_t> occurrenceKey) const noexcept
+void CustomDictionary::ClearAllIgnoreOnce() noexcept
+{
+    std::lock_guard lock(_mutex);
+    if (! _ignoredOnce.empty())
+    {
+        _ignoredOnce.clear();
+        ++_generation;
+    }
+}
+
+bool CustomDictionary::IsAccepted(std::wstring_view rawWord,
+                                  unsigned workspaceKey,
+                                  std::optional<std::size_t> occurrenceKey,
+                                  bool ignoreOnceOnly) const noexcept
 {
     std::wstring key;
     if (! TryNormalizeDictionaryKey(rawWord, key))
         return false;
-    return IsAcceptedNormalized(key, workspaceKey, occurrenceKey);
+    return IsAcceptedNormalized(key, workspaceKey, occurrenceKey, ignoreOnceOnly);
 }
 
-bool CustomDictionary::IsAcceptedNormalized(std::wstring_view normalizedKey, unsigned workspaceKey, std::optional<std::size_t> occurrenceKey) const noexcept
-try
+bool CustomDictionary::IsAcceptedNormalizedLocked(std::wstring_view normalizedKey,
+                                                  unsigned workspaceKey,
+                                                  std::optional<std::size_t> occurrenceKey,
+                                                  bool ignoreOnceOnly) const noexcept
 {
     if (normalizedKey.empty())
         return false;
-    std::lock_guard lock(_mutex);
-    const std::wstring lookup(normalizedKey);
-    if (_normalizedWords.contains(lookup) || _ignoredAll.contains(lookup))
+    if (! ignoreOnceOnly && (_normalizedWords.contains(normalizedKey) || _ignoredAll.contains(normalizedKey)))
         return true;
     if (occurrenceKey)
     {
         for (const auto& entry : _ignoredOnce)
-            if (entry.workspaceKey == workspaceKey && entry.occurrenceKey == *occurrenceKey && entry.normalizedKey == lookup)
+            if (entry.workspaceKey == workspaceKey && entry.occurrenceKey == *occurrenceKey && entry.normalizedKey == normalizedKey)
                 return true;
     }
     return false;
 }
-catch (const std::bad_alloc&)
+
+bool CustomDictionary::IsAcceptedNormalized(std::wstring_view normalizedKey,
+                                            unsigned workspaceKey,
+                                            std::optional<std::size_t> occurrenceKey,
+                                            bool ignoreOnceOnly) const noexcept
 {
-    DxUi::Failure::FailAllocation();
+    if (normalizedKey.empty())
+        return false;
+    std::lock_guard lock(_mutex);
+    return IsAcceptedNormalizedLocked(normalizedKey, workspaceKey, occurrenceKey, ignoreOnceOnly);
 }
 
 std::uint64_t CustomDictionary::Generation() const noexcept

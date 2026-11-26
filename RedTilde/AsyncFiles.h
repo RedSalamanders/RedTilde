@@ -1,6 +1,7 @@
 #pragma once
 #include "Common/ProcessWork.h"
 #include "Common/Storage.h"
+#include <DxUi/Failure.h>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -89,89 +90,103 @@ private:
 #endif
     };
     std::shared_ptr<State> _state;
-    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE, void* context) noexcept
+    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context) noexcept
     {
         ProcessWorkLease lease = std::move(static_cast<Job*>(context)->lease);
-        const std::unique_ptr<Job> job(static_cast<Job*>(context));
-        auto& result = job->result;
+        if (instance)
+            (void)CallbackMayRunLong(instance);
+        try
+        {
+            const DxUi::Failure::Scope failureScope;
+            const std::unique_ptr<Job> job(static_cast<Job*>(context));
+            auto& result = job->result;
 #if defined(ENABLE_TESTS)
-        const auto signalFinished = wil::scope_exit([&]
-        {
+            const auto signalFinished = wil::scope_exit([&]
+            {
+                if (job->testGate)
+                    (void)SetEvent(job->testGate->finished.get());
+            });
             if (job->testGate)
-                (void)SetEvent(job->testGate->finished.get());
-        });
-        if (job->testGate)
-        {
-            (void)SetEvent(job->testGate->entered.get());
-            if (WaitForSingleObject(job->testGate->proceed.get(), 30000) != WAIT_OBJECT_0)
             {
-                result.status = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
-                std::lock_guard lock(job->state->mutex);
-                if (job->state->phase != Phase::Closed && job->generation == job->state->generation)
+                (void)SetEvent(job->testGate->entered.get());
+                if (WaitForSingleObject(job->testGate->proceed.get(), 30000) != WAIT_OBJECT_0)
                 {
-                    job->state->result = std::move(result);
-                    job->state->phase  = Phase::Completed;
-                    (void)PostMessageW(job->state->window, job->state->message, 0, 0);
+                    result.status = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+                    std::lock_guard lock(job->state->mutex);
+                    if (job->state->phase != Phase::Closed && job->generation == job->state->generation)
+                    {
+                        job->state->result = std::move(result);
+                        job->state->phase  = Phase::Completed;
+                        (void)PostMessageW(job->state->window, job->state->message, 0, 0);
+                    }
+                    return;
                 }
-                return;
             }
-        }
 #endif
-        if (result.saving)
-        {
-            if (job->probePickerDestination)
+            if (result.saving)
             {
-                FileStamp observed;
-                std::string previous;
-                result.status = ReadBytes(result.path, previous, &observed);
+                if (job->probePickerDestination)
+                {
+                    FileStamp observed;
+                    std::string previous;
+                    result.status = ReadBytes(result.path, previous, &observed);
+                    if (SUCCEEDED(result.status))
+                    {
+                        result.conflictVersion = observed;
+                        result.pickerOverwrite = true;
+                        result.status          = HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+                    }
+                    else if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) || result.status == HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
+                    {
+                        job->expected         = FileStamp{};
+                        job->sameIdentityOnly = false;
+                        result.status         = S_OK;
+                    }
+                }
                 if (SUCCEEDED(result.status))
                 {
-                    result.conflictVersion = observed;
-                    result.pickerOverwrite = true;
-                    result.status          = HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+                    result.status = SaveDocument(result.path,
+                                                 result.document.text,
+                                                 result.document.bom,
+                                                 job->expected ? &job->expected.value() : nullptr,
+                                                 result.document.stamp,
+                                                 job->sameIdentityOnly,
+                                                 job->baselinePath.empty() ? nullptr : &job->baselinePath,
+                                                 result.recovery ? &result.recovery.value() : nullptr);
+                    if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
+                        result.rejectedUnits = result.document.text.size();
                 }
-                else if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) || result.status == HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
+                if (result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && ! result.conflictVersion)
                 {
-                    job->expected         = FileStamp{};
-                    job->sameIdentityOnly = false;
-                    result.status         = S_OK;
+                    FileStamp observed;
+                    std::string previous;
+                    const auto observedStatus = ReadBytes(result.path, previous, &observed);
+                    if (SUCCEEDED(observedStatus) || observedStatus == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) ||
+                        observedStatus == HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
+                    {
+                        result.conflictVersion = observed;
+                    }
                 }
             }
-            if (SUCCEEDED(result.status))
+            else
+                result.status = LoadDocument(result.path, result.document, &result.rejectedUnits);
+            std::lock_guard lock(job->state->mutex);
+            if (job->state->phase != Phase::Closed && job->generation == job->state->generation)
             {
-                result.status = SaveDocument(result.path,
-                                             result.document.text,
-                                             result.document.bom,
-                                             job->expected ? &job->expected.value() : nullptr,
-                                             result.document.stamp,
-                                             job->sameIdentityOnly,
-                                             job->baselinePath.empty() ? nullptr : &job->baselinePath,
-                                             result.recovery ? &result.recovery.value() : nullptr);
-            }
-            if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
-                result.rejectedUnits = result.document.text.size();
-            if (result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && ! result.conflictVersion)
-            {
-                FileStamp observed;
-                std::string previous;
-                const auto observedStatus = ReadBytes(result.path, previous, &observed);
-                if (SUCCEEDED(observedStatus) || observedStatus == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) ||
-                    observedStatus == HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
-                {
-                    result.conflictVersion = observed;
-                }
+                job->state->result = std::move(result);
+                job->state->phase  = Phase::Completed;
+                // No pointer payload and no recycled-HWND delivery: close takes this
+                // same lock and invalidates the window before destroying it.
+                (void)PostMessageW(job->state->window, job->state->message, 0, 0);
             }
         }
-        else
-            result.status = LoadDocument(result.path, result.document, &result.rejectedUnits);
-        std::lock_guard lock(job->state->mutex);
-        if (job->state->phase != Phase::Closed && job->generation == job->state->generation)
+        catch (const std::bad_alloc&)
         {
-            job->state->result = std::move(result);
-            job->state->phase  = Phase::Completed;
-            // No pointer payload and no recycled-HWND delivery: close takes this
-            // same lock and invalidates the window before destroying it.
-            (void)PostMessageW(job->state->window, job->state->message, 0, 0);
+            DxUi::Failure::FailAllocation();
+        }
+        catch (const std::exception&)
+        {
+            DxUi::Failure::FailUnexpected();
         }
     }
 

@@ -1,12 +1,13 @@
 #include "Application.h"
 #include "Common/MonitorDiagnostics.h"
 #include "Common/NativeCalls.h"
+#include "Common/TextUtilities.h"
 #include "res/Resource.h"
 #include <DxUi/Failure.h>
 #include <algorithm>
-#include <commdlg.h>
-#include <cwctype>
+#include <array>
 #include <shobjidl.h>
+#include <span>
 #include <utility>
 #include <windowsx.h>
 
@@ -16,12 +17,14 @@ namespace
 {
 constexpr int SpellSuggestionBaseId           = 10000;
 constexpr int SpellMaximumMenuItems           = 5;
+constexpr int SpellDeleteRepeatedId           = 10097;
 constexpr int SpellIgnoreOnceId               = 10098;
 constexpr int SpellNoSuggestionsId            = 10099;
 constexpr int SpellIgnoreAllId                = 10100;
 constexpr int SpellAddWordId                  = 10101;
 constexpr std::size_t ViewportOverscanUnits   = 2048u;
 constexpr std::size_t MaximumVisibleSquiggles = 256u;
+constexpr std::array<const wchar_t*, 4> CommonFallbackLanguages{L"en-US", L"fr-FR", L"de-DE", L"es-ES"};
 
 [[nodiscard]] bool ComboItemsEqual(std::span<const DxUi::ComboBox::Item> existing, const std::vector<DxUi::ComboBox::Item>& next) noexcept
 {
@@ -35,19 +38,13 @@ constexpr std::size_t MaximumVisibleSquiggles = 256u;
     return true;
 }
 
-[[nodiscard]] bool EqualTagIgnoreCase(std::wstring_view a, std::wstring_view b) noexcept
-{
-    return a.size() == b.size() &&
-           (a.empty() || CompareStringOrdinal(a.data(), static_cast<int>(a.size()), b.data(), static_cast<int>(b.size()), TRUE) == CSTR_EQUAL);
-}
-
 [[nodiscard]] std::wstring QueryUserDefaultLocaleTag()
 {
     wchar_t buffer[LOCALE_NAME_MAX_LENGTH]{};
     if (GetUserDefaultLocaleName(buffer, LOCALE_NAME_MAX_LENGTH) > 0)
     {
         std::wstring tag = SanitizeSpellUiText(buffer, 32u);
-        if (IsValidLanguageTag(tag) && ! EqualTagIgnoreCase(tag, L"auto"))
+        if (IsValidLanguageTag(tag) && ! EqualOrdinalIgnoreCase(tag, L"auto"))
             return tag;
     }
     return L"en-US";
@@ -55,7 +52,7 @@ constexpr std::size_t MaximumVisibleSquiggles = 256u;
 
 [[nodiscard]] std::wstring FormatFriendlyLanguageName(std::wstring_view tag)
 {
-    if (EqualTagIgnoreCase(tag, L"auto"))
+    if (EqualOrdinalIgnoreCase(tag, L"auto"))
         return Resource(IDS_SPELL_LANGUAGE_AUTO);
     const std::wstring cleanTag = SanitizeSpellUiText(tag, 32u);
     if (cleanTag.empty())
@@ -71,14 +68,39 @@ constexpr std::size_t MaximumVisibleSquiggles = 256u;
     return cleanTag;
 }
 
+[[nodiscard]] std::wstring FormatMultiLanguageSummary(std::span<const std::wstring> languages)
+{
+    std::wstring combined;
+    for (std::size_t i = 0u; i < languages.size(); ++i)
+    {
+        if (i > 0u)
+            combined += L" / ";
+        const auto sep = languages[i].find(L'-');
+        combined += SanitizeSpellUiText(std::wstring_view(languages[i]).substr(0u, sep), 8u);
+    }
+    return SanitizeSpellUiText(combined, 48u);
+}
+
+[[nodiscard]] std::wstring FormatSpellAvailabilityText(ProviderAvailability availability, std::wstring_view tag)
+{
+    switch (availability)
+    {
+        case ProviderAvailability::NoDictionary: return FormatStringResource(nullptr, IDS_SPELL_NO_DICTIONARY, SanitizeSpellUiText(tag, 20u));
+        case ProviderAvailability::DictionaryUnreadable: return FormatStringResource(nullptr, IDS_SPELL_DICT_UNREADABLE, SanitizeSpellUiText(tag, 20u));
+        case ProviderAvailability::Unavailable: return Resource(IDS_SPELL_UNAVAILABLE);
+        case ProviderAvailability::Ready: break;
+    }
+    return {};
+}
+
+template <typename IssueLike> [[nodiscard]] std::size_t IssueOccurrenceAnchor(const IssueLike& issue) noexcept
+{
+    return issue.sourceFragments.empty() ? issue.displayRange.first : issue.sourceFragments.front().first;
+}
+
 [[nodiscard]] bool IsWordCharForSuppression(wchar_t ch) noexcept
 {
-    if (ch == L'\'' || ch == L'\x2019' || ch == L'-')
-        return true;
-    WORD type{};
-    if (! GetStringTypeW(CT_CTYPE1, &ch, 1, &type))
-        return false;
-    return (type & (C1_ALPHA | C1_DIGIT)) != 0u;
+    return IsWordJoinerChar(ch) || IsCharAlphaOrDigit(ch);
 }
 
 [[nodiscard]] std::optional<DxUi::RichText::MarkdownRange> WordRangeAtOffset(std::wstring_view text, std::size_t offset) noexcept
@@ -110,16 +132,21 @@ constexpr std::size_t MaximumVisibleSquiggles = 256u;
     return a.first < b.last && b.first < a.last;
 }
 
-[[nodiscard]] std::optional<D2D1_RECT_F> FindPaddedIssueRectAtPoint(DxUi::ControlHost& host,
+[[nodiscard]] std::optional<D2D1_RECT_F> FindPaddedIssueRectAtPoint(const DxUi::ControlHost& host,
                                                                     const Editor& editor,
                                                                     const std::vector<DxUi::RichText::MarkdownRange>& fragments,
-                                                                    D2D1_POINT_2F ptDip)
+                                                                    D2D1_POINT_2F ptDip,
+                                                                    bool* outHasGeometry = nullptr)
 {
+    if (outHasGeometry)
+        *outHasGeometry = false;
     if (fragments.empty())
         return std::nullopt;
     const auto rects = editor.TryGetTextInputRangeRects(host, fragments.front().first, fragments.back().last);
     if (! rects || rects->empty())
         return std::nullopt;
+    if (outHasGeometry)
+        *outHasGeometry = true;
     for (const auto& rect : *rects)
     {
         if (ptDip.x >= rect.left - 4.f && ptDip.x <= rect.right + 4.f && ptDip.y >= rect.top - 4.f && ptDip.y <= rect.bottom + 8.f)
@@ -128,6 +155,16 @@ constexpr std::size_t MaximumVisibleSquiggles = 256u;
     return std::nullopt;
 }
 } // namespace
+
+bool Application::IsSpellImeComposing() const noexcept
+{
+#if defined(ENABLE_TESTS)
+    if (_spell.imeCompositionOverrideForTest)
+        return true;
+#endif
+    const auto* const focus = _host.GetFocusControl();
+    return focus != nullptr && _host.GetNativeTextCompositionActive(focus).value_or(false);
+}
 
 std::filesystem::path Application::ActiveCustomDictionaryPath() const
 {
@@ -148,9 +185,8 @@ void Application::InitializeSpelling()
     const HRESULT dictHr = _customDictionary.Load(ActiveCustomDictionaryPath());
     if (FAILED(dictHr))
         MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Custom dictionary could not be loaded; read-only fallback disabled");
-    _spell.cachedUserLocale  = QueryUserDefaultLocaleTag();
-    _spell.activeLanguages   = ResolveEffectiveSpellLanguages(std::nullopt);
-    _spell.statusInitialized = true;
+    _spell.cachedUserLocale = QueryUserDefaultLocaleTag();
+    _spell.activeLanguages  = ResolveEffectiveSpellLanguages(std::nullopt);
     RefreshSpellStatusChip();
     RefreshProofingDrawerControls();
 }
@@ -161,11 +197,11 @@ std::vector<std::wstring> Application::ResolveEffectiveSpellLanguages(const std:
     auto pushUnique = [&](std::wstring_view tag)
     {
         std::wstring candidate = SanitizeSpellUiText(tag, 32u);
-        if (EqualTagIgnoreCase(candidate, L"auto"))
+        if (EqualOrdinalIgnoreCase(candidate, L"auto"))
             candidate = _spell.cachedUserLocale ? *_spell.cachedUserLocale : QueryUserDefaultLocaleTag();
-        if (! IsValidLanguageTag(candidate) || EqualTagIgnoreCase(candidate, L"auto"))
+        if (! IsValidLanguageTag(candidate) || EqualOrdinalIgnoreCase(candidate, L"auto"))
             return;
-        if (std::ranges::any_of(resolved, [&](const std::wstring& existing) { return EqualTagIgnoreCase(existing, candidate); }))
+        if (std::ranges::any_of(resolved, [&](const std::wstring& existing) { return EqualOrdinalIgnoreCase(existing, candidate); }))
             return;
         if (resolved.size() < MaximumSpellingLanguages)
             resolved.push_back(std::move(candidate));
@@ -185,7 +221,11 @@ std::vector<std::wstring> Application::ResolveEffectiveSpellLanguages(const std:
 
 void Application::ScheduleSpellCheck(bool immediate)
 {
-    if (IsClosing() || IsSessionEnding() || ! IsUiAttached() || _options.recoveryProbe)
+    if (IsClosing() || IsSessionEnding() || ! IsUiAttached()
+#if defined(ENABLE_TESTS)
+        || _options.recoveryProbe
+#endif
+    )
         return;
 
     if (_window)
@@ -202,11 +242,14 @@ void Application::ScheduleSpellCheck(bool immediate)
         return;
     }
 
-    DxUi::NativeTextInputState native;
-    if ((_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex) || HasBlockDraft())
+    const bool imeComposing = IsSpellImeComposing();
+    if (imeComposing)
+        _spell.imeSuppressionActive = true;
+    if (imeComposing || HasBlockDraft())
     {
         _spell.checkPending     = true;
         _spell.immediatePending = false;
+        ProjectVisibleSpellDecorations();
         return;
     }
 
@@ -246,57 +289,80 @@ void Application::OnSpellDebounceTimer()
         ProjectVisibleSpellDecorations();
 }
 
+void Application::ReconcileSpellImeExit()
+{
+    if (IsSpellImeComposing())
+    {
+        if (! _spell.imeSuppressionActive)
+        {
+            _spell.imeSuppressionActive = true;
+            ProjectVisibleSpellDecorations();
+        }
+        return;
+    }
+    if (! _spell.imeSuppressionActive)
+        return;
+    _spell.imeSuppressionActive = false;
+    if (! _settings.spelling.enabled || HasBlockDraft() || IsClosing() || IsSessionEnding() || ! IsUiAttached())
+        return;
+    ProjectVisibleSpellDecorations();
+    if (_spell.checkPending || ! _spell.appliedKey)
+        ScheduleSpellCheck(false);
+}
+
 void Application::DispatchSpellCheckNow()
 {
-    if (IsClosing() || IsSessionEnding() || ! IsUiAttached() || _options.recoveryProbe || ! _editor || ! _settings.spelling.enabled || _switchingDocument)
+    auto* const target = ActiveEditor();
+    if (IsClosing() || IsSessionEnding() || ! IsUiAttached() || ! target || ! _settings.spelling.enabled || _switchingDocument
+#if defined(ENABLE_TESTS)
+        || _options.recoveryProbe
+#endif
+    )
     {
         _spell.immediatePending = false;
         return;
     }
 
-    DxUi::NativeTextInputState native;
-    if ((_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex) || HasBlockDraft())
+    const bool imeComposing = IsSpellImeComposing();
+    if (imeComposing)
+        _spell.imeSuppressionActive = true;
+    if (imeComposing || HasBlockDraft())
     {
+        _spell.checkPending     = true;
         _spell.immediatePending = false;
+        ProjectVisibleSpellDecorations();
         return;
     }
 
-    const auto target      = _editor;
-    const auto snapshot    = target->Snapshot();
-    const auto& sourceText = snapshot.Text();
-    const bool sourceMode  = _settings.view == EditorView::Source;
-    const auto syntax      = target->GetMarkdownSyntax();
-    const auto semantic    = sourceMode ? nullptr : target->GetSemanticDocument();
+    const auto snapshot   = target->Snapshot();
+    const bool sourceMode = target->GetViewMode() == DxUi::RichText::ViewMode::Source;
+    const auto syntax     = target->GetMarkdownSyntax();
+    const auto semantic   = sourceMode ? nullptr : target->GetSemanticDocument();
 
     ExtractedProse extracted;
     std::uint64_t semanticIdentity = 0u;
     if (! sourceMode)
     {
-        if (! semantic)
+        if (! semantic || ! semantic->Syntax())
         {
             // Semantic preparation still running; ReconcilePostPreparePlacement / Prepare will retrigger.
-            _spell.checkPending = true;
+            _spell.checkPending     = true;
+            _spell.immediatePending = target->IsVisible();
             return;
         }
-        semanticIdentity = semantic->Identity();
-        extracted        = ExtractSemanticProse(*semantic, syntax.get(), sourceText);
+        semanticIdentity                = semantic->Identity();
+        const std::wstring_view srcText = semantic->Syntax()->Source();
+        extracted                       = ExtractSemanticProse(*semantic, syntax.get(), srcText, _settings.spelling.ignoreInternetAndPaths);
     }
     else
     {
         if (! syntax)
         {
-            if (_editor && ! _editor->IsVisible())
-            {
-                _spell.immediatePending = false;
-                _spell.checkPending     = true;
-            }
-            else
-            {
-                _spell.checkPending = true;
-            }
+            _spell.checkPending     = true;
+            _spell.immediatePending = target->IsVisible();
             return;
         }
-        extracted = ExtractSourceProse(*syntax, sourceText);
+        extracted = ExtractSourceProse(*syntax, syntax->Source(), _settings.spelling.ignoreInternetAndPaths);
     }
 
     const SpellRequestKey requestKey{_session.key, snapshot, semanticIdentity, _customDictionary.Generation(), _spell.languageConfigVersion};
@@ -355,7 +421,8 @@ void Application::SpellCompleted() noexcept
 
 void Application::ProcessSpellResult()
 {
-    if (IsClosing() || IsSessionEnding() || ! IsUiAttached() || ! _editor || ! _settings.spelling.enabled)
+    auto* const activeEditor = ActiveEditor();
+    if (IsClosing() || IsSessionEnding() || ! IsUiAttached() || ! activeEditor || ! _settings.spelling.enabled)
     {
         (void)_spellService.TakeResult();
         return;
@@ -366,9 +433,9 @@ void Application::ProcessSpellResult()
         return;
     const auto& result = *maybeResult;
 
-    const auto currentSnapshot     = _editor->Snapshot();
-    const bool sourceMode          = _settings.view == EditorView::Source;
-    const auto semantic            = sourceMode ? nullptr : _editor->GetSemanticDocument();
+    const auto currentSnapshot     = activeEditor->Snapshot();
+    const bool sourceMode          = activeEditor->GetViewMode() == DxUi::RichText::ViewMode::Source;
+    const auto semantic            = sourceMode ? nullptr : activeEditor->GetSemanticDocument();
     const std::uint64_t semanticId = semantic ? semantic->Identity() : 0u;
     const SpellRequestKey currentKey{_session.key, currentSnapshot, semanticId, _customDictionary.Generation(), _spell.languageConfigVersion};
     if (! currentKey.Matches(result.key))
@@ -395,31 +462,42 @@ void Application::ProcessSpellResult()
             effective = ProviderAvailability::DictionaryUnreadable;
             diag      = i < result.diagnostics.size() ? result.diagnostics[i] : ProviderDiagnostic{};
         }
-        else if (effective != ProviderAvailability::DictionaryUnreadable && i == 0u && i < result.diagnostics.size())
+        else if (avail == ProviderAvailability::Unavailable && effective != ProviderAvailability::DictionaryUnreadable)
+        {
+            effective = ProviderAvailability::Unavailable;
+            diag      = i < result.diagnostics.size() ? result.diagnostics[i] : ProviderDiagnostic{};
+        }
+        else if (effective == ProviderAvailability::NoDictionary && i == 0u && i < result.diagnostics.size())
         {
             diag = result.diagnostics[i];
         }
     }
     if (result.availabilities.empty())
         effective = ProviderAvailability::Ready;
+    if (FAILED(result.status))
+    {
+        effective = ProviderAvailability::Unavailable;
+        if (diag.message.empty())
+            diag.message = SanitizeSpellUiText(ErrorText(result.status), 160u);
+    }
 
     _spell.effectiveAvailability = effective;
     _spell.primaryDiagnostic     = std::move(diag);
     _spell.issues.clear();
 
-    if (effective == ProviderAvailability::Ready)
+    if (effective == ProviderAvailability::Ready && SUCCEEDED(result.status))
     {
-        const auto& srcText = currentSnapshot.Text();
+        const std::size_t sourceLen = currentSnapshot.Length();
         _spell.issues.reserve(std::min<std::size_t>(result.issues.size(), SpellService::MaximumRawIssues));
         for (const auto& raw : result.issues)
         {
             if (_spell.issues.size() >= SpellService::MaximumRawIssues)
                 break;
             SpellIssue issue;
-            issue.displayRange         = {raw.offset, raw.offset + raw.length};
-            issue.word                 = raw.word;
-            issue.normalizedKey        = raw.normalizedKey;
-            issue.primaryLanguageIndex = raw.primaryLanguageIndex;
+            issue.displayRange  = {raw.offset, raw.offset + raw.length};
+            issue.word          = raw.word;
+            issue.normalizedKey = raw.normalizedKey;
+            issue.kind          = raw.kind;
             if (! sourceMode)
             {
                 if (! semantic || ! TryProjectDisplayErrorToSource(*semantic, issue.displayRange, issue.sourceFragments))
@@ -427,7 +505,7 @@ void Application::ProcessSpellResult()
             }
             else
             {
-                if (issue.displayRange.last > srcText.size() || ! currentSnapshot.IsBoundary(issue.displayRange.first) ||
+                if (issue.displayRange.last > sourceLen || ! currentSnapshot.IsBoundary(issue.displayRange.first) ||
                     ! currentSnapshot.IsBoundary(issue.displayRange.last))
                     continue;
                 issue.sourceFragments.push_back(issue.displayRange);
@@ -445,7 +523,7 @@ void Application::ProcessSpellResult()
 void Application::UpdateSpellSuppressionFromCaret()
 {
     auto* const activeEditor = ActiveEditor();
-    if (! activeEditor || activeEditor != _editor)
+    if (! activeEditor)
     {
         _spell.typingSuppressionActive = false;
         _spell.suppressedTypingWord.reset();
@@ -458,9 +536,47 @@ void Application::UpdateSpellSuppressionFromCaret()
         _spell.suppressedTypingWord.reset();
         return;
     }
-    const auto nextWord            = WordRangeAtOffset(activeEditor->Snapshot().Text(), sel.caret);
-    _spell.suppressedTypingWord    = nextWord;
-    _spell.typingSuppressionActive = nextWord.has_value();
+    const auto snapshot        = activeEditor->Snapshot();
+    const std::size_t totalLen = snapshot.Length();
+    if (totalLen == 0u)
+    {
+        _spell.typingSuppressionActive = false;
+        _spell.suppressedTypingWord.reset();
+        return;
+    }
+    const std::size_t clampedCaret = std::min(sel.caret, totalLen);
+    for (std::size_t radius = 128u;; radius *= 2u)
+    {
+        std::size_t winFirst = clampedCaret > radius ? clampedCaret - radius : 0u;
+        std::size_t winLast  = std::min(totalLen, clampedCaret + radius);
+        while (winFirst > 0u && ! snapshot.IsBoundary(winFirst))
+            --winFirst;
+        while (winLast < totalLen && ! snapshot.IsBoundary(winLast))
+            ++winLast;
+
+        std::wstring slice;
+        if (snapshot.TrySlice(winFirst, winLast, slice) != DxUi::RichText::SourceResult::Success)
+        {
+            _spell.typingSuppressionActive = false;
+            _spell.suppressedTypingWord.reset();
+            return;
+        }
+        const auto localRange = WordRangeAtOffset(slice, clampedCaret - winFirst);
+        if (! localRange)
+        {
+            _spell.typingSuppressionActive = false;
+            _spell.suppressedTypingWord.reset();
+            return;
+        }
+        const bool clippedLeft  = winFirst > 0u && localRange->first == 0u;
+        const bool clippedRight = winLast < totalLen && localRange->last == slice.size();
+        if ((! clippedLeft && ! clippedRight) || (winFirst == 0u && winLast == totalLen) || radius >= 4096u)
+        {
+            _spell.suppressedTypingWord    = DxUi::RichText::MarkdownRange{winFirst + localRange->first, winFirst + localRange->last};
+            _spell.typingSuppressionActive = true;
+            return;
+        }
+    }
 }
 
 void Application::OnSpellEditorChanged()
@@ -474,10 +590,11 @@ void Application::OnSpellEditorChanged()
 
 void Application::OnSpellSelectionChanged()
 {
-    if (! _spell.typingSuppressionActive || ! _editor)
+    auto* const activeEditor = ActiveEditor();
+    if (! _spell.typingSuppressionActive || ! activeEditor)
         return;
-    const auto sel = _editor->GetSelection();
-    if (ActiveEditor() != _editor || sel.Start() != sel.End() || ! _spell.suppressedTypingWord)
+    const auto sel = activeEditor->GetSelection();
+    if (sel.Start() != sel.End() || ! _spell.suppressedTypingWord)
     {
         _spell.typingSuppressionActive = false;
         _spell.suppressedTypingWord.reset();
@@ -502,69 +619,94 @@ void Application::OnSpellScrollChanged()
 
 void Application::ProjectVisibleSpellDecorations()
 {
-    if (IsClosing() || ! _editor)
+    auto* const activeEditor = ActiveEditor();
+    if (IsClosing() || ! activeEditor)
         return;
 
-    if (_mirror)
-        (void)_mirror->TrySetDecorations(_mirror->Snapshot(), {});
+    if (auto* const mirrorEditor = MirrorEditor(); mirrorEditor && mirrorEditor != activeEditor)
+        (void)mirrorEditor->TrySetDecorations(mirrorEditor->Snapshot(), {});
 
-    const auto expectedSource = _editor->Snapshot();
-    DxUi::NativeTextInputState native;
-    const bool imeActive = _host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex;
+    const auto expectedSource = activeEditor->Snapshot();
+    const bool imeActive      = IsSpellImeComposing();
+    if (imeActive)
+        _spell.imeSuppressionActive = true;
     if (! _settings.spelling.enabled || _spell.effectiveAvailability != ProviderAvailability::Ready || imeActive || HasBlockDraft() || _spell.issues.empty())
     {
-        (void)_editor->TrySetDecorations(expectedSource, {});
+        (void)activeEditor->TrySetDecorations(expectedSource, {});
         return;
     }
 
-    DxUi::RichText::MarkdownRange visibleWindow{0u, expectedSource.Length()};
-    if (const auto visSource = _editor->GetVisibleSourceRange(_host))
-    {
-        const std::size_t first = visSource->first > ViewportOverscanUnits ? visSource->first - ViewportOverscanUnits : 0u;
-        const std::size_t last  = std::min(expectedSource.Length(), visSource->second + ViewportOverscanUnits);
-        visibleWindow           = {first, last};
-    }
+    const auto visSource = activeEditor->GetVisibleSourceRange(_host);
+    const DxUi::RichText::MarkdownRange directWindow =
+        visSource ? DxUi::RichText::MarkdownRange{visSource->first, visSource->second} : DxUi::RichText::MarkdownRange{0u, expectedSource.Length()};
+    const DxUi::RichText::MarkdownRange overscanWindow =
+        visSource ? DxUi::RichText::MarkdownRange{visSource->first > ViewportOverscanUnits ? visSource->first - ViewportOverscanUnits : 0u,
+                                                  std::min(expectedSource.Length(), visSource->second + ViewportOverscanUnits)}
+                  : directWindow;
 
     std::vector<DxUi::RichTextDecoration> decorations;
     decorations.reserve(std::min<std::size_t>(_spell.issues.size() * 2u, MaximumVisibleSquiggles));
+    const CustomDictionary::AcceptedLookupScope acceptedScope(_customDictionary);
+
+    const auto appendIssue = [&](const SpellIssue& issue, std::size_t cap) -> bool
+    {
+        if (IsIssueSuppressedByTyping(issue))
+            return true;
+        if (acceptedScope.IsAcceptedNormalized(issue.normalizedKey, _session.key, IssueOccurrenceAnchor(issue), issue.kind == SpellIssueKind::RepeatedWord))
+            return true;
+
+        for (const auto& frag : issue.sourceFragments)
+        {
+            if (decorations.size() >= cap)
+                return false;
+            if (frag.first >= frag.last || frag.last > expectedSource.Length() || ! expectedSource.IsBoundary(frag.first) ||
+                ! expectedSource.IsBoundary(frag.last))
+                continue;
+            decorations.push_back(DxUi::RichTextDecoration{frag.first,
+                                                           frag.last - frag.first,
+                                                           DxUi::RichTextDecorationKind::Squiggle,
+                                                           DxUi::RichTextDecorationRole::Error,
+                                                           DxUi::RichTextAnnotationKind::SpellingError});
+        }
+        return true;
+    };
 
     auto collectDecorations = [&](std::size_t cap)
     {
         decorations.clear();
-        for (std::size_t i = 0u; i < _spell.issues.size(); ++i)
+        // Pass 1: prioritize directly visible viewport issues before overscan bands.
+        for (const auto& issue : _spell.issues)
         {
-            const auto& issue = _spell.issues[i];
             if (issue.sourceFragments.empty())
                 continue;
-            const auto issueSpan = DxUi::RichText::MarkdownRange{issue.sourceFragments.front().first, issue.sourceFragments.back().last};
-            if (! RangesOverlap(issueSpan, visibleWindow))
+            const DxUi::RichText::MarkdownRange issueSpan{issue.sourceFragments.front().first, issue.sourceFragments.back().last};
+            if (! RangesOverlap(issueSpan, directWindow))
                 continue;
-            if (_spell.typingSuppressionActive && _spell.suppressedTypingWord && RangesOverlap(issueSpan, *_spell.suppressedTypingWord))
-                continue;
-            if (_customDictionary.IsAcceptedNormalized(issue.normalizedKey, _session.key, issue.displayRange.first))
-                continue;
-
-            for (const auto& frag : issue.sourceFragments)
+            if (! appendIssue(issue, cap))
+                break;
+        }
+        // Pass 2: fill remaining capacity from overscan bands outside the direct viewport.
+        if (visSource && decorations.size() < cap)
+        {
+            for (const auto& issue : _spell.issues)
             {
-                if (decorations.size() >= cap)
-                    return;
-                if (frag.first >= frag.last || frag.last > expectedSource.Length() || ! expectedSource.IsBoundary(frag.first) ||
-                    ! expectedSource.IsBoundary(frag.last))
+                if (issue.sourceFragments.empty())
                     continue;
-                decorations.push_back(DxUi::RichTextDecoration{frag.first,
-                                                               frag.last - frag.first,
-                                                               DxUi::RichTextDecorationKind::Squiggle,
-                                                               DxUi::RichTextDecorationRole::Error,
-                                                               DxUi::RichTextAnnotationKind::SpellingError});
+                const DxUi::RichText::MarkdownRange issueSpan{issue.sourceFragments.front().first, issue.sourceFragments.back().last};
+                if (RangesOverlap(issueSpan, directWindow) || ! RangesOverlap(issueSpan, overscanWindow))
+                    continue;
+                if (! appendIssue(issue, cap))
+                    break;
             }
         }
+        std::ranges::sort(decorations, {}, &DxUi::RichTextDecoration::start);
     };
 
     for (const std::size_t cap : {MaximumVisibleSquiggles, std::size_t{128u}, std::size_t{64u}})
     {
         collectDecorations(cap);
-        const HRESULT hr = _editor->TrySetDecorations(expectedSource, decorations);
-        if (hr != E_BOUNDS && _editor->GetDecorationStatus() != DxUi::RichTextDecorationStatus::CapacityExceeded)
+        const HRESULT hr = activeEditor->TrySetDecorations(expectedSource, decorations);
+        if (hr != E_BOUNDS && activeEditor->GetDecorationStatus() != DxUi::RichTextDecorationStatus::CapacityExceeded)
             break;
     }
 }
@@ -584,31 +726,12 @@ void Application::RefreshSpellStatusChip()
     else
     {
         const std::wstring primaryTag = _spell.activeLanguages.empty() ? L"en-US" : _spell.activeLanguages.front();
-        const std::wstring friendly   = FormatFriendlyLanguageName(primaryTag);
-        if (_spell.effectiveAvailability == ProviderAvailability::NoDictionary)
-        {
-            chipText = FormatStringResource(nullptr, IDS_SPELL_NO_DICTIONARY, SanitizeSpellUiText(primaryTag, 20u));
-        }
-        else if (_spell.effectiveAvailability == ProviderAvailability::DictionaryUnreadable)
-        {
-            chipText = FormatStringResource(nullptr, IDS_SPELL_DICT_UNREADABLE, SanitizeSpellUiText(primaryTag, 20u));
-        }
+        if (_spell.effectiveAvailability != ProviderAvailability::Ready)
+            chipText = FormatSpellAvailabilityText(_spell.effectiveAvailability, primaryTag);
         else if (_spell.activeLanguages.size() > 1u)
-        {
-            std::wstring combined;
-            for (std::size_t i = 0u; i < _spell.activeLanguages.size(); ++i)
-            {
-                if (i > 0u)
-                    combined += L" / ";
-                const auto sep = _spell.activeLanguages[i].find(L'-');
-                combined += SanitizeSpellUiText(std::wstring_view(_spell.activeLanguages[i]).substr(0u, sep), 8u);
-            }
-            chipText = SanitizeSpellUiText(combined, 48u);
-        }
+            chipText = FormatMultiLanguageSummary(_spell.activeLanguages);
         else
-        {
-            chipText = SanitizeSpellUiText(friendly, 48u);
-        }
+            chipText = SanitizeSpellUiText(FormatFriendlyLanguageName(primaryTag), 48u);
         diagDetail = SanitizeSpellUiText(_spell.primaryDiagnostic.message, 160u);
     }
 
@@ -646,10 +769,7 @@ void Application::RefreshProofingDrawerControls()
         _spellingIgnorePathsToggle->SetEnabled(_settings.spelling.enabled);
     }
     if (_spellingLanguageCombo)
-    {
-        RefreshSpellLanguageCombos(false);
         _spellingLanguageCombo->SetEnabled(_settings.spelling.enabled);
-    }
     if (_spellingDictPathLabel)
     {
         const std::wstring fileName = _settings.spelling.customDictionaryPath.empty()
@@ -678,9 +798,9 @@ void Application::RefreshSpellLanguageCombos(bool queryInstalled)
     auto addCandidate = [&](std::wstring_view tag)
     {
         std::wstring clean = SanitizeSpellUiText(tag, 32u);
-        if (clean.empty() || EqualTagIgnoreCase(clean, L"auto") || EqualTagIgnoreCase(clean, L"off"))
+        if (clean.empty() || EqualOrdinalIgnoreCase(clean, L"auto") || EqualOrdinalIgnoreCase(clean, L"off"))
             return;
-        if (std::ranges::any_of(candidateTags, [&](const std::wstring& e) { return EqualTagIgnoreCase(e, clean); }))
+        if (std::ranges::any_of(candidateTags, [&](const std::wstring& e) { return EqualOrdinalIgnoreCase(e, clean); }))
             return;
         candidateTags.push_back(std::move(clean));
     };
@@ -694,7 +814,7 @@ void Application::RefreshSpellLanguageCombos(bool queryInstalled)
     {
         if (_spell.cachedUserLocale)
             addCandidate(*_spell.cachedUserLocale);
-        for (const wchar_t* common : {L"en-US", L"fr-FR", L"de-DE", L"es-ES"})
+        for (const wchar_t* common : CommonFallbackLanguages)
             addCandidate(common);
     }
 
@@ -711,13 +831,7 @@ void Application::RefreshSpellLanguageCombos(bool queryInstalled)
     localeItems.reserve(candidateTags.size());
     for (const auto& tag : candidateTags)
         localeItems.push_back(DxUi::ComboBox::Item{tag, FormatFriendlyLanguageName(tag)});
-    std::ranges::sort(localeItems,
-                      [](const DxUi::ComboBox::Item& a, const DxUi::ComboBox::Item& b)
-    {
-        const int cmp =
-            CompareStringOrdinal(a.display.c_str(), static_cast<int>(a.display.size()), b.display.c_str(), static_cast<int>(b.display.size()), TRUE);
-        return cmp == CSTR_LESS_THAN;
-    });
+    std::ranges::sort(localeItems, [](const DxUi::ComboBox::Item& a, const DxUi::ComboBox::Item& b) { return LessOrdinalIgnoreCase(a.display, b.display); });
     for (auto& item : localeItems)
         baseItems.push_back(std::move(item));
 
@@ -725,7 +839,7 @@ void Application::RefreshSpellLanguageCombos(bool queryInstalled)
     {
         for (std::size_t i = 0u; i < list.size(); ++i)
         {
-            if (EqualTagIgnoreCase(list[i].value, value))
+            if (EqualOrdinalIgnoreCase(list[i].value, value))
                 return i;
         }
         return std::nullopt;
@@ -740,12 +854,10 @@ void Application::RefreshSpellLanguageCombos(bool queryInstalled)
         auto selIdx      = findIndexByValue(drawerItems, configuredTag);
         if (! selIdx)
             selIdx = 0u;
-        if (_settings.spelling.enabled && ! EqualTagIgnoreCase(configuredTag, L"auto") &&
-            (_spell.effectiveAvailability == ProviderAvailability::NoDictionary || _spell.effectiveAvailability == ProviderAvailability::DictionaryUnreadable))
+        if (_settings.spelling.enabled && _spell.effectiveAvailability != ProviderAvailability::Ready &&
+            (_spell.effectiveAvailability == ProviderAvailability::Unavailable || ! EqualOrdinalIgnoreCase(configuredTag, L"auto")))
         {
-            const unsigned resId =
-                _spell.effectiveAvailability == ProviderAvailability::DictionaryUnreadable ? IDS_SPELL_DICT_UNREADABLE : IDS_SPELL_NO_DICTIONARY;
-            drawerItems[*selIdx].display = FormatStringResource(nullptr, resId, SanitizeSpellUiText(configuredTag, 20u));
+            drawerItems[*selIdx].display = FormatSpellAvailabilityText(_spell.effectiveAvailability, configuredTag);
         }
         if (! ComboItemsEqual(_spellingLanguageCombo->GetItems(), drawerItems))
             _spellingLanguageCombo->SetItems(std::move(drawerItems));
@@ -762,45 +874,45 @@ void Application::RefreshSpellLanguageCombos(bool queryInstalled)
         {
             selIdx = statusItems.size() - 1u;
         }
-        else if (_spell.effectiveAvailability == ProviderAvailability::NoDictionary ||
-                 _spell.effectiveAvailability == ProviderAvailability::DictionaryUnreadable)
+        else if (_spell.effectiveAvailability != ProviderAvailability::Ready)
         {
-            const unsigned resId =
-                _spell.effectiveAvailability == ProviderAvailability::DictionaryUnreadable ? IDS_SPELL_DICT_UNREADABLE : IDS_SPELL_NO_DICTIONARY;
             selIdx = findIndexByValue(statusItems, primaryTag);
             if (! selIdx)
             {
                 statusItems.insert(statusItems.end() - 1, DxUi::ComboBox::Item{primaryTag, {}});
                 selIdx = statusItems.size() - 2u;
             }
-            statusItems[*selIdx].display = FormatStringResource(nullptr, resId, SanitizeSpellUiText(primaryTag, 20u));
+            statusItems[*selIdx].display = FormatSpellAvailabilityText(_spell.effectiveAvailability, primaryTag);
         }
         else if (_spell.activeLanguages.size() > 1u)
         {
-            std::wstring combined;
-            for (std::size_t i = 0u; i < _spell.activeLanguages.size(); ++i)
-            {
-                if (i > 0u)
-                    combined += L" / ";
-                const auto sep = _spell.activeLanguages[i].find(L'-');
-                combined += SanitizeSpellUiText(std::wstring_view(_spell.activeLanguages[i]).substr(0u, sep), 8u);
-            }
             selIdx = findIndexByValue(statusItems, primaryTag);
             if (! selIdx)
                 selIdx = 0u;
-            statusItems[*selIdx].display = SanitizeSpellUiText(combined, 48u);
+            statusItems[*selIdx].display = FormatMultiLanguageSummary(_spell.activeLanguages);
         }
         else
         {
-            selIdx =
-                findIndexByValue(statusItems, EqualTagIgnoreCase(configuredTag, L"auto") ? std::wstring_view(primaryTag) : std::wstring_view(configuredTag));
+            selIdx = findIndexByValue(statusItems,
+                                      EqualOrdinalIgnoreCase(configuredTag, L"auto") ? std::wstring_view(primaryTag) : std::wstring_view(configuredTag));
             if (! selIdx)
                 selIdx = 0u;
         }
+        bool statusChanged = false;
         if (! ComboItemsEqual(_spellStatusCombo->GetItems(), statusItems))
+        {
             _spellStatusCombo->SetItems(std::move(statusItems));
+            statusChanged = true;
+        }
         if (_spellStatusCombo->GetSelectedIndex() != selIdx)
+        {
             _spellStatusCombo->SetSelectedIndex(selIdx);
+            statusChanged = true;
+        }
+        if (statusChanged)
+            _spellStatusCombo->InvalidateTextLayout();
+        else
+            _spellStatusCombo->InvalidateTextLayoutIfDisplayedChanged();
     }
 }
 
@@ -809,7 +921,7 @@ void Application::ApplySpellLanguageSelection(std::wstring_view value, bool from
     if (IsClosing() || IsSessionEnding() || ! IsUiAttached())
         return;
 
-    if (fromStatusBar && EqualTagIgnoreCase(value, L"off"))
+    if (fromStatusBar && EqualOrdinalIgnoreCase(value, L"off"))
     {
         if (_settings.spelling.enabled)
         {
@@ -824,12 +936,12 @@ void Application::ApplySpellLanguageSelection(std::wstring_view value, bool from
         return;
     }
 
-    const std::wstring nextTag = EqualTagIgnoreCase(value, L"auto") ? L"auto" : SanitizeSpellUiText(value, 32u);
+    const std::wstring nextTag = EqualOrdinalIgnoreCase(value, L"auto") ? L"auto" : SanitizeSpellUiText(value, 32u);
     if (nextTag.empty())
         return;
 
     const bool wasEnabled        = _settings.spelling.enabled;
-    const bool sameConfiguredTag = _settings.spelling.languages.size() == 1u && EqualTagIgnoreCase(_settings.spelling.languages.front(), nextTag) &&
+    const bool sameConfiguredTag = _settings.spelling.languages.size() == 1u && EqualOrdinalIgnoreCase(_settings.spelling.languages.front(), nextTag) &&
                                    ! _session.spellLanguageOverride.has_value();
     _settings.spelling.enabled   = true;
     _settings.spelling.languages = {nextTag};
@@ -845,12 +957,97 @@ void Application::ApplySpellLanguageSelection(std::wstring_view value, bool from
         _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
 }
 
-std::optional<std::size_t> Application::FindSpellIssueAtSourceOffset(std::size_t sourceOffset) const noexcept
+bool Application::CanRunSpellPointerInteraction(bool checkComboPopups)
 {
+    auto* const activeEditor = ActiveEditor();
+    if (! _settings.spelling.enabled || ! activeEditor || _spell.issues.empty() || _spell.effectiveAvailability != ProviderAvailability::Ready ||
+        HasActiveModalUi() || _activeOverlay == OverlayKind::BlockDraftModal || _printPreview != nullptr)
+        return false;
+    if (checkComboPopups && ((_spellStatusCombo && _spellStatusCombo->IsPopupOpen()) || (_spellingLanguageCombo && _spellingLanguageCombo->IsPopupOpen())))
+        return false;
+    if (IsSpellImeComposing())
+    {
+        _spell.imeSuppressionActive = true;
+        return false;
+    }
+    return true;
+}
+
+bool Application::IsIssueSuppressedByTyping(const SpellIssue& issue) const noexcept
+{
+    if (! _spell.typingSuppressionActive || ! _spell.suppressedTypingWord || issue.sourceFragments.empty())
+        return false;
+    const DxUi::RichText::MarkdownRange issueSpan{issue.sourceFragments.front().first, issue.sourceFragments.back().last};
+    return RangesOverlap(issueSpan, *_spell.suppressedTypingWord);
+}
+
+std::optional<std::size_t> Application::TryHitSpellIssueAtPoint(Editor& editor,
+                                                                D2D1_POINT_2F ptDip,
+                                                                std::optional<std::size_t> hitOffset,
+                                                                std::optional<D2D1_RECT_F>* outRect) const
+{
+    if (outRect)
+        outRect->reset();
+    if (hitOffset)
+    {
+        if (const auto directIdx = FindSpellIssueAtSourceOffset(*hitOffset))
+        {
+            const auto& issue = _spell.issues[*directIdx];
+            bool hasGeometry{};
+            const auto hitRect = FindPaddedIssueRectAtPoint(_host, editor, issue.sourceFragments, ptDip, &hasGeometry);
+            if (hasGeometry)
+            {
+                if (! hitRect)
+                    return std::nullopt;
+                if (outRect)
+                    *outRect = hitRect;
+            }
+            return directIdx;
+        }
+    }
+
+    std::size_t scanFirst = 0u;
+    std::size_t scanLast  = 0u;
+    if (hitOffset)
+    {
+        scanFirst = *hitOffset > 128u ? *hitOffset - 128u : 0u;
+        scanLast  = *hitOffset + 128u;
+    }
+    else
+    {
+        const auto visSource = editor.GetVisibleSourceRange(_host);
+        scanFirst            = visSource ? visSource->first : 0u;
+        scanLast             = visSource ? visSource->second : editor.Snapshot().Length();
+    }
+
+    const CustomDictionary::AcceptedLookupScope acceptedScope(_customDictionary);
     for (std::size_t i = 0u; i < _spell.issues.size(); ++i)
     {
         const auto& issue = _spell.issues[i];
-        if (_customDictionary.IsAcceptedNormalized(issue.normalizedKey, _session.key, issue.displayRange.first))
+        if (issue.sourceFragments.empty())
+            continue;
+        const DxUi::RichText::MarkdownRange span{issue.sourceFragments.front().first, issue.sourceFragments.back().last};
+        if (span.last < scanFirst || span.first > scanLast)
+            continue;
+        if (acceptedScope.IsAcceptedNormalized(issue.normalizedKey, _session.key, IssueOccurrenceAnchor(issue), issue.kind == SpellIssueKind::RepeatedWord))
+            continue;
+        if (const auto hitRect = FindPaddedIssueRectAtPoint(_host, editor, issue.sourceFragments, ptDip))
+        {
+            if (outRect)
+                *outRect = hitRect;
+            return i;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> Application::FindSpellIssueAtSourceOffset(std::size_t sourceOffset) const noexcept
+{
+    const CustomDictionary::AcceptedLookupScope acceptedScope(_customDictionary);
+    for (std::size_t i = 0u; i < _spell.issues.size(); ++i)
+    {
+        const auto& issue = _spell.issues[i];
+        if (acceptedScope.IsAcceptedNormalized(issue.normalizedKey, _session.key, IssueOccurrenceAnchor(issue), issue.kind == SpellIssueKind::RepeatedWord))
             continue;
         for (const auto& frag : issue.sourceFragments)
         {
@@ -864,26 +1061,59 @@ std::optional<std::size_t> Application::FindSpellIssueAtSourceOffset(std::size_t
 std::vector<DxUi::MenuFlyoutItem> Application::BuildSpellActionMenuItems(std::size_t issueIndex, DxUi::RichText::Selection selection)
 {
     _spell.pendingMenu.reset();
-    if (issueIndex >= _spell.issues.size() || ! _editor)
+    auto* const activeEditor = ActiveEditor();
+    if (issueIndex >= _spell.issues.size() || ! activeEditor)
         return {};
 
     const auto& issue    = _spell.issues[issueIndex];
     const auto languages = _spell.activeLanguages;
     std::vector<std::wstring> suggestions;
-    (void)_spellService.SuggestSyncBounded(languages, issue.word, _customDictionary.Generation(), SpellMaximumMenuItems, suggestions, 500u);
+    if (issue.kind != SpellIssueKind::RepeatedWord)
+    {
+        std::vector<std::wstring> rawSuggestions;
+        (void)_spellService.SuggestSyncBounded(languages, issue.word, _customDictionary.Generation(), SpellMaximumMenuItems, rawSuggestions, 500u);
+        suggestions.reserve(rawSuggestions.size());
+        for (const auto& candidate : rawSuggestions)
+        {
+            std::wstring clean = SanitizeSpellUiText(candidate, 64u);
+            if (clean.empty() || clean == issue.word || std::ranges::find(suggestions, clean) != suggestions.end())
+                continue;
+            suggestions.push_back(std::move(clean));
+            if (suggestions.size() >= static_cast<std::size_t>(SpellMaximumMenuItems))
+                break;
+        }
+    }
 
     PendingSpellMenu menuState;
     menuState.workspaceKey = _session.key;
-    menuState.source       = _editor->Snapshot();
-    menuState.revision     = _editor->Revision();
+    menuState.editor       = activeEditor;
+    menuState.source       = activeEditor->Snapshot();
+    menuState.revision     = activeEditor->Revision();
     menuState.selection    = selection;
     menuState.issue        = issue;
     menuState.suggestions  = suggestions;
-    menuState.languages    = languages;
-    menuState.lifetime     = GetControlLifetimeToken(*_editor);
+    menuState.lifetime     = GetControlLifetimeToken(*activeEditor);
     _spell.pendingMenu     = std::move(menuState);
 
     std::vector<DxUi::MenuFlyoutItem> items;
+    if (issue.kind == SpellIssueKind::RepeatedWord)
+    {
+        DxUi::MenuFlyoutItem delItem;
+        delItem.text      = Resource(IDS_SPELL_DELETE_REPEATED);
+        delItem.commandId = SpellDeleteRepeatedId;
+        items.push_back(std::move(delItem));
+
+        DxUi::MenuFlyoutItem sep1;
+        sep1.kind = DxUi::MenuItemKind::Separator;
+        items.push_back(std::move(sep1));
+
+        DxUi::MenuFlyoutItem ignoreOnce;
+        ignoreOnce.text      = Resource(IDS_SPELL_IGNORE_ONCE);
+        ignoreOnce.commandId = SpellIgnoreOnceId;
+        items.push_back(std::move(ignoreOnce));
+        return items;
+    }
+
     if (suggestions.empty())
     {
         DxUi::MenuFlyoutItem none;
@@ -897,7 +1127,7 @@ std::vector<DxUi::MenuFlyoutItem> Application::BuildSpellActionMenuItems(std::si
         for (std::size_t i = 0u; i < suggestions.size() && i < static_cast<std::size_t>(SpellMaximumMenuItems); ++i)
         {
             DxUi::MenuFlyoutItem sug;
-            sug.text      = SanitizeSpellUiText(suggestions[i], 64u);
+            sug.text      = suggestions[i];
             sug.commandId = SpellSuggestionBaseId + static_cast<int>(i);
             items.push_back(std::move(sug));
         }
@@ -928,11 +1158,18 @@ std::vector<DxUi::MenuFlyoutItem> Application::BuildSpellActionMenuItems(std::si
 void Application::PopulateSpellContextMenu(POINT screenPoint, bool keyboardInvocation, std::vector<DxUi::MenuFlyoutItem>& items)
 {
     _spell.pendingMenu.reset();
-    if (! _settings.spelling.enabled || ! _editor || ActiveEditor() != _editor || _spell.issues.empty())
+    if (HasActiveModalUi())
+        return;
+    auto* const activeEditor = ActiveEditor();
+    if (! _settings.spelling.enabled || ! activeEditor || _spell.issues.empty())
         return;
 
-    DxUi::NativeTextInputState native;
-    if ((_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex) || HasBlockDraft())
+    if (IsSpellImeComposing())
+    {
+        _spell.imeSuppressionActive = true;
+        return;
+    }
+    if (HasBlockDraft())
         return;
 
     std::optional<std::size_t> hitOffset;
@@ -943,10 +1180,10 @@ void Application::PopulateSpellContextMenu(POINT screenPoint, bool keyboardInvoc
         {
             const float scale       = 96.f / _host.GetDpi();
             const D2D1_POINT_2F dip = {static_cast<float>(clientPt.x) * scale, static_cast<float>(clientPt.y) * scale};
-            hitOffset               = _editor->TryHitTestTextInputPoint(_host, dip);
+            hitOffset               = activeEditor->TryHitTestTextInputPoint(_host, dip);
         }
     }
-    const auto selection = _editor->GetSelection();
+    const auto selection = activeEditor->GetSelection();
     if (! hitOffset)
         hitOffset = selection.caret;
 
@@ -972,30 +1209,69 @@ bool Application::HandleSpellMenuSelection(
     int selectedId, unsigned workspaceKey, const DxUi::RichText::SourceSnapshot& source, std::uint64_t revision, DxUi::RichText::Selection selection)
 {
     const bool isSpellId = (selectedId >= SpellSuggestionBaseId && selectedId < SpellSuggestionBaseId + SpellMaximumMenuItems) ||
-                           selectedId == SpellIgnoreOnceId || selectedId == SpellIgnoreAllId || selectedId == SpellAddWordId ||
-                           selectedId == SpellNoSuggestionsId;
+                           selectedId == SpellDeleteRepeatedId || selectedId == SpellIgnoreOnceId || selectedId == SpellIgnoreAllId ||
+                           selectedId == SpellAddWordId || selectedId == SpellNoSuggestionsId;
     if (! isSpellId)
         return false;
 
-    const auto pending = std::exchange(_spell.pendingMenu, std::nullopt);
-    if (! pending || ! IsUiAttached() || pending->lifetime.expired() || ActiveEditor() != _editor || HasBlockDraft())
+    const auto pending       = std::exchange(_spell.pendingMenu, std::nullopt);
+    auto* const activeEditor = ActiveEditor();
+    if (! pending || ! IsUiAttached() || pending->lifetime.expired() || ! activeEditor || activeEditor != pending->editor || HasBlockDraft())
         return true;
 
-    if (pending->workspaceKey != workspaceKey || _session.key != workspaceKey || ! _editor->Snapshot().IsSameRevision(pending->source) ||
-        ! _editor->Snapshot().IsSameRevision(source) || _editor->Revision() != pending->revision || _editor->Revision() != revision ||
-        _editor->GetSelection() != pending->selection || _editor->GetSelection() != selection)
+    if (pending->workspaceKey != workspaceKey || _session.key != workspaceKey || ! activeEditor->Snapshot().IsSameRevision(pending->source) ||
+        ! activeEditor->Snapshot().IsSameRevision(source) || activeEditor->Revision() != pending->revision || activeEditor->Revision() != revision ||
+        activeEditor->GetSelection() != pending->selection || activeEditor->GetSelection() != selection)
     {
         Status(IDS_LINKCHANGED);
         return true;
     }
 
-    DxUi::NativeTextInputState native;
-    if (_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex)
+    if (IsSpellImeComposing())
+    {
+        _spell.imeSuppressionActive = true;
         return true;
+    }
+
+    if (selectedId == SpellDeleteRepeatedId)
+    {
+        if (pending->issue.kind != SpellIssueKind::RepeatedWord || pending->issue.sourceFragments.empty())
+            return true;
+        auto deleteFragments    = pending->issue.sourceFragments;
+        const std::size_t first = deleteFragments.front().first;
+        const std::size_t last  = deleteFragments.back().last;
+        const std::size_t len   = source.Length();
+        bool expanded           = false;
+        if (first > 0u && source.IsBoundary(first - 1u))
+        {
+            std::wstring adj;
+            if (source.TrySlice(first - 1u, first, adj) == DxUi::RichText::SourceResult::Success && (adj == L" " || adj == L"\t"))
+            {
+                deleteFragments.front().first = first - 1u;
+                expanded                      = true;
+            }
+        }
+        if (! expanded && last < len && source.IsBoundary(last + 1u))
+        {
+            std::wstring adj;
+            if (source.TrySlice(last, last + 1u, adj) == DxUi::RichText::SourceResult::Success && (adj == L" " || adj == L"\t"))
+                deleteFragments.back().last = last + 1u;
+        }
+        std::vector<DxUi::RichText::SourceEdit> edits;
+        if (! TryBuildSpellReplacementEdits(source, deleteFragments, L"", edits))
+        {
+            Status(IDS_NOTAVAILABLE);
+            return true;
+        }
+        const std::size_t caretAfter = edits.front().source.first;
+        if (! activeEditor->ApplySourceEdits(source, revision, edits, {caretAfter, caretAfter}))
+            Status(IDS_NOTAVAILABLE);
+        return true;
+    }
 
     if (selectedId == SpellIgnoreOnceId)
     {
-        _customDictionary.IgnoreOnce(_session.key, pending->issue.word, pending->issue.displayRange.first);
+        _customDictionary.IgnoreOnce(_session.key, pending->issue.word, IssueOccurrenceAnchor(pending->issue));
         ProjectVisibleSpellDecorations();
         return true;
     }
@@ -1035,7 +1311,7 @@ bool Application::HandleSpellMenuSelection(
             return true;
         }
         const std::size_t caretAfter = edits.front().source.first + replacement.size();
-        if (! _editor->ApplySourceEdits(source, revision, edits, {caretAfter, caretAfter}))
+        if (! activeEditor->ApplySourceEdits(source, revision, edits, {caretAfter, caretAfter}))
             Status(IDS_NOTAVAILABLE);
     }
     return true;
@@ -1114,19 +1390,19 @@ void Application::ExecuteSpellingCommand(Command command)
     {
         std::vector<std::wstring> options{L"auto"};
         for (const auto& tag : _spell.installedLanguages)
-            if (std::ranges::none_of(options, [&](const std::wstring& e) { return EqualTagIgnoreCase(e, tag); }))
+            if (std::ranges::none_of(options, [&](const std::wstring& e) { return EqualOrdinalIgnoreCase(e, tag); }))
                 options.push_back(tag);
         if (options.size() == 1u)
         {
-            for (const wchar_t* common : {L"en-US", L"fr-FR", L"de-DE", L"es-ES"})
-                if (std::ranges::none_of(options, [&](const std::wstring& e) { return EqualTagIgnoreCase(e, common); }))
+            for (const wchar_t* common : CommonFallbackLanguages)
+                if (std::ranges::none_of(options, [&](const std::wstring& e) { return EqualOrdinalIgnoreCase(e, common); }))
                     options.push_back(common);
         }
         const std::wstring current = _settings.spelling.languages.empty() ? L"auto" : _settings.spelling.languages.front();
         std::size_t nextIdx        = 0u;
         for (std::size_t i = 0u; i < options.size(); ++i)
         {
-            if (EqualTagIgnoreCase(options[i], current))
+            if (EqualOrdinalIgnoreCase(options[i], current))
             {
                 nextIdx = (i + 1u) % options.size();
                 break;
@@ -1145,9 +1421,14 @@ void Application::ExecuteSpellingCommand(Command command)
         const auto chosen = PickDictionaryFile();
         if (chosen.empty() || ! IsUiAttached())
             return;
-        _settings.spelling.customDictionaryPath = chosen.lexically_normal();
-        if (FAILED(_customDictionary.Load(ActiveCustomDictionaryPath())))
-            Status(IDS_SPELL_DICT_SAVE_FAILED);
+        const auto normalized = chosen.lexically_normal();
+        const HRESULT loadHr  = _customDictionary.Load(normalized);
+        if (FAILED(loadHr))
+        {
+            Status(loadHr == HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION) ? IDS_FILENOTUTF8 : IDS_SPELL_DICT_LOAD_FAILED);
+            return;
+        }
+        _settings.spelling.customDictionaryPath = normalized;
         RefreshProofingDrawerControls();
         ScheduleSpellCheck(true);
         SavePreferences();
@@ -1155,7 +1436,8 @@ void Application::ExecuteSpellingCommand(Command command)
     else if (command == Command::SpellResetCustomDictionary)
     {
         _settings.spelling.customDictionaryPath.clear();
-        (void)_customDictionary.Load(ActiveCustomDictionaryPath());
+        if (FAILED(_customDictionary.Load(ActiveCustomDictionaryPath())))
+            Status(IDS_SPELL_DICT_LOAD_FAILED);
         RefreshProofingDrawerControls();
         ScheduleSpellCheck(true);
         SavePreferences();
@@ -1178,23 +1460,16 @@ void Application::OnEditorLeftButtonDown(POINT clientPt, WPARAM modifiers)
     _spell.leftDownHitOffset.reset();
     _spell.leftDownIssueRect.reset();
     _spell.pendingLeftClick.reset();
-    const bool modalOverlay = _activeOverlay == OverlayKind::BlockDraftModal || _activeOverlay == OverlayKind::RecoveryModal;
-    if (! _settings.spelling.enabled || ! _editor || ActiveEditor() != _editor || _spell.issues.empty() ||
-        _spell.effectiveAvailability != ProviderAvailability::Ready || modalOverlay || HasBlockDraft() || HasActiveModalPrompt() || _printPreview != nullptr)
+    if (! CanRunSpellPointerInteraction(true) || (modifiers & (MK_SHIFT | MK_CONTROL)) != 0u)
         return;
 
-    if ((modifiers & (MK_SHIFT | MK_CONTROL)) != 0u)
-        return;
-    if ((_spellStatusCombo && _spellStatusCombo->IsPopupOpen()) || (_spellingLanguageCombo && _spellingLanguageCombo->IsPopupOpen()))
-        return;
-
-    DxUi::NativeTextInputState native;
-    if (_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex)
+    auto* const activeEditor = ActiveEditor();
+    if (! activeEditor)
         return;
 
     const float scale         = 96.f / _host.GetDpi();
     const D2D1_POINT_2F ptDip = {static_cast<float>(clientPt.x) * scale, static_cast<float>(clientPt.y) * scale};
-    const auto edBounds       = _editor->GetBounds();
+    const auto edBounds       = activeEditor->GetBounds();
     if (ptDip.x < edBounds.left || ptDip.x >= edBounds.right - 16.f || ptDip.y < edBounds.top || ptDip.y >= edBounds.bottom)
         return;
 
@@ -1209,52 +1484,17 @@ void Application::OnEditorLeftButtonDown(POINT clientPt, WPARAM modifiers)
         ptOverlapsControl(_filesPane) || ptOverlapsControl(_sidebar))
         return;
 
-    std::optional<std::size_t> issueIdx;
-    const auto downHit = _editor->TryHitTestTextInputPoint(_host, ptDip);
-    if (downHit)
-    {
-        issueIdx = FindSpellIssueAtSourceOffset(*downHit);
-        if (issueIdx)
-        {
-            const auto& issue = _spell.issues[*issueIdx];
-            const auto rects  = ! issue.sourceFragments.empty()
-                                    ? _editor->TryGetTextInputRangeRects(_host, issue.sourceFragments.front().first, issue.sourceFragments.back().last)
-                                    : std::nullopt;
-            if (rects && ! rects->empty())
-            {
-                const auto hitRect = FindPaddedIssueRectAtPoint(_host, *_editor, issue.sourceFragments, ptDip);
-                if (! hitRect)
-                    return;
-                _spell.leftDownIssueRect = hitRect;
-            }
-        }
-    }
+    const auto downHit = activeEditor->TryHitTestTextInputPoint(_host, ptDip);
+    std::optional<D2D1_RECT_F> hitRect;
+    const auto issueIdx = TryHitSpellIssueAtPoint(*activeEditor, ptDip, downHit, &hitRect);
     if (! issueIdx)
-    {
-        const auto visSource       = _editor->GetVisibleSourceRange(_host);
-        const std::size_t visFirst = visSource && visSource->first > ViewportOverscanUnits ? visSource->first - ViewportOverscanUnits : 0u;
-        const std::size_t visLast  = visSource ? visSource->second + ViewportOverscanUnits : _editor->Snapshot().Length();
-        for (std::size_t i = 0u; i < _spell.issues.size(); ++i)
-        {
-            const auto& issue = _spell.issues[i];
-            if (issue.sourceFragments.empty() || _customDictionary.IsAcceptedNormalized(issue.normalizedKey, _session.key, issue.displayRange.first))
-                continue;
-            const auto span = DxUi::RichText::MarkdownRange{issue.sourceFragments.front().first, issue.sourceFragments.back().last};
-            if (span.last < visFirst || span.first > visLast)
-                continue;
-            if (const auto hitRect = FindPaddedIssueRectAtPoint(_host, *_editor, issue.sourceFragments, ptDip))
-            {
-                issueIdx                 = i;
-                _spell.leftDownIssueRect = hitRect;
-                break;
-            }
-        }
-    }
+        return;
 
     _spell.leftDownHitOffset = downHit;
+    _spell.leftDownIssueRect = hitRect;
     _spell.leftDownArmed     = true;
     _spell.leftDownClientPt  = clientPt;
-    _spell.leftDownRevision  = _editor->Revision();
+    _spell.leftDownRevision  = activeEditor->Revision();
 }
 
 void Application::OnEditorLeftButtonDoubleClick() noexcept
@@ -1272,10 +1512,8 @@ void Application::OnEditorLeftButtonUp(POINT clientPt)
     if (! std::exchange(_spell.leftDownArmed, false))
         return;
 
-    const bool modalOverlay = _activeOverlay == OverlayKind::BlockDraftModal || _activeOverlay == OverlayKind::RecoveryModal;
-    if (! _settings.spelling.enabled || ! _editor || ActiveEditor() != _editor || _spell.issues.empty() ||
-        _spell.effectiveAvailability != ProviderAvailability::Ready || modalOverlay || HasBlockDraft() || HasActiveModalPrompt() || _printPreview != nullptr ||
-        _editor->Revision() != _spell.leftDownRevision)
+    auto* const activeEditor = ActiveEditor();
+    if (! CanRunSpellPointerInteraction(false) || ! activeEditor || activeEditor->Revision() != _spell.leftDownRevision)
         return;
 
     const int maxDx = std::max(4, GetSystemMetrics(SM_CXDRAG));
@@ -1283,66 +1521,36 @@ void Application::OnEditorLeftButtonUp(POINT clientPt)
     if (std::abs(clientPt.x - _spell.leftDownClientPt.x) > maxDx || std::abs(clientPt.y - _spell.leftDownClientPt.y) > maxDy)
         return;
 
-    const auto selection = _editor->GetSelection();
+    const auto selection = activeEditor->GetSelection();
     if (selection.Start() != selection.End())
-        return;
-
-    DxUi::NativeTextInputState native;
-    if (_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex)
         return;
 
     const float scale                    = 96.f / _host.GetDpi();
     const D2D1_POINT_2F ptDip            = {static_cast<float>(clientPt.x) * scale, static_cast<float>(clientPt.y) * scale};
-    std::optional<std::size_t> hitOffset = _editor->TryHitTestTextInputPoint(_host, ptDip);
+    std::optional<std::size_t> hitOffset = activeEditor->TryHitTestTextInputPoint(_host, ptDip);
     const bool usedGeometryHit           = hitOffset.has_value();
     if (! hitOffset)
         hitOffset = downHitOffset;
     if (! hitOffset)
         hitOffset = selection.caret;
 
-    auto issueIdx = FindSpellIssueAtSourceOffset(*hitOffset);
     std::optional<D2D1_RECT_F> anchorRect;
-    if (! issueIdx)
-    {
-        const auto visSource       = _editor->GetVisibleSourceRange(_host);
-        const std::size_t visFirst = visSource && visSource->first > ViewportOverscanUnits ? visSource->first - ViewportOverscanUnits : 0u;
-        const std::size_t visLast  = visSource ? visSource->second + ViewportOverscanUnits : _editor->Snapshot().Length();
-        for (std::size_t i = 0u; i < _spell.issues.size(); ++i)
-        {
-            const auto& candidate = _spell.issues[i];
-            if (candidate.sourceFragments.empty() ||
-                _customDictionary.IsAcceptedNormalized(candidate.normalizedKey, _session.key, candidate.displayRange.first))
-                continue;
-            const auto span = DxUi::RichText::MarkdownRange{candidate.sourceFragments.front().first, candidate.sourceFragments.back().last};
-            if (span.last < visFirst || span.first > visLast)
-                continue;
-            if (const auto hitRect = FindPaddedIssueRectAtPoint(_host, *_editor, candidate.sourceFragments, ptDip))
-            {
-                issueIdx   = i;
-                anchorRect = hitRect;
-                break;
-            }
-        }
-        if (! issueIdx && downIssueRect)
-            issueIdx = FindSpellIssueAtSourceOffset(selection.caret);
-    }
+    auto issueIdx = TryHitSpellIssueAtPoint(*activeEditor, ptDip, hitOffset, &anchorRect);
+    if (! issueIdx && downIssueRect)
+        issueIdx = FindSpellIssueAtSourceOffset(selection.caret);
     if (! issueIdx)
         return;
 
     const auto& issue = _spell.issues[*issueIdx];
-    if (! issue.sourceFragments.empty())
-    {
-        const auto issueSpan = DxUi::RichText::MarkdownRange{issue.sourceFragments.front().first, issue.sourceFragments.back().last};
-        if (_spell.typingSuppressionActive && _spell.suppressedTypingWord && RangesOverlap(issueSpan, *_spell.suppressedTypingWord))
-            return;
-    }
+    if (IsIssueSuppressedByTyping(issue))
+        return;
 
     if (! anchorRect && ! issue.sourceFragments.empty())
     {
-        const auto rects = _editor->TryGetTextInputRangeRects(_host, issue.sourceFragments.front().first, issue.sourceFragments.back().last);
-        if (rects && ! rects->empty())
+        bool hasGeometry{};
+        anchorRect = FindPaddedIssueRectAtPoint(_host, *activeEditor, issue.sourceFragments, ptDip, &hasGeometry);
+        if (hasGeometry)
         {
-            anchorRect = FindPaddedIssueRectAtPoint(_host, *_editor, issue.sourceFragments, ptDip);
             if (! anchorRect)
                 return;
         }
@@ -1364,7 +1572,8 @@ void Application::OnEditorLeftButtonUp(POINT clientPt)
         (void)ClientToScreen(_window.get(), &screenPt);
     }
 
-    _spell.pendingLeftClick = PendingLeftClickRequest{_session.key, _editor->Revision(), *issueIdx, screenPt};
+    _spell.pendingLeftClick = PendingLeftClickRequest{
+        _session.key, activeEditor->Revision(), *issueIdx, screenPt, _spell.appliedKey, _spell.languageConfigVersion, _customDictionary.Generation()};
     if (_window)
         (void)PostMessageW(_window.get(), SpellMenuRequested, 0, 0);
 }
@@ -1375,64 +1584,56 @@ void Application::HandlePostedSpellLeftClickMenu()
     if (! req || IsClosing() || IsSessionEnding() || ! IsUiAttached())
         return;
 
-    const bool modalOverlay = _activeOverlay == OverlayKind::BlockDraftModal || _activeOverlay == OverlayKind::RecoveryModal;
-    if (! _settings.spelling.enabled || ! _editor || ActiveEditor() != _editor || _spell.issues.empty() ||
-        _spell.effectiveAvailability != ProviderAvailability::Ready || modalOverlay || HasBlockDraft() || HasActiveModalPrompt() || _printPreview != nullptr)
+    if (! CanRunSpellPointerInteraction(true))
         return;
 
-    if ((_spellStatusCombo && _spellStatusCombo->IsPopupOpen()) || (_spellingLanguageCombo && _spellingLanguageCombo->IsPopupOpen()))
+    auto* const activeEditor = ActiveEditor();
+    if (! activeEditor || req->workspaceKey != _session.key || req->revision != activeEditor->Revision() || req->issueIndex >= _spell.issues.size())
         return;
 
-    if (req->workspaceKey != _session.key || req->revision != _editor->Revision() || req->issueIndex >= _spell.issues.size())
+    if (req->languageConfigVersion != _spell.languageConfigVersion || req->dictionaryGeneration != _customDictionary.Generation())
+        return;
+    if (req->appliedKey.has_value() != _spell.appliedKey.has_value() || (req->appliedKey && ! req->appliedKey->Matches(*_spell.appliedKey)))
         return;
 
-    const auto selection = _editor->GetSelection();
+    const auto selection = activeEditor->GetSelection();
     if (selection.Start() != selection.End())
         return;
 
-    DxUi::NativeTextInputState native;
-    if (_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex)
+    if (IsIssueSuppressedByTyping(_spell.issues[req->issueIndex]))
         return;
-
-    const auto& issue = _spell.issues[req->issueIndex];
-    if (! issue.sourceFragments.empty())
-    {
-        const auto issueSpan = DxUi::RichText::MarkdownRange{issue.sourceFragments.front().first, issue.sourceFragments.back().last};
-        if (_spell.typingSuppressionActive && _spell.suppressedTypingWord && RangesOverlap(issueSpan, *_spell.suppressedTypingWord))
-            return;
-    }
 
     ShowSpellLeftClickMenu(req->issueIndex, req->screenPt);
 }
 
 void Application::ShowSpellLeftClickMenu(std::size_t issueIndex, POINT screenPoint)
 {
-    if (! _editor || ActiveEditor() != _editor)
+    auto* const activeEditor = ActiveEditor();
+    if (! activeEditor)
         return;
 
-    auto items = BuildSpellActionMenuItems(issueIndex, _editor->GetSelection());
+    auto items = BuildSpellActionMenuItems(issueIndex, activeEditor->GetSelection());
     if (items.empty() || _options.headless)
         return;
 
-    auto* const primary  = _editor;
-    const auto source    = _editor->Snapshot();
-    const auto revision  = _editor->Revision();
-    const auto selection = _editor->GetSelection();
+    const auto source    = activeEditor->Snapshot();
+    const auto revision  = activeEditor->Revision();
+    const auto selection = activeEditor->GetSelection();
     const auto key       = _session.key;
-    const auto lifetime  = GetControlLifetimeToken(*_editor);
+    const auto lifetime  = GetControlLifetimeToken(*activeEditor);
     DxUi::ContextMenuSessionCallbacks callbacks;
     callbacks.focusFirstNavigableItem = true;
     (void)DxUi::ContextMenu::ShowAsync(_window.get(),
                                        screenPoint,
                                        items,
                                        _host.GetTheme(),
-                                       [this, primary, source, revision, selection, key, lifetime](std::optional<int> selected) noexcept
+                                       [this, activeEditor, source, revision, selection, key, lifetime](std::optional<int> selected) noexcept
     {
         RunUiAction([&]
         {
             if (selected)
                 (void)HandleSpellMenuSelection(*selected, key, source, revision, selection);
-            if (! IsUiAttached() || lifetime.expired() || ActiveEditor() != primary)
+            if (! IsUiAttached() || lifetime.expired() || ActiveEditor() != activeEditor)
                 return;
             OnMenuClosed(std::nullopt);
         });

@@ -1,6 +1,7 @@
 #include "WinSpellProvider.h"
 #include "NativeCalls.h"
 #include "ProseExtractor.h"
+#include "TextUtilities.h"
 #include <DxUi/Failure.h>
 #include <DxUi/RichDocument.h>
 #include <algorithm>
@@ -12,20 +13,6 @@ namespace RedTilde
 {
 namespace
 {
-[[nodiscard]] std::wstring NormalizeTagKey(std::wstring_view tag)
-{
-    std::wstring key;
-    key.reserve(tag.size());
-    for (const wchar_t ch : tag)
-    {
-        if (ch >= L'A' && ch <= L'Z')
-            key.push_back(static_cast<wchar_t>(ch - L'A' + L'a'));
-        else
-            key.push_back(ch);
-    }
-    return key;
-}
-
 [[nodiscard]] bool IsValidUtf16Span(std::wstring_view segment, std::size_t start, std::size_t length) noexcept
 {
     if (length == 0u || start >= segment.size() || length > segment.size() - start)
@@ -84,7 +71,7 @@ try
     if (FAILED(factoryHr))
         return factoryHr;
 
-    const std::wstring normalized = NormalizeTagKey(cleanTag);
+    const std::wstring normalized = FoldAsciiLower(cleanTag);
     for (auto& cached : _checkers)
     {
         if (cached.normalizedTag == normalized && cached.checker)
@@ -249,7 +236,8 @@ try
             FAILED(InvokeNativeMethod(error.get(), &ISpellingError::get_Length, &length)))
             continue;
 
-        const SpellErrorSpan span{static_cast<std::size_t>(startIndex), static_cast<std::size_t>(length)};
+        const SpellIssueKind kind = (action == CORRECTIVE_ACTION_DELETE) ? SpellIssueKind::RepeatedWord : SpellIssueKind::Misspelled;
+        const SpellErrorSpan span{static_cast<std::size_t>(startIndex), static_cast<std::size_t>(length), kind};
         if (! IsValidUtf16Span(segment, span.start, span.length))
             continue;
         if (ShouldSkipSpellError(segment, span, options))
@@ -288,8 +276,16 @@ try
         wil::com_ptr_nothrow<ISpellingError> firstError;
         if (InvokeNativeMethod(checkEnum.get(), &IEnumSpellingError::Next, firstError.put()) == S_OK && firstError)
         {
+            ULONG startIndex{};
+            ULONG length{};
+            const bool hasSpan   = SUCCEEDED(InvokeNativeMethod(firstError.get(), &ISpellingError::get_StartIndex, &startIndex)) &&
+                                   SUCCEEDED(InvokeNativeMethod(firstError.get(), &ISpellingError::get_Length, &length));
+            const bool wholeWord = hasSpan && startIndex == 0u && static_cast<std::size_t>(length) == word.size();
+            if (hasSpan && ! wholeWord)
+                return S_OK;
             CORRECTIVE_ACTION action = CORRECTIVE_ACTION_NONE;
-            if (SUCCEEDED(InvokeNativeMethod(firstError.get(), &ISpellingError::get_CorrectiveAction, &action)) && action == CORRECTIVE_ACTION_REPLACE)
+            if (wholeWord && SUCCEEDED(InvokeNativeMethod(firstError.get(), &ISpellingError::get_CorrectiveAction, &action)) &&
+                action == CORRECTIVE_ACTION_REPLACE)
             {
                 wil::unique_cotaskmem_string replacement;
                 if (SUCCEEDED(InvokeNativeMethod(firstError.get(), &ISpellingError::get_Replacement, replacement.put())) && replacement)

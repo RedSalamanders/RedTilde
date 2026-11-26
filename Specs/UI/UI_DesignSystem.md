@@ -176,11 +176,13 @@ Chrome, panes and page correspond to `windowBackground`, `surfaceBackground` and
 | Primary action fill / text | `#C83C46` / white | same | `#C83C46` / white |
 | Active and inactive selection / selected label | `#F2CFD3` / `#A12A34` | same | `#A63B46` / white |
 
-Control borders and dividers retain the pinned DxUi roles. Current Files/outline rows and pressed toggles use
+Control borders and dividers retain the pinned DxUi roles; Paper assigns `overlayBackground = surfaceBackground` (`#F3EDDF`)
+so floating surfaces match the Paper palette. Current Files/outline rows and pressed toggles use
 the selection tint; inactive rows retain its product color and contrast-resolved label. Primary actions retain
-their explicit darker red fill in Dark mode so their white label stays readable. High contrast uses system
-Highlight/HighlightText for active and inactive selection, Hotlight for links/focus, and Window/WindowText for
-surfaces/text. Other Find matches use a subtle neutral fill distinct from the current selection.
+their explicit darker red fill in Dark mode so their white label stays readable. Windows High Contrast (`IsHighContrastEnabled()`)
+maps full system tokens (`GetSysColor`) across window/surface/card/overlay backgrounds, text/subdued/disabled text,
+Highlight/HighlightText for active and inactive selection, Hotlight for links/focus, and ButtonFace/BtnText/WindowFrame
+for chrome borders, dividers, and subtle pills. Other Find matches use a subtle neutral fill distinct from the current selection.
 
 The merged title bar uses square native-sized caption buttons: neutral hover/press
 for minimize and maximize/restore, red paired with white text for close, and system
@@ -293,24 +295,32 @@ region refuses and F2 falls back to the draft.
 
 ## Files pane
 
-The Files pane is available, closed by default, and lists Markdown files from a persistent selected root and its
-subfolders. When one or more documents in the workspace have unsaved modifications, the tree also exposes a **Modified documents**
-group (`WorkspaceGroupId`) keeping those dirty entries in stable opening order across workspace switches (clean documents remain listed only in the folder hierarchy); clicking a **Modified
-documents** row keeps tree selection on that row, clicking a folder row selects that folder row, and collapsing **Modified
-documents** falls back to the visible folder row when present. File offers distinct Open File (Ctrl+O), Open Folder
-(Ctrl+Shift+O), and Close document (Ctrl+W) commands. The folder picker uses
-the native filesystem folder dialog; accepting it shows Files, clears its name filter and focuses the tree without
-replacing the current document, selection or undo history, even when the document is dirty. It is a listing/open
-surface only: it does not create, rename, delete, move, reveal or otherwise
-operate on files. Its first command-row toggle uses Ctrl+Shift+E. The pane width is 280 DIP by default and persists
-within 200–400 DIP. Opening moves focus into the tree; Escape or closing returns focus to the authoritative editor
-with its source selection intact. The folder name is visible; its full path is a tooltip and UIA help text. An
-empty root explains that Open Folder or Open File establishes a root. The first successfully opened/saved file
-establishes its parent only when no root exists. Thereafter Open, Save As and New retain that root; only explicit
-Open Folder replaces it. Opening a nested file expands its ancestors without restarting enumeration. A file
-outside the selected root clears the previous tree selection while the full root listing remains available.
-Minimizing Files to its compact rail stops its worker while collapsed and restarts it when pinned or overlay-opened while retaining the selected root. Restart restores the root and pinned visibility;
-an unavailable folder reports the existing access error and never blocks editing or silently changes roots.
+The Files pane is available, closed by default, and displays up to `16` persistent local workspace folder sections
+(automatically disambiguated with parent context when basenames collide) plus up to `8` lazy-collapsed read-through
+GitHub repository sections (`Open GitHub…`, `Ctrl+Shift+G`). When one or more documents in the workspace have unsaved
+modifications, the tree also exposes a **Modified documents** group (`WorkspaceGroupId`) keeping those dirty entries in
+stable opening order across workspace switches (clean documents remain listed only in the folder hierarchy); clicking a
+**Modified documents** row keeps tree selection on that row, clicking a folder row selects that folder row, and collapsing
+**Modified documents** falls back to the visible folder row when present. File offers distinct Open File (`Ctrl+O`), Open
+Folder (`Ctrl+Shift+O`), Open GitHub (`Ctrl+Shift+G`), and Close document (`Ctrl+W`, passing `activeDocumentOnly = true`
+to `ShowSaveConfirmModal`) commands. The folder picker uses the native filesystem folder dialog; accepting it adds the
+folder, shows Files, clears its name filter, and focuses the tree without replacing the current document, selection, or
+undo history, even when the document is dirty. Local Files rows expose a context menu (**Open**, **Reveal in File Explorer**,
+**Reveal in RedSalamander**, **Copy Full Path**, **Copy Relative Path**, **Rename**, **Cut**, **Copy**, **Paste**, and
+**Remove from Workspace** / **Disconnect Repository** for GitHub roots) executed safely through `FileOpsService` (refusing
+surrogate reparse points, reserved DOS names, self/descendant pastes, and GitHub Paste). Its first command-row toggle uses
+`Ctrl+Shift+E`. The pane width is 280 DIP by default and persists within 200–400 DIP. Opening moves focus into the tree;
+Escape or closing returns focus to the authoritative editor with its source selection intact. The folder name is visible;
+its full path is a tooltip and UIA help text (with `SanitizeUiText` filtering untrusted path/name/URL text). An empty root
+explains Open Folder, Open File, and Open GitHub. The first successfully opened/saved file establishes its parent only when
+no root exists. Thereafter Open, Save As and New retain existing roots. Opening a nested file expands its ancestors
+without restarting enumeration. A file outside the selected roots clears the previous tree selection while the full root
+listing remains available. Minimizing Files to its compact rail stops its worker while collapsed and restarts it when
+pinned or overlay-opened while retaining the selected roots; `CollapsedPaneRail` handles `cap == 0` gracefully, renders a
+bottom `+N` overflow badge with UIA overflow count, respects High Contrast colors, routes `PinOutline` focus and `VK_DOWN`,
+fires `onAnimationStep`/`onCollapseSettled` under `reducedMotion`, and labels GitHub rail dots truthfully. Restart
+restores roots and pinned visibility; an unavailable folder reports the existing access error and never blocks editing or
+silently changes roots.
 
 List `.md` and `.markdown` files. Exclude hidden and system entries. Show a directory only when Markdown exists
 below it, directories before files, and natural Explorer-style ordering within each kind. Expand ancestors of the
@@ -386,11 +396,16 @@ The app harness owns `compose-light`, `compose-dark`, `compose-paper`, `source`,
 [Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md) and
 [Workspace dialogs, multi-folder sections, and GitHub](../Plans/Done/WorkspaceDialogsFoldersAndGitHub_2026-11-24.md)
 for paired proposal art and Release renders under `docs/screenshots/`). Modal cards (`SaveConfirmModal`, `RenameFileModal`,
-`FileConflictModal`, and `OpenGitHubModal`) sit over an input-absorbing `Surface::Kind::ModalBackdrop` with centered
-layout, **Settings → Writing** exposes the **Keep unsaved changes on exit** toggle, **Settings → Accounts** manages
-GitHub sign-in tokens (`PasswordRevealMode::Peek`) / Device Flow / `gh` CLI opt-in without startup network calls, and the
-Files sidebar displays disambiguated multi-folder collapsible sections, GitHub repo sections, and a full local context
-menu (`Reveal in File Explorer`, `Reveal in RedSalamander`, path copy, `Rename…`, `Cut`, `Copy`, `Paste`). Captures must be actual application renders, tagged with dependency
-SHA, source identity, binary hash, dimensions, theme and scenario.
+`FileConflictModal`, and `OpenGitHubModal`) are added in `BuildUi()` after status bar and floating controls so their
+input-absorbing `Surface::Kind::ModalBackdrop` sits cleanly above every non-modal control with viewport-clamped centered
+layout (`[16, width - 16] x [16, height - 16]`), `HasActiveModalUi()` traps Tab/`Ctrl+Tab`, shortcuts, drops, and backdrop
+scroll wheel events, `Surface::Paint` guards null brushes and resets `_dashedStroke`/`_ellipsisSign` across resource
+generations and typography revisions, **Settings → Writing** exposes the **Keep unsaved edits on exit without asking**
+toggle (`exitUnsavedBehavior`), **Settings → Accounts** manages GitHub Personal Access Tokens (`PasswordRevealMode::Peek`,
+cleared on leave/Sign Out) and explicit `gh` CLI opt-in without startup network calls (hiding OAuth Device Flow buttons
+while `DefaultGitHubDeviceClientId` is empty), and closing/cancelling modals clears `_saveConfirmSession` cleanly. Files
+sidebar displays disambiguated multi-folder collapsible sections, GitHub repo sections, and the full local context
+menu (`Reveal in File Explorer`, `Reveal in RedSalamander`, path copy, `Rename`, `Cut`, `Copy`, `Paste`). Captures must be
+actual application renders, tagged with dependency SHA, source identity, binary hash, dimensions, theme and scenario.
 Proposal art is separately labelled. Physical screen-reader/IME/touch acceptance and real focus restoration require
 separate evidence.

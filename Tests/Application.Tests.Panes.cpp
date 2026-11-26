@@ -1,5 +1,6 @@
 #include "Application.Tests.Panes.h"
 #include "RedTilde/Application.h"
+#include "RedTilde/KeyboardState.h"
 #include "Support/Support.Tests.Foreground.h"
 #include "res/Resource.h"
 #include <algorithm>
@@ -716,6 +717,255 @@ public:
             app.DismissHoverOverlays(false);
 
             Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "hover-polish test stays hidden");
+        });
+
+        test("Window.M7ModalCenteringCompactHeaderAndInputContainment",
+             [&]
+        {
+            Testing::ForegroundOwnershipObserver foreground;
+            auto options      = Options(root, L"m7-modal-centering-input");
+            const auto folder = options.dataDirectory / L"workspace";
+            std::filesystem::create_directories(folder);
+            const auto docPath = folder / L"note.md";
+            Require(WriteText(docPath, "# Local Note\r\nBody text.\r\n"), "seed local markdown doc for hover invocation test");
+
+            Application app(options);
+            Success(app.Initialize(), "initialize hidden M7 modal/input containment fixture");
+
+            // P1-01: Floating status/pills precede modal backdrop and all modal panels in Z-order.
+            Require(app._root != nullptr, "root surface is attached");
+            const auto indexOf = [&](const DxUi::Control* needle) -> std::size_t
+            {
+                const std::size_t count = app._root->GetLogicalChildCount();
+                for (std::size_t i = 0; i < count; ++i)
+                    if (app._root->GetLogicalChild(i) == needle)
+                        return i;
+                Require(false, "expected child control in root surface");
+                return count;
+            };
+            const std::size_t backdropIdx = indexOf(app._modalBackdrop);
+            for (const DxUi::Control* nonModal : {static_cast<const DxUi::Control*>(app._focusPill),
+                                                  static_cast<const DxUi::Control*>(app._positionStatus),
+                                                  static_cast<const DxUi::Control*>(app._spellStatusCombo),
+                                                  static_cast<const DxUi::Control*>(app._feedback),
+                                                  static_cast<const DxUi::Control*>(app._floating)})
+                Require(indexOf(nonModal) < backdropIdx, "floating status and selection chrome appear below ModalBackdrop in Z-order");
+            for (const DxUi::Control* modal : {static_cast<const DxUi::Control*>(app._recoveryPanel),
+                                               static_cast<const DxUi::Control*>(app._saveConfirmPanel),
+                                               static_cast<const DxUi::Control*>(app._renamePanel),
+                                               static_cast<const DxUi::Control*>(app._fileConflictPanel),
+                                               static_cast<const DxUi::Control*>(app._openGitHubPanel)})
+                Require(indexOf(modal) > backdropIdx, "every modal panel sits above ModalBackdrop in Z-order");
+
+            // P1-03: Files pane < 272 DIP switches Add Folder and Add GitHub buttons to IconOnly cleanly.
+            app._settings.filesWidth = 240u;
+            app._settings.showFiles  = true;
+            Resize(app, 960, 640, 96);
+            Require(app._compactFilesHeader && app._filesAddFolder->GetVariant() == DxUi::ButtonVariant::IconOnly &&
+                        app._filesAddGitHub->GetVariant() == DxUi::ButtonVariant::IconOnly,
+                    "files pane narrower than 272 DIP switches Add Folder and GitHub buttons to compact IconOnly mode");
+            Require(! Overlap(app._filesSectionTitle->GetBounds(), app._filesAddFolder->GetBounds()) &&
+                        ! Overlap(app._filesAddFolder->GetBounds(), app._filesAddGitHub->GetBounds()) &&
+                        ! Overlap(app._filesAddGitHub->GetBounds(), app._pinFiles->GetBounds()),
+                    "compact files pane header controls never overlap");
+            app._settings.filesWidth = 300u;
+            app.Layout();
+            Require(! app._compactFilesHeader && app._filesAddFolder->GetVariant() == DxUi::ButtonVariant::Standard &&
+                        app._filesAddGitHub->GetVariant() == DxUi::ButtonVariant::Standard && ! app._filesAddFolder->GetText().empty(),
+                    "widening files pane to >= 272 DIP restores Standard button labels");
+
+            // P1-03: All 5 modals stay centered and unclipped at 800x560 DIP across 100%, 150%, and 200% DPI.
+            for (const UINT dpi : {96u, 144u, 192u})
+            {
+                Resize(app, 800, 560, dpi);
+                const auto client           = app._host.GetClientBoundsDip();
+                const D2D1_RECT_F safeFrame = D2D1::RectF(12.f, 12.f, client.right - 12.f, client.bottom - 12.f);
+
+                app._recoveryCandidates.clear();
+                Application::OfferedRecoveryCandidate rc;
+                rc.id            = L"m7-layout-probe";
+                rc.snapshot.text = L"# Probe\nBody";
+                app._recoveryCandidates.push_back(rc);
+                app.ShowRecovery();
+                app.Layout();
+                Require(Inside(app._recoveryPanel->GetBounds(), safeFrame) && Inside(app._recoveryRestoreBtn->GetBounds(), app._recoveryPanel->GetBounds()) &&
+                            Inside(app._recoveryLaterBtn->GetBounds(), app._recoveryPanel->GetBounds()),
+                        "RecoveryModal fits inside 800x560 DIP client scrim at high DPI");
+                app.CloseDrawers();
+
+                app.Document().SetText(L"Dirty before SaveConfirm layout check\n");
+                app.ShowSaveConfirmModal([] {}, true);
+                app.Layout();
+                Require(app._saveConfirmPanel->IsVisible() && Inside(app._saveConfirmPanel->GetBounds(), safeFrame) &&
+                            Inside(app._saveConfirmScroll->GetBounds(), app._saveConfirmPanel->GetBounds()),
+                        "SaveConfirmModal fits cleanly inside 800x560 DIP scrim");
+                if (! app._saveConfirmRowControls.empty() && app._saveConfirmRowControls[0].checkbox->IsVisible())
+                    Require(app._saveConfirmRowControls[0].checkbox->GetBounds().right <= app._saveConfirmPanel->GetBounds().right - 34.f,
+                            "SaveConfirm row width clears scrollbar area");
+                app.CloseDrawers();
+                app.Document().SetText(L"");
+
+                app.SetActiveOverlay(Application::OverlayKind::RenameFileModal);
+                app.Layout();
+                Require(Inside(app._renamePanel->GetBounds(), safeFrame), "RenameFileModal fits inside 800x560 DIP scrim");
+                app.CloseDrawers();
+
+                app.SetActiveOverlay(Application::OverlayKind::FileConflictModal);
+                app.Layout();
+                Require(Inside(app._fileConflictPanel->GetBounds(), safeFrame), "FileConflictModal fits inside 800x560 DIP scrim");
+                app.CloseDrawers();
+
+                app.SetActiveOverlay(Application::OverlayKind::OpenGitHubModal);
+                app.Layout();
+                Require(Inside(app._openGitHubPanel->GetBounds(), safeFrame) && Inside(app._openGitHubOpenBtn->GetBounds(), app._openGitHubPanel->GetBounds()),
+                        "OpenGitHubModal fits inside 800x560 DIP scrim");
+                app.CloseDrawers();
+            }
+
+            // P1-02: Modal input containment across Tab trap (with Peek eye), RouteShortcut, WM_MOUSEWHEEL, Backdrop wheel, RevealPaneOverlay, Menu, Spell
+            // menu.
+            Resize(app, 1280, 800, 96);
+            app._settings.spelling.enabled = true;
+            app.SetDocument(L"Teh misspelled text\n");
+            app.Prepare(128);
+            app.SetActiveOverlay(Application::OverlayKind::OpenGitHubModal);
+            app.Layout();
+            app._openGitHubTokenInput->SetText(L"ghp_testToken12345");
+            app._host.SetFocusControl(app._openGitHubTokenInput, false);
+            const auto containsChild = [&](auto&& self, const DxUi::Control* parent, const DxUi::Control* needle) -> bool
+            {
+                if (! parent || ! needle)
+                    return false;
+                if (parent == needle)
+                    return true;
+                const std::size_t n = parent->GetLogicalChildCount();
+                for (std::size_t i = 0; i < n; ++i)
+                    if (self(self, parent->GetLogicalChild(i), needle))
+                        return true;
+                return false;
+            };
+            for (int step = 0; step < 12; ++step)
+            {
+                (void)app.HandleMessage(app.Window(), WM_KEYDOWN, VK_TAB, 0);
+                auto* const focused = app._host.GetFocusControl();
+                Require(focused != nullptr, "modal Tab focus remains non-null");
+                // Must stay strictly inside _openGitHubPanel subtree (never escape to _editor / sidebars).
+                Require(containsChild(containsChild, app._openGitHubPanel, focused), "VK_TAB focus stays trapped inside active modal subtree");
+            }
+
+            const auto scaleBeforeWheel = app._settings.textScale;
+            (void)app.HandleMessage(app.Window(), WM_MOUSEWHEEL, MAKEWPARAM(MK_CONTROL, WHEEL_DELTA), 0);
+            Require(app._settings.textScale == scaleBeforeWheel, "Ctrl+Wheel zoom is blocked while modal UI is active");
+            Require(app._modalBackdrop->OnMouseWheel(app._host, {10.f, 10.f}, static_cast<float>(WHEEL_DELTA), 0u),
+                    "ModalBackdrop consumes mouse wheel events");
+
+            app._settings.showFiles = false;
+            app.Layout();
+            app.RevealPaneOverlay(PaneSide::Left);
+            Require(! app.IsPaneOverlayActive(PaneSide::Left), "RevealPaneOverlay refuses to open side pane behind an active modal");
+
+            std::vector<DxUi::MenuFlyoutItem> spellItems;
+            app.PopulateSpellContextMenu({10, 10}, false, spellItems);
+            Require(spellItems.empty(), "PopulateSpellContextMenu produces no items while modal UI is active");
+
+            {
+                KeyboardState::ScopedSynthetic syntheticKeys;
+                std::array<BYTE, 256> keys{};
+                keys[VK_CONTROL] = 0x80;
+                KeyboardState::Write(keys);
+                (void)app.HandleMessage(app.Window(), WM_KEYDOWN, VK_TAB, 0);
+                Require(containsChild(containsChild, app._openGitHubPanel, app._host.GetFocusControl()),
+                        "Ctrl+Tab focus stays trapped inside active modal subtree");
+                const MSG ctrlN{app.Window(), WM_KEYDOWN, 'N', 0};
+                const MSG ctrlF{app.Window(), WM_KEYDOWN, 'F', 0};
+                Require(! app.RouteShortcut(ctrlN) && ! app.RouteShortcut(ctrlF), "Ctrl+N and Ctrl+F are blocked while modal UI is active");
+
+                keys.fill(0);
+                keys[VK_MENU] = 0x80;
+                KeyboardState::Write(keys);
+                const MSG altF4{app.Window(), WM_SYSKEYDOWN, VK_F4, 0};
+                Require(app.RouteShortcut(altF4) && app.Window() != nullptr && ! app.IsClosing() &&
+                            app._activeOverlay == Application::OverlayKind::OpenGitHubModal,
+                        "Alt+F4 is consumed and blocked while modal UI is active");
+
+                keys.fill(0);
+                KeyboardState::Write(keys);
+                const MSG f2{app.Window(), WM_KEYDOWN, VK_F2, 0};
+                Require(! app.RouteShortcut(f2) && ! app.HasBlockDraft(), "F2 block-source shortcut is blocked while modal UI is active");
+            }
+
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(app.Window() != nullptr && ! app.IsClosing() && app._activeOverlay == Application::OverlayKind::OpenGitHubModal,
+                    "WM_CLOSE is blocked while OpenGitHubModal is active");
+            app.CloseDrawers();
+
+            app._recoveryCandidates.clear();
+            Application::OfferedRecoveryCandidate recoveryCandidate;
+            recoveryCandidate.id            = L"m7-close-block-recovery";
+            recoveryCandidate.snapshot.text = L"# Recovery\n";
+            app._recoveryCandidates.push_back(recoveryCandidate);
+            app.ShowRecovery();
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(app.Window() != nullptr && ! app.IsClosing() && app._activeOverlay == Application::OverlayKind::RecoveryModal &&
+                        app._recoveryCandidates.size() == 1u,
+                    "WM_CLOSE is blocked while RecoveryModal is active");
+            app.CloseDrawers();
+            app._recoveryCandidates.clear();
+
+            app.SetActiveOverlay(Application::OverlayKind::RenameFileModal);
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(app.Window() != nullptr && ! app.IsClosing() && app._activeOverlay == Application::OverlayKind::RenameFileModal,
+                    "WM_CLOSE is blocked while RenameFileModal is active");
+            app.CloseDrawers();
+
+            app._fileConflictSession = Application::FileConflictSession{
+                {folder / L"src.md"},
+                folder,
+                L"src.md",
+                false,
+            };
+            app._pendingPasteQueue.push_back(Application::PendingPasteItem{folder / L"queued.md", folder, false, false, false});
+            app.SetActiveOverlay(Application::OverlayKind::FileConflictModal);
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(app.Window() != nullptr && ! app.IsClosing() && app._activeOverlay == Application::OverlayKind::FileConflictModal &&
+                        app._fileConflictSession.has_value() && app._pendingPasteQueue.size() == 1u,
+                    "WM_CLOSE is blocked while FileConflictModal is active without dropping conflict session or paste queue");
+            app.CloseDrawers();
+            Require(! app._fileConflictSession.has_value() && app._pendingPasteQueue.empty(),
+                    "closing FileConflictModal cleans up conflict session and pending paste queue");
+            app._recoveryCandidates.clear();
+
+            // P0-05: _filesModel.invoked safely dismisses hover overlay before OpenPath via by-value binding copy.
+            app._settings.filesRoots = {folder};
+            app._settings.filesRoot  = folder;
+            app._settings.showFiles  = false;
+            app.RevealPaneOverlay(PaneSide::Left);
+            Require(app.IsPaneOverlayActive(PaneSide::Left), "left hover overlay is active before invoking file row");
+            std::uint64_t targetRowId{};
+            const auto startTick = GetTickCount64();
+            while (targetRowId == 0u && GetTickCount64() - startTick < 5000u)
+            {
+                MSG msg{};
+                while (PeekMessageW(&msg, app.Window(), 0, 0, PM_REMOVE))
+                {
+                    TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                }
+                for (const auto& pair : app._filesRowBindings)
+                    if (pair.second.kind == Application::FilesRowContextBinding::Kind::LocalEntry && ! pair.second.isDirectory &&
+                        pair.second.localPath == docPath)
+                    {
+                        targetRowId = pair.first;
+                        break;
+                    }
+                if (targetRowId == 0u)
+                    Sleep(10);
+            }
+            Require(targetRowId != 0u, "local doc row binding exists in _filesRowBindings");
+            app._filesModel.invoked(targetRowId);
+            Require(! app.IsPaneOverlayActive(PaneSide::Left), "invoking local file dismissed hover overlay safely without UAF");
+
+            Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "M7 modal/input containment test stayed hidden");
         });
     }
 };

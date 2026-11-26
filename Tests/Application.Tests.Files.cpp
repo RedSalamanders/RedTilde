@@ -628,6 +628,29 @@ void RegisterFilesTests(const std::filesystem::path& root, const std::function<v
         Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && ! files.Busy() && ! files.Take(),
                 "CancelInFlightLoad also clears an unconsumed Completed load");
 
+        const auto oversizedDest = base / L"oversized-destination.md";
+        Success(
+            WriteBytesAtomic(
+                oversizedDest, std::string(DefaultDocumentBytes + 1024u, 'z'), nullptr, nullptr, false, nullptr, false, nullptr, DefaultDocumentBytes + 4096u),
+            "seed oversized picker destination file");
+        auto gate6 = std::make_shared<AsyncFiles::TestGate>();
+        Require(SetEvent(gate6->proceed.get()) != FALSE, "allow picker destination probe to run immediately");
+        files.SetTestGate(gate6);
+        Success(files.Submit(true, oversizedDest, L"small text", false, {}, false, false, {}, {}, true), "admit picker probe against oversized destination");
+        Require(WaitForSingleObject(gate6->finished.get(), 10000) == WAIT_OBJECT_0, "picker probe settles");
+        const auto probeOversized = files.Take();
+        Require(probeOversized && probeOversized->status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) && probeOversized->rejectedUnits == 0u,
+                "picker destination size failure leaves rejectedUnits zero instead of blaming user text size");
+
+        auto gate7 = std::make_shared<AsyncFiles::TestGate>();
+        Require(SetEvent(gate7->proceed.get()) != FALSE, "allow oversized document save refusal to run immediately");
+        files.SetTestGate(gate7);
+        Success(files.Submit(true, base / L"oversized-doc.md", std::wstring(65537u, L'a'), false), "admit oversized document save");
+        Require(WaitForSingleObject(gate7->finished.get(), 10000) == WAIT_OBJECT_0, "oversized document save settles");
+        const auto saveOversized = files.Take();
+        Require(saveOversized && saveOversized->status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) && saveOversized->rejectedUnits == 65537u,
+                "SaveDocument size refusal reports the user document unit count");
+
         files.Close();
         Require(files.CurrentPhase() == AsyncFiles::Phase::Closed && ! files.Busy() && ! files.HasPendingSave() &&
                     files.Submit(false, first) == HRESULT_FROM_WIN32(ERROR_BUSY),

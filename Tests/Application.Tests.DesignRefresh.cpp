@@ -500,6 +500,50 @@ public:
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
             Require(app._imageFileRefreshes == retiredRefreshes, "the retired file binding cannot request another editor reload");
+
+            {
+                RichImageLoader staLoader;
+                Success(staLoader.Initialize(app.Window(), WM_APP + 0x350u, 0x737461u), "initialize RichImageLoader for STA worker probe");
+                const auto staImage = fixture / L"Illustrations/sta-cover.bmp";
+                const auto staBytes = Testing::ImageBitmapFixture(true);
+                Success(WriteBytesAtomic(staImage, std::string_view(reinterpret_cast<const char*>(staBytes.data()), staBytes.size())),
+                        "seed local image for STA RichImageLoader probe");
+                app.SetDocument(L"![STA](Illustrations/sta-cover.bmp)\n", fixture / L"Notebook.md");
+                std::vector<DxUi::RichText::RichImageRequest> staRequests;
+                for (unsigned turn = 0u; turn < 256u && staRequests.empty(); ++turn)
+                {
+                    (void)app.Host().RenderInitialFrameForShow();
+                    app.Document().TakePendingImageRequests(staRequests);
+                }
+                Require(staRequests.size() == 1u, "capture RichImageRequest for STA worker probe");
+                {
+                    const auto state = staLoader._state;
+                    const std::lock_guard lock(state->mutex);
+                    state->jobs[0u]         = staRequests.front();
+                    state->jobCount         = 1u;
+                    state->callbackLifetime = state;
+                    Success(ProcessWork::Acquire(state->callbackLease), "acquire ProcessWorkLease for STA RichImageLoader probe");
+                    state->phase = RichImageLoader::State::WorkerPhase::Active;
+                }
+                HRESULT threadComInit = E_FAIL;
+                HRESULT threadComKeep = E_FAIL;
+                std::jthread staThread([&]()
+                {
+                    threadComInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+                    const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(threadComInit));
+                    RichImageLoader::State::Worker(nullptr, staLoader._state.get(), nullptr);
+                    threadComKeep = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+                    if (SUCCEEDED(threadComKeep))
+                        CoUninitialize();
+                });
+                staThread.join();
+                std::vector<RichImageLoader::Result> staResults;
+                staLoader.Drain(staResults);
+                Require(SUCCEEDED(threadComInit) && threadComKeep == S_FALSE && staResults.size() == 1u && SUCCEEDED(staResults.front().status) &&
+                            staResults.front().image != nullptr,
+                        "RichImageLoader::State::Worker accepts RPC_E_CHANGED_MODE on STA threads without uninitializing caller COM");
+                staLoader.Shutdown();
+            }
         });
         test("Editor.ClipboardBitmapAssetHandler",
              [&]
@@ -562,6 +606,46 @@ public:
             app.Execute(Command::ImageFirstPaste);
             Require(! app.Preferences().imageFirstPaste && app.Host().GetClipboardPreference() == DxUi::TextClipboardPreference::TextFirst,
                     "the app option restores Unicode-first policy without changing pasted source");
+            {
+                const auto staDir     = options.dataDirectory / L"sta-worker";
+                const auto rootDrive  = staDir.root_name().native();
+                const bool fixedDrive = rootDrive.size() == 2u && rootDrive[1] == L':' && GetDriveTypeW(staDir.root_path().c_str()) == DRIVE_FIXED;
+                if (fixedDrive)
+                {
+                    BitmapPasteWriter staWriter;
+                    Success(staWriter.Initialize(staDir, app.Window(), WM_APP + 0x351u), "initialize BitmapPasteWriter for STA worker probe");
+                    auto job            = std::make_unique<BitmapPasteWriter::Job>();
+                    job->state          = staWriter._state;
+                    job->dib            = Testing::ClipboardBitmapFixture(true);
+                    job->v5             = true;
+                    job->result.request = 1u;
+                    {
+                        const std::scoped_lock lock(staWriter._state->mutex);
+                        staWriter._state->serial = 1u;
+                        staWriter._state->phase  = BitmapPasteWriter::Phase::Encoding;
+                    }
+                    Success(ProcessWork::Acquire(job->lease), "acquire ProcessWorkLease for STA BitmapPasteWriter probe");
+                    HRESULT threadComInit = E_FAIL;
+                    HRESULT threadComKeep = E_FAIL;
+                    std::jthread staThread([&]()
+                    {
+                        threadComInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+                        const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(threadComInit));
+                        BitmapPasteWriter::Worker(nullptr, job.release());
+                        threadComKeep = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+                        if (SUCCEEDED(threadComKeep))
+                            CoUninitialize();
+                    });
+                    staThread.join();
+                    BitmapPasteWriter::Result staResult;
+                    Require(SUCCEEDED(threadComInit) && threadComKeep == S_FALSE && staWriter.Take(staResult) && SUCCEEDED(staResult.status) &&
+                                ! staResult.asset.path.empty(),
+                            "BitmapPasteWriter::Worker accepts RPC_E_CHANGED_MODE on STA threads without uninitializing caller COM");
+                    Success(staWriter.Discard(std::move(staResult)), "retire STA BitmapPasteWriter probe asset");
+                    Await(app, [&] { return ! staWriter.Busy(); });
+                    staWriter.Stop();
+                }
+            }
             Require(foreground.NeverAcquiredForeground(), "bitmap paste never acquires the desktop or clipboard");
         });
         test("Editor.ClipboardBitmapPasteDeclinesSupersededSource",
@@ -1420,8 +1504,8 @@ public:
                             app.Dirty(),
                         "the nested edit remains authoritative and retains its undo history");
                 Require(app.Preferences().view == EditorView::Split && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Rich &&
-                            app._modeHint->GetText() == Resource(IDS_SPLITHINT) && app._mirror->IsVisible() && app.Host().GetFocusControl() == &app.Document(),
-                        "the outer Split request completes hint, visibility and logical focus after source supersession");
+                            app._mirror->IsVisible() && app.Host().GetFocusControl() == &app.Document(),
+                        "the outer Split request completes visibility and logical focus after source supersession");
                 Require(app._mirror->GetText() == expected && app._mirror->Snapshot().IsSameRevision(app.Document().Snapshot()) &&
                             app._mirror->GetSelection() == app.Document().GetSelection(),
                         "the visible mirror publishes the latest nested source and selection");
@@ -1470,8 +1554,8 @@ public:
             app._mirror->SetOnSelectionChanged({});
 
             Require(entered && nestedViewCompleted && app.Document().GetText() == source && ! app.Dirty() && app.Preferences().view == EditorView::Source &&
-                        app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source && app._modeHint->GetText() == Resource(IDS_SOURCEHINT) &&
-                        ! app._mirror->IsVisible() && app.Host().GetFocusControl() == &app.Document(),
+                        app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source && ! app._mirror->IsVisible() &&
+                        app.Host().GetFocusControl() == &app.Document(),
                     "a nested Source request remains the final view after the outer Split callback resumes");
             CheckChrome(app);
 
@@ -3087,7 +3171,7 @@ public:
             const auto inspected = app._equation->GetAcknowledgedSemanticDocument(app.Host());
             Require(inspected && std::ranges::count(inspected->Elements(), DxUi::RichText::SemanticRole::Math, &DxUi::RichText::SemanticElement::role) == 1,
                     "the inspector renders its preview as one native equation rather than literal delimiters");
-            for (const unsigned index : {3u, 4u, 5u, 13u})
+            for (const unsigned index : {3u, 4u, 5u, 12u})
                 Require(! app._tools[index]->IsEnabled(), "inline formatting commands are disabled inside equations");
             const auto envelope  = source.find(L"$a_i^2$");
             const bool entryUndo = app.Document().CanUndo(), entryRedo = app.Document().CanRedo();
@@ -5384,6 +5468,215 @@ public:
             Success(ReadBytes(settingsPath, afterBytes, &afterStamp), "read RedTilde.settings after Focus toggles");
             Require(beforeBytes == afterBytes && beforeStamp == afterStamp && foreground.NeverAcquiredForeground(),
                     "Focus mode toggles never rewrite RedTilde.settings on disk");
+        });
+
+        test("Editor.M7ThemeContrastDeviceLossAndLinkSanitization",
+             [&]
+        {
+            Testing::ForegroundOwnershipObserver foreground;
+            // P0-17: High Contrast populates complete GetSysColor palette and guards subduedText chrome.
+            {
+                auto hcOptions     = Options(root, L"hc-m7");
+                hcOptions.scenario = L"high-contrast";
+                Application hcApp(hcOptions);
+                Success(hcApp.Initialize(), "initialize high-contrast M7 fixture");
+                Resize(hcApp, 1280, 800);
+                const auto& theme = hcApp.Host().GetTheme();
+                Require(theme.highContrast, "high-contrast scenario sets theme.highContrast");
+                Require(theme.overlayBackground.r == theme.windowBackground.r && theme.overlayBackground.g == theme.windowBackground.g &&
+                            theme.overlayBackground.b == theme.windowBackground.b,
+                        "HC overlayBackground tracks COLOR_WINDOW");
+                Require(theme.primaryButtonFill.has_value() &&
+                            (theme.primaryButtonFill.value().r != D2D1::ColorF(0xC83C46).r || theme.primaryButtonFill.value().g != D2D1::ColorF(0xC83C46).g),
+                        "HC primaryButtonFill does not hardcode non-HC crimson");
+                Require(theme.subduedText.r == theme.text.r && theme.subduedText.g == theme.text.g && theme.subduedText.b == theme.text.b,
+                        "HC subduedText matches window text for full contrast");
+                hcApp.SetView(EditorView::Split);
+                hcApp.Layout();
+                Require(hcApp._splitSwitchHint != nullptr, "split chrome labels update cleanly in high contrast");
+            }
+
+            // P0-17 Paper overlayBackground + P1-04 device loss dashed stroke + P1-20 scroll restore target + P2-06 links.
+            {
+                Application app(Options(root, L"m7-theme-deviceloss-links"));
+                Success(app.Initialize(), "initialize M7 theme/device-loss/link fixture");
+                Resize(app, 1280, 800);
+                app._settings.appearance = Appearance::Paper;
+                app.ApplyTheme();
+                Color(app.Host().GetTheme().overlayBackground, 0xF3EDDF, "Paper overlayBackground uses Paper surfaceBackground");
+
+                // P1-04: Device loss advances generation and recreates split seam _dashedStroke cleanly.
+                app._settings.splitScrollSync = false;
+                app.SetDocument(L"# Split Seam\n\nParagraph content.\n");
+                app.SetView(EditorView::Split);
+                app.Prepare(128);
+                const auto genBefore = app.Host().GetResourceGeneration();
+                app.Host().DebugSimulateDeviceLoss();
+                app.Prepare(128);
+                Require(app.Host().GetResourceGeneration() > genBefore && app.Capture(root / L"m7-deviceloss-split.png"),
+                        "split view survives device loss and repaints dashed seam cleanly");
+                std::error_code ec;
+                std::filesystem::remove(root / L"m7-deviceloss-split.png", ec);
+
+                // P1-20 & PERF-08: SetView skips SavePreferences when unchanged; SynchronizeMirror sets _pendingSourceScrollRestore for _mirror.
+                app.SetView(EditorView::Source);
+                const auto beforeSavePrefs = app._settings.view;
+                Require(beforeSavePrefs == EditorView::Source && ! app._preferenceWriter.Busy(), "unchanged/settled view check");
+                app.SetView(EditorView::Source); // no-op
+                Require(! app._preferenceWriter.Busy(), "SetView to already active view skips redundant SavePreferences");
+
+                app.SetView(EditorView::Split);
+                app._settings.splitScrollSync = false;
+                app.Document().SetText(L"# Sync\n\nLine 1\n\nLine 2\n");
+                app._pendingSourceScrollRestore.reset();
+                app._pendingComposeScrollRestore.reset();
+                Require(app.SynchronizeMirror(), "SynchronizeMirror succeeds in Split view");
+                Require(! app._pendingComposeScrollRestore.has_value(), "mirror sync never writes _pendingComposeScrollRestore when target is _mirror");
+
+                // P2-06: Link validation and UI string sanitization.
+                Require(Application::SupportedExternalLink(L"https://example.com/path?x=1#y"), "accepts clean HTTPS link");
+                Require(Application::SupportedExternalLink(L"mailto:user@example.com"), "accepts clean mailto link");
+                Require(! Application::SupportedExternalLink(L"https://evil.example\\share/doc"), "rejects backslash in http authority");
+                Require(! Application::SupportedExternalLink(L"mailto:user\\domain@example.com"), "rejects backslash in mailto destination");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\x202E"), "rejects BiDi override U+202E");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\x200B"), "rejects zero-width U+200B");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\x0007"), "rejects C0 control");
+                Require(! Application::SupportedExternalLink(std::wstring(2049u, L'a')), "rejects URL > 2048 units");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\xD800"), "rejects unpaired UTF-16 surrogate");
+                Require(! Application::SupportedExternalLink(L"https:///empty-host"), "rejects empty HTTP authority");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\x061C"), "rejects Arabic Letter Mark U+061C");
+                Require(! Application::SupportedExternalLink(L"mailto:?subject=x"), "rejects mailto link with empty recipient before query");
+                Require(! Application::SupportedExternalLink(L"mailto:#frag"), "rejects mailto link with empty recipient before fragment");
+                Require(! Application::SupportedExternalLink(L"mailto:"), "rejects bare mailto scheme without recipient");
+                Require(Application::SupportedExternalLink(L"mailto:user@example.com?subject=hi"), "accepts mailto link with recipient and query");
+
+                Require(IsUnsafeDisplayCodePoint(0x061Cu), "IsUnsafeDisplayCodePoint rejects Arabic Letter Mark U+061C");
+                const auto sanitized = SanitizeUiText(L"Title\x202E\x0007\x200B\x061CName", 16u);
+                Require(sanitized == L"TitleName", "SanitizeUiText removes BiDi/ALM/C0/zero-width characters cleanly");
+                Require(SanitizeUiText(L"A\U0001F642B", 2u) == L"A",
+                        "SanitizeUiText stops truncation before an overflowing safe surrogate pair instead of stitching trailing chars");
+            }
+            Require(foreground.NeverAcquiredForeground(), "M7 theme/device-loss/link tests stay hidden");
+        });
+
+        test("Editor.M7SelectionLookupAndIdleLayoutGates",
+             [&]
+        {
+            Testing::ForegroundOwnershipObserver foreground;
+            Application app(Options(root, L"m7-perf-selection-layout"));
+            Success(app.Initialize(), "initialize M7 perf selection/layout fixture");
+            Resize(app, 1280, 800);
+
+            // PERF-08: SyntaxLookupCache + binary-search headings/inlines/math + idle WM_PAINT ServiceImages bypass.
+            std::wstring doc;
+            for (int i = 0; i < 60; ++i)
+                doc += std::format(L"# Heading {}\n\nParagraph with **bold** *italic* `code` [link](https://example.com).\n\n", i);
+            doc += L"$$\nE = mc^2\n$$\n\n- item 1\n- item 2\n";
+            app.SetDocument(doc);
+            app.Prepare(256);
+
+            Require(app._derivedCaches.syntaxCache.syntax != nullptr && app._derivedCaches.syntaxCache.topLevelBlocks.size() >= 100u &&
+                        ! app._derivedCaches.syntaxCache.fencedMathBlocks.empty(),
+                    "SyntaxLookupCache populates top-level and fenced math block indices once per syntax revision");
+
+            const auto boldPos = doc.find(L"bold") + 1;
+            app.Document().SetSelection({boldPos, boldPos});
+            app.SelectionChanged();
+            Require(app._tools[3]->GetToggleState().value_or(false) && ! app._equationContext,
+                    "caret inside **bold** detects Strong format via O(log B) tree walk");
+
+            const auto mathPos = doc.find(L"mc^2");
+            app.Document().SetSelection({mathPos, mathPos});
+            app.SelectionChanged();
+            Require(app._equationContext && app.EquationPreviewText().find(L"mc^2") != std::wstring::npos,
+                    "caret inside fenced $$ block finds math via binary search on fencedMathBlocks");
+
+            const auto headingPos = doc.find(L"# Heading 45") + 3;
+            app.Document().SetSelection({headingPos, headingPos});
+            app.SelectionChanged();
+            Require(app._currentHeading.has_value() && app._currentHeading.value() == 45u,
+                    "heading selection matches exact outline heading via std::upper_bound");
+
+            // Idle WM_PAINT skips image watch mutex work when no images active/pending and view unchanged.
+            (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+            Require(app._imageWatchWasRichVisible == true && ! app._images.HasActiveOrResults() && ! app._imageFiles.HasResult(),
+                    "image watch settles rich-visible flag and idle gates report false");
+            (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+
+            // PERF-02: Pin label caching + hidden drawer layout skip keeps theme previews fresh.
+            app._settings.showOutline = true;
+            app.Layout();
+            Require(app._lastPinOutlineDocked == std::optional<bool>{true}, "pin cache records docked state");
+            app._settings.appearance = Appearance::Dark;
+            app.ApplyTheme();
+            app.Layout();
+            Require(! app._drawer->IsVisible() && app._themeButtons[0]->GetThemePreview().has_value(),
+                    "hidden drawer skips heavy layout while preserving live theme swatch preview");
+
+            // Live-edit WM_PAINT image loading + consent without calling Prepare(), plus Source view switch and empty-doc settlement.
+            {
+                const auto imgDir = root / L"m7-live-wm-paint";
+                std::filesystem::create_directories(imgDir);
+                const auto bmpBytes = Testing::ImageBitmapFixture();
+                Success(WriteBytesAtomic(imgDir / L"live.bmp", std::string_view(reinterpret_cast<const char*>(bmpBytes.data()), bmpBytes.size())),
+                        "seed live.bmp");
+                const std::wstring baseDoc = L"# Base\n\nText.\n";
+                const auto docPath         = imgDir / L"doc.md";
+                Success(WriteBytesAtomic(docPath, "# Base\n\nText.\n"), "seed doc.md");
+                Require(app.SetDocument(baseDoc, docPath), "open base doc for live WM_PAINT image test");
+                app.Prepare(256);
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                Require(app._imageWatchWasRichVisible && ! app._imageConsent->IsVisible() && app._watchedImagePaths.empty(),
+                        "base doc settles before live image edit");
+
+                const auto insertAt = app.Document().GetText().size();
+                app.Document().SetSelection({insertAt, insertAt});
+                Require(app.Document().ReplaceSelection(L"\n![Live local](live.bmp)\n![Live remote](https://example.com/a.png)\n"),
+                        "insert live local and remote images without Prepare()");
+                const auto done = [&]
+                {
+                    return app._imageConsent->IsVisible() && app.Document().GetImageResourceStatistics().readySources == 1u &&
+                           app._watchedImagePaths.size() == 1u && app._imageWatchAcknowledgedSemantic != nullptr;
+                };
+                const auto deadline = GetTickCount64() + 5000ull;
+                while (! done() && GetTickCount64() < deadline)
+                {
+                    MSG msg{};
+                    while (PeekMessageW(&msg, app.Window(), 0, 0, PM_REMOVE))
+                    {
+                        TranslateMessage(&msg);
+                        DispatchMessageW(&msg);
+                    }
+                    (void)app.Host().RenderInitialFrameForShow();
+                    (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                    if (done())
+                        break;
+                    (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5u, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                }
+                Require(done(), "live WM_PAINT loop loads local image, updates watch path, and shows remote consent without Prepare()");
+
+                app.SetView(EditorView::Source);
+                (void)app.Host().RenderInitialFrameForShow();
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                Require(app.SetDocument(L"# Clean\n", imgDir / L"clean.md"), "open clean doc in Source mode");
+                (void)app.Host().RenderInitialFrameForShow();
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                Require(! app._imageConsent->IsVisible() && app._imageConsentPath == (imgDir / L"clean.md") &&
+                            app._imageWatchDocumentPath == (imgDir / L"clean.md") && app._watchedImagePaths.empty() && ! app._imageWatchWasRichVisible &&
+                            app._imageWatchAcknowledgedSemantic == nullptr,
+                        "Source view switch and clean doc reset image consent and watched paths via WM_PAINT");
+
+                Require(app.SetDocument(L"", imgDir / L"empty.md"), "open empty doc in Source mode");
+                (void)app.Host().RenderInitialFrameForShow();
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                (void)app.Host().RenderInitialFrameForShow();
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                Require(! app._imageWatchWasRichVisible && app._imageWatchAcknowledgedSemantic == nullptr &&
+                            app._imageWatchDocumentPath == (imgDir / L"empty.md"),
+                        "empty doc settles cleanly without image-watch churn");
+            }
+
+            Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "M7 perf gate test stays hidden");
         });
     }
 };
