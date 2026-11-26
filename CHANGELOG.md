@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Align `vcpkg-tool.json` with the `2026.10.16` `vcpkg.json` baseline (`9eec002df1cd109f8f104cd966a763daf9751489`) and verify `builtin-baseline` parity during compiler-free `validate.ps1` checks as well as native restore. Validated with `validate.ps1`, `format.ps1 -Check`, and x64 `Release` build; full multi-profile and native ARM64 runtime qualification remain separate gates.
 - Settings: Preserve readable incompatible settings at their original path. Guard malformed-file recovery against a competing edit.
 - Record RedTilde's post-1.0 DxUi API 6 adoption and qualification in its own plan.
 - Point RedTilde coding guidance to the active member naming rules and the root validation check.
