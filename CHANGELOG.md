@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Align the vcpkg registry, tool and shared CI engine with the reviewed convergence pins.
 - Adopt the shared native build profile reference in the root development guidance.
 - Hardened RedTilde across installer, lifecycle shutdown, printing, file operations, GitHub integration, spelling, modals, packaging, and test coverage (`P0-01`–`P0-18`, `P1-01`–`P1-22`, `P2-01`–`P2-13`, `PERF-01`–`PERF-10`, `SIMPLIFY-01`–`SIMPLIFY-06`, `TEST-01`–`TEST-03`):
   - Replaced destructive PowerShell `RegistryProvider` calls and unguarded directory uninstall in `Installer/Install-RedTilde.ps1` with non-destructive `[Microsoft.Win32.RegistryKey]` updates, non-empty unowned directory refusal, and manifest-only `.redtilde-install.json` uninstall (`Tooling.Tests.Installer.ps1` kernel hive `RegLoadAppKeyW` regressions).
