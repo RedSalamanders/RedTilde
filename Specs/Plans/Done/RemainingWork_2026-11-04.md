@@ -553,7 +553,7 @@ is included here, without rebuilding or packaging the separate viewer.
 ### T-CV1 — shared code conventions (RedHome CV-6-08)
 
 Step CV-6-08 of the cross-repository
-[convergence plan](https://github.com/RedSalamanders/RedHome/blob/main/Specs/Plans/WIP/Convergence_2026-11-17.md)
+[convergence plan](https://github.com/RedSalamanders/RedHome/blob/main/wiki/Working-From-RedHome.md#plan-and-owner-decisions)
 gives each code convention one target in every repository (register section H). Local and hosted `de873ee`
 Release/ARM64 qualification completed (Gate 1 & Gate 2); remaining `H-01`/`H-02`/`H-05`/`H-14` wait for API 6
 (RedHome D20) and Gate 7 release cut.
